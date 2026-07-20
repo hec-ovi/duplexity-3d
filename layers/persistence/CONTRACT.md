@@ -8,8 +8,9 @@ schemas that every other layer references.
 ## Inputs (params in)
 - `save(Adventure) -> { id }`
 - `load(id) -> Adventure`
-- `export(id) -> Bundle` (a self-contained file; `GET /adventure/:id/export`)
-- `import(Bundle) -> Adventure` (`POST /adventure/import`)
+- `list() -> [{ id, title, instanceCount }]`
+- `export(id) -> Bundle` / `exportFile(id) -> string` (the portable JSON file; `GET /adventure/:id/export`)
+- `import(Bundle) -> Adventure` / `importFile(text) -> Adventure` (migrates + validates; `POST /adventure/import`)
 - `appendHistory(id, InteractionRecord) -> void` (used by narrator at play-time)
 
 ## Outputs (params out)

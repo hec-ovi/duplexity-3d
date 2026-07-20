@@ -31,8 +31,20 @@ const UNPROCESSABLE = new Set([
   "INSTANCE_BUILD_FAILED",
   "NO_ASSET_FOR_KIND",
   "SELF_CONTEXT_INVALID",
+  "IMPORT_INVALID",
+  "MIGRATION_FAILED",
 ]);
-const BAD_REQUEST = new Set(["BAD_JSON", "INTERACTION_INVALID"]);
+const BAD_REQUEST = new Set(["BAD_JSON", "INTERACTION_INVALID", "BAD_BUNDLE", "BAD_URL"]);
+
+// decodeURIComponent throws a codeless URIError on a malformed escape (e.g. "%zz"); turn that into a
+// 400 rather than letting it fall through to the 500 default (a malformed id is the caller's to fix).
+function decodeId(raw) {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    throw Object.assign(new Error("malformed id in path"), { code: "BAD_URL" });
+  }
+}
 
 export function createRouter(service) {
   return async function handle(req, res) {
@@ -52,13 +64,21 @@ export function createRouter(service) {
         const body = await readJsonBody(req);
         return send(201, service.createAdventure(body));
       }
+      if (req.method === "POST" && pathname === "/adventure/import") {
+        const body = await readJsonBody(req);
+        return send(201, service.importAdventure(body));
+      }
       if (req.method === "POST" && pathname === "/interaction") {
         const body = await readJsonBody(req);
         return send(200, await service.resolveInteraction(body));
       }
+      const exp = pathname.match(/^\/adventure\/([^/]+)\/export$/);
+      if (req.method === "GET" && exp) {
+        return send(200, service.exportAdventure(decodeId(exp[1])));
+      }
       const m = pathname.match(/^\/adventure\/([^/]+)$/);
       if (req.method === "GET" && m) {
-        return send(200, service.getAdventure(decodeURIComponent(m[1])));
+        return send(200, service.getAdventure(decodeId(m[1])));
       }
       return send(404, { error: "not found", code: "NOT_FOUND" });
     } catch (e) {

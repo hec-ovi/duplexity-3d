@@ -32,6 +32,17 @@ export function createBackendService(overrides = {}) {
     createAdventure: author.createAdventure,
     getAdventure: author.getAdventure,
     resolveInteraction: interaction.resolveInteraction,
+    exportAdventure: (id) => persistence.export(id),
+    importAdventure: (bundle) => {
+      try {
+        return persistence.import(bundle);
+      } catch (e) {
+        // A bad uploaded file is the caller's to fix (422), unlike an author-time SCHEMA_INVALID from a
+        // planner bug (a 500). Re-code the import failure so the two do not collapse to the same status.
+        if (e.code === "SCHEMA_INVALID") throw Object.assign(new Error(e.message), { code: "IMPORT_INVALID", errors: e.errors });
+        throw e;
+      }
+    },
     persistence,
     registry,
   };

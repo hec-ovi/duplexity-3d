@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { validate, SCHEMA_ID } from "../../../harness/schemas.js";
-import { createPersistence, NotFoundError } from "../src/index.js";
+import { createPersistence, NotFoundError, MigrationFailedError, BadBundleError } from "../src/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const fixture = JSON.parse(readFileSync(join(HERE, "../fixtures/adventure.example.json"), "utf8"));
@@ -30,6 +30,46 @@ describe("persistence contract", () => {
 
     const p2 = createPersistence({ validateAdventure });
     expect(p2.import(bundle)).toEqual(fixture);
+  });
+
+  it("exportFile serializes a portable JSON string that importFile restores into a fresh store", () => {
+    const p = createPersistence({ validateAdventure });
+    p.save(fixture);
+    const text = p.exportFile("adv-example-001");
+    expect(typeof text).toBe("string");
+    // the portable file is itself a schema-valid Bundle
+    expect(validate(SCHEMA_ID.persistence.bundle, JSON.parse(text)).ok).toBe(true);
+
+    const other = createPersistence({ validateAdventure }); // "another machine"
+    const restored = other.importFile(text);
+    expect(restored).toEqual(fixture);
+    expect(other.load("adv-example-001")).toEqual(fixture);
+  });
+
+  it("importFile migrates an older same-major export forward (backfills a missing history)", () => {
+    const p = createPersistence({ validateAdventure });
+    const older = structuredClone(fixture);
+    delete older.history; // an older export that predates the history field
+    const text = JSON.stringify({ adventure: older, generatedAssets: [] });
+
+    const restored = p.importFile(text);
+    expect(restored.history).toEqual([]); // migrated forward, now schema-valid
+    expect(validateAdventure(restored).ok).toBe(true);
+  });
+
+  it("rejects a bundle from a newer major contractVersion with MIGRATION_FAILED", () => {
+    const p = createPersistence({ validateAdventure });
+    const future = structuredClone(fixture);
+    future.meta = { ...future.meta, contractVersion: "2.0.0" };
+    const text = JSON.stringify({ adventure: future, generatedAssets: [] });
+    expect(() => p.importFile(text)).toThrowError(MigrationFailedError);
+  });
+
+  it("rejects malformed / non-bundle import input with BAD_BUNDLE", () => {
+    const p = createPersistence({ validateAdventure });
+    expect(() => p.importFile("{not json")).toThrowError(BadBundleError);
+    expect(() => p.import({})).toThrowError(BadBundleError); // no adventure
+    expect(() => p.import(null)).toThrowError(BadBundleError);
   });
 
   it("appendHistory adds a schema-valid InteractionRecord to the document", () => {

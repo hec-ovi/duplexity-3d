@@ -35,7 +35,7 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The catalog of usable 3D pieces (kit parts, generated assets) | `layers/asset-registry/` |
 | Generating or enriching 3D assets (ComfyUI / API) | `layers/asset-gen/` |
 | Swapping a text LLM / TTS / image model provider | that layer's `providers/` adapter (config) |
-| The `POST /adventure` author route or `POST /interaction` play-time brain route | `server/` (backend composition root) |
+| The `POST /adventure` author, `POST /interaction` brain, or `GET/POST` export/import routes | `server/` (backend composition root) |
 | The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
 
 `app/` and `server/` are the two composition roots. They live OUTSIDE `layers/` and are the only

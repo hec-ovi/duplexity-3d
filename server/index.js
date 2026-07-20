@@ -13,6 +13,6 @@ const service = createBackendService();
 createServer(service).listen(PORT, () => {
   console.log(
     `backend API listening on http://localhost:${PORT} ` +
-      `(POST /adventure, GET /adventure/:id, POST /interaction)`,
+      `(POST /adventure, GET /adventure/:id, GET /adventure/:id/export, POST /adventure/import, POST /interaction)`,
   );
 });

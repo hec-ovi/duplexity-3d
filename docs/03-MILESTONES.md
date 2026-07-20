@@ -134,13 +134,30 @@ Legend: [x] done, [~] in progress, [ ] not started.
   array-returning TTS adapter no longer leaks a non-object audio handle). The real Qwen3 A3B GGUF and
   TTS/STT adapters drop in behind the same `brain` / `deps.tts` / `deps.stt` seams (04-TECH-STACK.md).
 
-## Phase 7 - Persistence + UX shell (export/import, adventure browser) [ ]
+## Phase 7 - Persistence + UX shell (export/import, adventure browser) [x]
 
-- `layers/persistence/`: export an Adventure to a portable file (bundling generated assets),
-  import one, save/load. `layers/ux-shell/`: menus, adventure browser, new/import/export screens,
-  HUD frame, isolated from the runtime canvas.
-- DoD: full round trip (author -> play -> export -> import -> play) works. Tests for the transfer
-  format and the shell flows.
+- [x] `layers/persistence/`: `exportFile(id)` serializes a `Bundle` (the Adventure plus any non-kit
+  generated assets) to a portable JSON string; `importFile(text)` reads one back. Import runs
+  `migrateForward`, which backfills fields an older same-major export may lack (an empty `history`) and
+  refuses a newer MAJOR `contractVersion` it cannot read (`MIGRATION_FAILED`); a non-JSON or non-Bundle
+  body is `BAD_BUNDLE`. The result opens byte-identical on a fresh store.
+- [x] `server/`: `GET /adventure/:id/export` returns the Bundle; `POST /adventure/import` migrates,
+  validates, and saves it. An import failure is client-actionable (`MIGRATION_FAILED` / `IMPORT_INVALID`
+  -> 422, `BAD_BUNDLE` / bad JSON -> 400), never the 500 an author-time planner bug would be.
+- [x] `layers/ux-shell/`: a headless controller (list / open / new / export / import) plus `mount`, a
+  vanilla-DOM shell (adventure browser + New / Import / Export / Play) that renders and tests in jsdom,
+  isolated from the runtime canvas (the runtime owns its own canvas; the shell only reveals the stage).
+- [x] DoD met: the full round trip works across TWO independent backends. `server/roundtrip.test.js`
+  authors through the real `POST /adventure`, walks the first instance with the real runtime, exports via
+  `GET /adventure/:id/export`, imports the serialized bundle onto a FRESH backend via
+  `POST /adventure/import`, and walks it again byte-identically. `ux-shell.dom.test.js` drives the shell
+  the way a user does (Testing Library + user-event): browse/Play, New, Export (a re-importable Bundle),
+  and Import (an uploaded file). `npm test` = 184 local tests (no CI); isolation stays clean (persistence
+  is a leaf; ux-shell imports no other layer's src; the round trip is wired in `server/`); 46 schemas
+  compile. An adversarial review pass ran; its confirmed findings were fixed (a malformed percent-encoded
+  id in an export/read URL returned 500 instead of 400; the shell's import handler swallowed a rejected
+  upload with no user feedback and left the file input unresettable). The import-overwrites-existing
+  finding was refuted: that is the store's intended upsert-by-id, matching `save`.
 
 ## Phase 8 - Asset generation (optional enrichment, last on purpose) [ ]
 

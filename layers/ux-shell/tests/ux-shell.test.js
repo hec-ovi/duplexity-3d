@@ -16,6 +16,8 @@ function fakeDeps() {
     persistence: {
       list: vi.fn(() => [{ id: "adv-example-001", title: "The Vault of the Gruff Smith" }]),
       load: vi.fn(() => structuredClone(fixture)),
+      exportFile: vi.fn(() => JSON.stringify({ adventure: fixture, generatedAssets: [] })),
+      importFile: vi.fn((text) => JSON.parse(text).adventure),
     },
     runtime: { load: vi.fn() },
     author: vi.fn(() => structuredClone(fixture)),
@@ -51,5 +53,19 @@ describe("ux-shell contract", () => {
     const adv = shell.newAdventure(brief);
     expect(deps.author).toHaveBeenCalledWith(brief);
     expect(validate(SCHEMA_ID.persistence.adventure, adv).ok).toBe(true);
+  });
+
+  it("exportAdventure returns a portable Bundle string via persistence, and importAdventure restores it", () => {
+    const deps = fakeDeps();
+    const shell = createShell(deps);
+
+    const text = shell.exportAdventure("adv-example-001");
+    expect(deps.persistence.exportFile).toHaveBeenCalledWith("adv-example-001");
+    const bundle = JSON.parse(text);
+    expect(validate(SCHEMA_ID.persistence.bundle, bundle).ok).toBe(true);
+
+    const restored = shell.importAdventure(text);
+    expect(deps.persistence.importFile).toHaveBeenCalledWith(text);
+    expect(validate(SCHEMA_ID.persistence.adventure, restored).ok).toBe(true);
   });
 });

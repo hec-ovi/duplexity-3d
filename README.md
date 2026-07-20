@@ -23,7 +23,10 @@ wired: `POST /adventure` (a small backend in `server/`) takes a creative brief, 
 returns a complete multi-instance Adventure, a planner lays out a gated progression graph, the
 scenario-creator builds each instance, and the npc layer fills them with bodies that only claim the
 moves their kit animation actually has. No model is required for any of it yet; every LLM caller is a
-deterministic stand-in behind a seam. Under that, every wire format has a JSON Schema and every one of
+deterministic stand-in behind a seam. Adventures are portable: any authored world exports to a
+self-contained file and imports byte-identically onto another machine (migrating an older version
+forward, refusing a newer one), and a small vanilla-DOM shell frames it all with an adventure browser
+and New, Import, Export, and Play screens. Under that, every wire format has a JSON Schema and every one of
 the ten layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
 its own contract, so the codebase can grow huge without any one change rippling into the rest.
 
@@ -49,9 +52,10 @@ its own contract, so the codebase can grow huge without any one change rippling 
   store. Also outside `layers/`, for the same reason.
 
 Run `npm install`, then `npm run dev` to walk the slice in the browser, or `node server/index.js` to
-serve the backend API (`POST /adventure`, `GET /adventure/:id`, `POST /interaction`). `npm test`
-validates every schema against its fixtures, drives each layer's contract tests, runs the runtime's
-simulation and jsdom interaction tests, and exercises the author and interaction routes end to end.
+serve the backend API (`POST /adventure`, `GET /adventure/:id`, `POST /interaction`, and export/import).
+`npm test` validates every schema against its fixtures, drives each layer's contract tests, runs the
+runtime's simulation and jsdom interaction/shell tests, and exercises the author, interaction, and
+export/import routes end to end (including the full author to import round trip across two backends).
 `npm run schemas` compiles the schemas and checks cross-references on their own.
 
 ## The idea in one paragraph

@@ -8,17 +8,24 @@ the Adventure document.
 
 - `save(adventure) -> { id }`
 - `load(id) -> adventure`
-- `list() -> [{ id, title }]`
-- `export(id) -> bundle`
-- `import(bundle) -> adventure`
+- `list() -> [{ id, title, instanceCount }]`
+- `export(id) -> bundle` / `exportFile(id) -> string` (the portable JSON file)
+- `import(bundle) -> adventure` / `importFile(text) -> adventure`
 - `appendHistory(id, record) -> void`
 
-## Phase 1 status (stub)
+## Status
 
 `src/index.js` is an in-memory store created by `createPersistence({ validateAdventure })`. The
 validation function is injected rather than imported, so the store's `src/` never depends on the
 test harness; in production this layer wires its own Ajv against `schema/adventure.schema.json`. A
 save or import that fails validation throws `SCHEMA_INVALID`; an unknown id throws `NOT_FOUND`.
+
+Export/import (Phase 7) is a real portable-file round trip. `exportFile` serializes a `Bundle` (the
+Adventure plus any non-kit generated assets) to a JSON string you can save to disk; `importFile`
+reads one back. Import runs `migrateForward`, which backfills fields an older same-major export may
+lack (an empty `history`) and refuses a bundle from a newer MAJOR `contractVersion` it cannot read
+(`MIGRATION_FAILED`); a body that is not valid JSON or not a Bundle is `BAD_BUNDLE`. The result opens
+byte-identical on a fresh store.
 
 ## Schemas owned here (canonical)
 
@@ -28,8 +35,10 @@ save or import that fails validation throws `SCHEMA_INVALID`; an unknown id thro
 
 ## Run the tests
 
-From the repo root: `npm test`. The contract test round-trips the example Adventure through
-save/load/export/import and asserts the fixture is schema-valid.
+From the repo root: `npm test`. The contract tests round-trip the example Adventure through
+save/load/export/import, assert the fixture is schema-valid, serialize/deserialize a portable Bundle
+string across a fresh store, migrate an older export forward, and reject a newer-major bundle and a
+malformed one.
 
 ## Modify safely
 

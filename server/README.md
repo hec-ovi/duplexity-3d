@@ -18,6 +18,8 @@ so it is one of the two places allowed to wire several layers together (the isol
   NPC's brain and returns `{ result, record }` (200). The result is the re-validated InteractionResult;
   the record is appended to the Adventure's history. No brain is wired by default, so interactions
   resolve through the npc deterministic stand-in until a local model is injected.
+- `GET /adventure/:id/export` returns a portable `Bundle` (200), the self-contained transfer file.
+- `POST /adventure/import` with a `Bundle` body migrates, validates, and saves it (201).
 
 ## What it wires
 
@@ -31,10 +33,16 @@ smuggle a forbidden mode, resolves the turn through the npc brain, and appends t
 animation clips. Only the planner, the layout-graph generator, and the brain are deterministic
 stand-ins today; a local model swaps in behind those seams later with no change here.
 
+Export/import (Phase 7): `GET /adventure/:id/export` serializes the stored Adventure into a portable
+Bundle; `POST /adventure/import` runs it through `persistence` migration + validation and saves it, so
+an adventure authored on one machine opens on another that has only the base kits.
+
 HTTP status mapping: `PLAN_INVALID`, `PROGRESSION_DEADEND`, `INSTANCE_BUILD_FAILED`,
-`NO_ASSET_FOR_KIND`, and `SELF_CONTEXT_INVALID` return 422; a malformed JSON body or an invalid
-interaction payload returns 400; an unknown adventure/instance/npc returns 404. The interaction route
-never 500s on the model: a slow or thrown brain degrades to the safe fallback.
+`NO_ASSET_FOR_KIND`, `SELF_CONTEXT_INVALID`, `MIGRATION_FAILED`, and `IMPORT_INVALID` return 422; a
+malformed JSON body, an invalid interaction payload, or a bad bundle returns 400; an unknown
+adventure/instance/npc returns 404. The interaction route never 500s on the model: a slow or thrown
+brain degrades to the safe fallback. An import failure stays client-actionable (a bad uploaded file is
+never a 500), while an author-time `SCHEMA_INVALID` from a planner bug stays a 500.
 
 ## Tests
 
@@ -43,4 +51,6 @@ end (schema-valid multi-instance Adventure with a gated DAG, persisted, then wal
 runtime). `interaction.test.js` drives the real `POST /interaction` route with a fake LLM: talking flips
 an NPC to talk and it speaks, provoking flips it to attack/flee targeting the player, a client cannot
 smuggle a forbidden mode, a dead model degrades safely (no 500) while still archiving, and every
-exchange lands in the Adventure's history.
+exchange lands in the Adventure's history. `roundtrip.test.js` runs the full author -> play -> export ->
+import -> play across two independent backends and asserts the reimported document is byte-identical and
+still walkable.
