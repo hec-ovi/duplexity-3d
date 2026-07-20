@@ -30,13 +30,24 @@ Legend: [x] done, [~] in progress, [ ] not started.
   fixtures; no layer imports another's internals. An adversarial review pass ran and its 18 confirmed
   findings were fixed.
 
-## Phase 2 - Runtime vertical slice (render + walk, no AI) [ ]
+## Phase 2 - Runtime vertical slice (render + walk, no AI) [x]
 
-- three.js app in `layers/runtime/` loads the Phase 1 Adventure fixture, builds one instance from
-  modular kit pieces (`asset-registry`), player-controlled camera + movement + collision, portals
-  you can walk through between rooms.
-- DoD: you can walk a hand-authored instance in the browser. Proves the play-time Adventure
-  contract and the rendering pipeline. Component/interaction tests for the loader + controls.
+- [x] three.js app served from `app/` (the composition root) loads the Phase 1 Adventure fixture and
+  builds one instance: floors and walls from the room boxes with the portal openings cut out and a
+  header over each doorway (from the authored opening height), plus placeholder props/items/NPC
+  bodies sized from `asset-registry` (injected, never imported; a missing asset warns and falls back
+  to a default box, per the ASSET_LOAD_FAILED contract). Real GLB kit pieces drop in later behind the
+  same builder.
+- [x] First-person camera + WASD movement + AABB collision with wall sliding; you walk through the
+  portal openings and the runtime tracks which room you are in and picks up the amulet on contact.
+- [x] DoD met: `npm run dev` lets you walk the hand-authored instance in the browser and solve the
+  `discover_item` goal by reaching the amulet. The runtime is split into pure modules (scene-model,
+  collision, controls) plus a three.js builder and an injectable-renderer app shell, so the loader
+  and controls are tested with node + jsdom (`@testing-library/user-event`) interaction tests, no
+  browser needed. `npm test` = 81 local tests (no CI); isolation stays clean (runtime imports no
+  other layer's src). An adversarial review pass ran; its 5 confirmed findings (tunnelling at large
+  dt, wall-dedupe vertical extent, doorway header height, a one-sided test assertion, and pointer
+  lock on the play prompt) were fixed.
 
 ## Phase 3 - NPCs at play-time (deterministic, still no LLM) [ ]
 

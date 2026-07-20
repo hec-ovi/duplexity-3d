@@ -4,11 +4,12 @@ A 3D, LLM-driven adventure engine. It is the 3D sibling of gamentic: an AI narra
 small explorable worlds ("instances"), fills them with sentient NPCs you can talk to by voice
 or chat, and gives each one a goal to solve before you move to the next.
 
-The design is locked, and Phase 1 has turned the contracts into code: a JSON Schema for every wire
-format, plus a stub and contract tests for each of the nine layers, behind a shared test harness.
-There is no playable app yet (that starts in Phase 2). The whole thing is built around one hard
-rule: every subsystem is an isolated blackbox with its own contract, so the codebase can grow huge
-without any one change rippling into the rest.
+The design is locked, and the runtime is now a walkable slice: `npm run dev` loads a hand-authored
+Adventure and lets you walk it in three.js (WASD and mouse, reach the amulet to solve the instance).
+Under that, every wire format has a JSON Schema and every one of the nine layers has a contract test,
+behind a shared harness. There is no AI yet (that starts later); the world here is hand-authored. The
+whole thing is built around one hard rule: every subsystem is an isolated blackbox with its own
+contract, so the codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here
 
@@ -23,10 +24,14 @@ without any one change rippling into the rest.
   `README.md`, `schema/`, `src/`, `tests/`, and `fixtures/`; a layer may depend only on another's
   `CONTRACT.md` + `schema/`, never its `src/`.
 - [`harness/`](harness/) - shared test tooling: the JSON Schema loader and the isolation checker.
+- [`app/`](app/) - the composition root: the one place that wires several layers together (runtime +
+  asset-registry + the example Adventure) and mounts the playable slice. It sits outside `layers/`,
+  so the isolation rule (no layer reaches into another's `src/`) still holds.
 
-Run `npm install`, then `npm test` to validate every schema against its fixtures and drive each
-layer's contract tests. `npm run schemas` compiles the schemas and checks cross-references on their
-own.
+Run `npm install`, then `npm run dev` to walk the slice in the browser. `npm test` validates every
+schema against its fixtures, drives each layer's contract tests, and runs the runtime's simulation
+and jsdom interaction tests. `npm run schemas` compiles the schemas and checks cross-references on
+their own.
 
 ## The idea in one paragraph
 

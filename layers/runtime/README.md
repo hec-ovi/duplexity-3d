@@ -10,16 +10,33 @@ that crosses to the backend is a single interaction call.
 - `applyInteractionResult(npcId, result)` - apply a backend NPC decision.
 - emits `onInteraction`, `onHistoryAppend`, `onGoalMet`, `onRequestNextInstance` (injected).
 
-## Phase 1 status (stub)
+## Phase 2 status (walkable slice)
 
-No three.js yet. `createRuntime(deps)` builds an in-memory scene model from the Adventure, keeps
-play-time state (NPC modes, discovered items) SEPARATE from the authored document so the "never
-mutate authored data" invariant holds, applies interaction results, and evaluates the goal locally.
-The backend callbacks are injected, so this src imports no backend layer. Phase 2 replaces the scene
-model with a real three.js scene behind the same contract (see 04-TECH-STACK.md for the render,
-pathfinding, and speech-bubble stack).
+You can load the shared Adventure fixture and walk it in three.js. The layer is split so the
+simulation is testable without a browser:
 
-## Run the tests
+- `scene-model.js` (pure) turns an instance into floors, walls (with the portal openings cut out and
+  shared walls deduped), colliders, objects, pickup items, and npc placements.
+- `collision.js` (pure) slides the player (an XZ box) along walls; portal openings are simply absent
+  from the collider set, so you walk through them.
+- `controls.js` (pure) maps keys plus camera yaw to a movement delta.
+- `index.js` (`createRuntime`) owns play-time state and `step(dt, input)`: move, resolve collisions,
+  track which room you are in, auto-pick-up nearby items, evaluate the goal. Play-time state stays
+  SEPARATE from the authored document, so playing never mutates it.
+- `three-scene.js` builds the three.js object graph from the scene model. Phase 2 renders coloured
+  primitive placeholders sized from `asset-registry` (injected, never imported); a missing asset
+  warns and falls back to a default box, honouring the ASSET_LOAD_FAILED contract. Real GLB kit
+  pieces drop in later behind this same builder.
+- `app.js` (`createApp`) is the browser shell: renderer, first-person camera, keyboard + pointer-lock
+  look, and the render loop. The renderer is injectable and the loop is a manual `tick(dt)`, so it
+  runs head-less in tests.
 
-`npm test`. Loads the shared Adventure fixture, asserts the scene is built, an interaction changes
-only play-time NPC mode (not the authored data), and a discover_item goal fires `onGoalMet`.
+Pathfinding, animation, and speech bubbles are Phase 3 (see 04-TECH-STACK.md); NPCs render as static
+placeholders for now.
+
+## Run it
+
+- `npm test` runs the contract + simulation + jsdom interaction tests (no browser needed).
+- `npm run dev` (from the repo root) serves the playable slice from `app/`: WASD to move, mouse to
+  look, walk onto the amulet to meet the goal. `app/` is the composition root that wires this runtime
+  to `asset-registry` and the shared fixture (the one place allowed to import several layers).

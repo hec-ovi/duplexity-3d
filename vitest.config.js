@@ -1,9 +1,8 @@
 import { defineConfig } from "vitest/config";
 
-// Phase 1 = contract tests only: schema validation + stub entry points.
-// Later phases add jsdom/component tests for the runtime and ux-shell layers,
-// scoped per-folder. Discovery stays flat: every layer's tests/ plus the shared
-// harness tests.
+// Default environment is node (schema + pure-logic contract tests). Files that need a DOM (the
+// runtime app shell / interaction tests) opt in per-file with a `// @vitest-environment jsdom`
+// docblock. Discovery stays flat: every layer's tests/ plus the shared harness tests.
 export default defineConfig({
   test: {
     include: ["layers/**/tests/**/*.test.js", "harness/**/*.test.js"],
