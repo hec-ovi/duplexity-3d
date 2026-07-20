@@ -1,0 +1,34 @@
+# Node / JS
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+.eslintcache
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Python / ComfyUI side
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated assets (large binaries; keep source manifests, not outputs)
+assets/generated/
+*.glb.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs / local scratch
+*.log
+.cache/
+tmp/

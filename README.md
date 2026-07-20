@@ -1,0 +1,37 @@
+# doplexity-3d
+
+A 3D, LLM-driven adventure engine. It is the 3D sibling of gamentic: an AI narrator spins up
+small explorable worlds ("instances"), fills them with sentient NPCs you can talk to by voice
+or chat, and gives each one a goal to solve before you move to the next.
+
+Right now this repo is design and architecture only. There is no runnable app yet. The point of
+this stage is to lock the shape before writing code, because the whole thing is built around one
+hard rule: every subsystem is an isolated blackbox with its own contract, so the codebase can
+grow huge without any one change rippling into the rest.
+
+## What lives here
+
+- [`docs/00-RAW-IDEA.md`](docs/00-RAW-IDEA.md) - the original vision, in plain words.
+- [`docs/01-INTERPRETATION.md`](docs/01-INTERPRETATION.md) - how I read that vision as a system.
+- [`docs/02-ARCHITECTURE.md`](docs/02-ARCHITECTURE.md) - the layers and how they connect.
+- [`docs/03-MILESTONES.md`](docs/03-MILESTONES.md) - phases, in build order.
+- [`docs/04-TECH-STACK.md`](docs/04-TECH-STACK.md) - the researched 2026 tooling (three.js, local AI).
+- [`docs/CONTRACT-CONVENTION.md`](docs/CONTRACT-CONVENTION.md) - the isolation rule every layer obeys.
+- [`docs/INDEX.md`](docs/INDEX.md) - the dispatcher: which folder to open for a given change.
+- [`docs/layers/`](docs/layers/) - one contract per blackbox (interviewer, narrator, scenario creator, NPC, runtime, persistence).
+
+## The idea in one paragraph
+
+You start an adventure by answering a short interview (which universes, which kinds of NPCs), or
+you skip it and let the system invent one. A narrator turns that into a set of connected 3D
+rooms, decides the goals, and populates them with NPCs. You explore in the browser (three.js).
+NPCs mostly sit in a cheap deterministic state; when you talk to one, a small LLM call decides
+what it does next (follow, guard, attack, move, idle) and what it says. Solve an instance's goal
+(reach an exit, unlock a dialog, find something) and you advance. Adventures export and import as
+self-contained files.
+
+## Frontend and backend, split
+
+- Frontend: three.js in the browser. Heavy on rendering, light on logic.
+- Backend: local LLMs on AMD (Strix Halo, GGUF) plus optional local ComfyUI for asset
+  generation. Every backend subsystem is a blackbox behind a JSON contract.
