@@ -3,7 +3,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { validate, SCHEMA_ID } from "../../../harness/schemas.js";
-import { authorNpcs, resolveInteraction } from "../src/index.js";
+import {
+  authorNpcs,
+  resolveInteraction,
+  sanitizeDecision,
+  buildInteractionPrompt,
+  fallbackDecision,
+  composeVoiceDesign,
+} from "../src/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const selfContext = JSON.parse(readFileSync(join(HERE, "../fixtures/self-context.json"), "utf8"));
@@ -114,5 +121,98 @@ describe("npc.authorNpcs - author-time with a real body (Phase 5)", () => {
     expect(validate(SCHEMA_ID.npc.npcDef, npcs[0]).ok).toBe(true);
     expect(npcs[0].bodyRef).toBe("kaykit.character.humanoid");
     expect(npcs[0].spawn.position).toEqual([0, 0, 0]);
+  });
+});
+
+describe("npc - play-time brain via an injected model (Phase 6)", () => {
+  // Vex: hostile skeleton, allowedModes patrol/idle/attack/flee, current mode patrol, player-1 nearby.
+  const CHAT = { type: "chat", playerRef: "player-1", text: "who goes there?" };
+
+  it("drives the decision through an injected brain and re-validates it to a schema-valid result", () => {
+    const brain = () => ({ newMode: "attack", target: "player-1", utterance: "You will not pass." });
+    const result = resolveInteraction(selfContext, CHAT, { brain });
+    expect(validate(SCHEMA_ID.npc.interactionResult, result).ok, JSON.stringify(result)).toBe(true);
+    expect(result.newMode).toBe("attack");
+    expect(result.target).toBe("player-1");
+    expect(result.utterance).toBe("You will not pass.");
+  });
+
+  it("rejects an off-contract mode from the model and falls back to the current mode", () => {
+    // 'talk' is not in Vex's allowedModes -> the whole decision is rejected, mode stays 'patrol'.
+    const result = resolveInteraction(selfContext, CHAT, { brain: () => ({ newMode: "talk", utterance: "hi" }) });
+    expect(result).toEqual({ newMode: "patrol" });
+  });
+
+  it("drops a target the model invented but keeps the (valid) mode and line", () => {
+    const result = sanitizeDecision({ newMode: "attack", target: "ghost-999", utterance: "Halt." }, selfContext);
+    expect(result.newMode).toBe("attack");
+    expect(result.target).toBeUndefined();
+    expect(result.utterance).toBe("Halt.");
+  });
+
+  it("accepts a world-position target as a vec3, and a real entity/id target", () => {
+    expect(sanitizeDecision({ newMode: "attack", target: [6, 0, 8] }, selfContext).target).toEqual([6, 0, 8]);
+    expect(sanitizeDecision({ newMode: "attack", target: "player-1" }, selfContext).target).toBe("player-1");
+  });
+
+  it("parses a JSON-string completion and scrubs leaked markup out of the utterance", () => {
+    const result = sanitizeDecision('{"newMode":"idle","utterance":"Hold <break> there"}', selfContext);
+    expect(result.newMode).toBe("idle");
+    expect(result.utterance).toBe("Hold there");
+  });
+
+  it("collapses to the fallback on malformed JSON, a non-object, or a thrown model", () => {
+    expect(sanitizeDecision("{not json", selfContext)).toEqual(fallbackDecision(selfContext));
+    expect(sanitizeDecision(null, selfContext)).toEqual({ newMode: "patrol" });
+    expect(sanitizeDecision(42, selfContext)).toEqual({ newMode: "patrol" });
+    const thrown = resolveInteraction(selfContext, CHAT, {
+      brain: () => {
+        throw new Error("model timeout");
+      },
+    });
+    expect(thrown).toEqual({ newMode: "patrol" });
+  });
+
+  it("the deterministic stand-in never emits a mode outside allowedModes, even if the current mode is forged", () => {
+    // self-context validates myState.mode against the enum only, so a client can forge a current mode
+    // its NPC is not allowed. The stand-in must clamp it, not echo it (regression for the smuggle bug).
+    const forged = { ...selfContext, allowedModes: ["idle", "wander"], myState: { mode: "attack", memory: [] } };
+    // a gesture other than 'attack' hits no explicit branch -> previously echoed the forged current
+    const r1 = resolveInteraction(forged, { type: "gesture", gesture: "wave", playerRef: "p" });
+    expect(forged.allowedModes).toContain(r1.newMode);
+    expect(r1.newMode).not.toBe("attack");
+    // chat when 'talk' is not allowed -> falls through to the (clamped) current, still within allowedModes
+    const r2 = resolveInteraction(forged, { type: "chat", playerRef: "p", text: "hi" });
+    expect(forged.allowedModes).toContain(r2.newMode);
+  });
+
+  it("buildInteractionPrompt carries the persona, the allowed modes, and the player's words", () => {
+    const prompt = buildInteractionPrompt(selfContext, CHAT);
+    expect(prompt.system).toContain("Vex");
+    expect(prompt.system).toContain("skeleton guard");
+    for (const m of selfContext.allowedModes) expect(prompt.system).toContain(m);
+    expect(prompt.user).toContain("who goes there?");
+  });
+});
+
+describe("npc - deterministic voice-design composer (Phase 6)", () => {
+  it("is deterministic, schema-valid, and re-salts to stay distinct under an exclude set", () => {
+    const a = composeVoiceDesign("npc-alpha");
+    const again = composeVoiceDesign("npc-alpha");
+    expect(again).toEqual(a); // same id -> same voice (no Math.random / Date)
+    expect(validate(SCHEMA_ID.voice.voiceDesign, a).ok, JSON.stringify(a)).toBe(true);
+
+    const distinct = composeVoiceDesign("npc-alpha", { exclude: new Set([a.description]) });
+    expect(distinct.description).not.toBe(a.description);
+  });
+
+  it("authorNpcs stamps every NPC a distinct, schema-valid voice design", () => {
+    const npcs = authorNpcs(
+      { id: "inst-001", theme: "dungeon", rooms: [{ id: "room-1" }] },
+      { count: 3, roles: [{ role: "guard" }, { role: "smith" }, { role: "villager" }] },
+    );
+    for (const n of npcs) expect(validate(SCHEMA_ID.voice.voiceDesign, n.voiceDesign).ok).toBe(true);
+    const descriptions = npcs.map((n) => n.voiceDesign.description);
+    expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 });

@@ -157,6 +157,20 @@ respective phases, matching the author-time/play-time split.
   run on AMD). Borrow Stanford generative-agents' bounded-observation + memory idea, never its per-tick
   call frequency (its successor runs 1,052 agents).
 - https://strixhalo.wiki/AI/llamacpp-with-ROCm
+- **Phase 6 status:** shipped the play-time brain seam without a model yet. `npc.resolveInteraction`
+  takes an injected `brain` and re-validates its raw output with `sanitizeDecision` (the paper's
+  SchemaOK/PermOK: newMode in allowedModes or reject; target must resolve; bad JSON / thrown / absent
+  model -> safe fallback, so play never blocks). `buildInteractionPrompt` is the prompt a
+  grammar-constrained provider is called with, and the interaction-result JSON Schema is its GBNF. The
+  async model call lives in the `server` composition root (`POST /interaction`), which awaits the
+  provider and hands the completion to `sanitizeDecision`; the route rebuilds the security-critical
+  selfContext fields from the authored NpcDef so a client cannot force an off-contract mode. Voice/chat
+  landed as the narrow `voice` layer: `synthesizeSpeech`/`transcribe` behind injected TTS/STT adapters,
+  degrading to text-only with no local codec sidecar (the deliberate simplification vs gamentic's
+  Maya1-3B + SNAC sidecar). The deterministic voice-design composer is ported (in `npc`). The real
+  node-llama-cpp Vulkan GGUF (brain) and a local/hosted TTS/STT (voice adapters) drop in behind these
+  seams with no caller change; grammar-object enforcement + the deterministic re-validate close the
+  llama.cpp #19051 fail-open.
 
 ### AI 3D asset generation (optional, async) -> `asset-gen`
 - **TRELLIS.2-4B** (Microsoft, MIT, Dec 2025) is the highest-fidelity open PBR image-to-3D under a

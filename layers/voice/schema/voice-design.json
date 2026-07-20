@@ -1,0 +1,18 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/voice/voice-design.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VoiceDesign",
+  "description": "A deterministic voice identity, composed once from a hash of the character id (ported from gamentic's voice-design composer). Provider-agnostic natural-language parameters a TTS adapter reads; the same id always yields the same voice, and a cast is composed with an exclude set so members sound distinct. Embedded verbatim into NpcDef.voiceDesign.",
+  "type": "object",
+  "properties": {
+    "description": { "type": "string", "description": "A one-line natural-language voice descriptor the TTS provider consumes." },
+    "gender": { "type": "string" },
+    "age": { "type": "string" },
+    "pitch": { "type": "string" },
+    "pacing": { "type": "string" },
+    "accent": { "type": "string" },
+    "timbre": { "type": "string" }
+  },
+  "required": ["description"],
+  "additionalProperties": true
+}

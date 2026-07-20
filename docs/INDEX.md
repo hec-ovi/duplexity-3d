@@ -23,8 +23,9 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The 3D world rendering, camera, controls, HUD frame drawing | `layers/runtime/` |
 | NPC movement, pathfinding, animation, deterministic behavior modes | `layers/runtime/` (behavior) + `layers/npc/` (definitions) |
 | Speech/chat bubbles or name labels above NPCs in-scene | `layers/runtime/` |
-| What an NPC says / does when the player interacts (mode switch, dialogue) | `layers/npc/` |
-| NPC data model (personality, body, allowed actions, memory) | `layers/npc/` |
+| What an NPC says / does when the player interacts (mode switch, dialogue, the model seam) | `layers/npc/` |
+| NPC data model (personality, body, allowed actions, memory, voice design) | `layers/npc/` |
+| Turning an NPC line into speech, or a spoken player turn into text (TTS/STT, emotion tags) | `layers/voice/` |
 | How rooms/doors/positions are laid out and validated | `layers/scenario-creator/` |
 | How many instances, goals, progression graph, adventure planning | `layers/narrator/` |
 | The onboarding interview / creative brief / skip flow | `layers/interviewer/` |
@@ -34,12 +35,13 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The catalog of usable 3D pieces (kit parts, generated assets) | `layers/asset-registry/` |
 | Generating or enriching 3D assets (ComfyUI / API) | `layers/asset-gen/` |
 | Swapping a text LLM / TTS / image model provider | that layer's `providers/` adapter (config) |
-| The `POST /adventure` author route (wires the backend pipeline) | `server/` (backend composition root) |
+| The `POST /adventure` author route or `POST /interaction` play-time brain route | `server/` (backend composition root) |
 | The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
 
 `app/` and `server/` are the two composition roots. They live OUTSIDE `layers/` and are the only
 places allowed to import several layers at once (the isolation checker does not scan them): `app/`
-wires the play-time browser slice, `server/` wires the author-time HTTP API.
+wires the play-time browser slice, `server/` wires the backend HTTP API (author-time `POST /adventure`
+plus play-time `POST /interaction`, over one shared store).
 
 ## The rule you carry into any folder
 

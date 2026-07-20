@@ -106,14 +106,33 @@ Legend: [x] done, [~] in progress, [ ] not started.
   clean (every layer imports only its own src; the pipeline is wired in `server/`). An adversarial
   review pass ran; its confirmed findings were fixed.
 
-## Phase 6 - NPC interaction brain + voice/chat (the play-time LLM) [ ]
+## Phase 6 - NPC interaction brain + voice/chat (the play-time LLM) [x]
 
-- `layers/npc/` resolve: selfContext + interaction -> `{new_mode, target, utterance, emote}` via a
-  small local model, constrained by schema. Narrator appends interaction history. Voice/chat as one
-  narrow layer: text/audio in, one result out, TTS/STT behind provider adapters (simplified vs
-  gamentic: no local codec sidecar; keep the deterministic voice-design composer + emotion tags).
-- DoD: talking to an NPC changes its mode and it speaks; provoking it flips to attack/flee. Tests
-  through the interaction route with a fake LLM asserting mode transitions + history append.
+- [x] `layers/npc/` resolve gains an injected `brain` seam: `resolveInteraction(selfContext,
+  interaction, { brain })` drives the decision through the model (a fake LLM in tests, a real GGUF
+  later) and `sanitizeDecision` deterministically re-validates the raw completion against the live
+  snapshot (newMode must be in allowedModes or the whole decision is rejected; an unreal target is
+  dropped; bad JSON / a non-object / a thrown or absent model collapses to the safe fallback, so play
+  never blocks). `buildInteractionPrompt` is the prompt a grammar-constrained provider is called with
+  (the interaction-result schema is its GBNF). The narrator appends every exchange to `Adventure.history`.
+- [x] Voice/chat as one narrow layer (`layers/voice/`): `synthesizeSpeech` (text -> Speech, TTS behind
+  an injected adapter, degrades to text-only with no codec sidecar) and `transcribe` (audio -> text, STT
+  behind an adapter). It owns the emotion-tag vocabulary + the VoiceDesign schema; the deterministic
+  voice-design composer stays in `npc` (`composeVoiceDesign`, stamped onto each NpcDef, distinct per
+  cast).
+- [x] DoD met: `POST /interaction` (the real node HTTP route in `server/`, over the same shared store as
+  `POST /adventure`) runs an NPC's brain and returns `{ result, record }`. The route rebuilds the
+  security-critical selfContext fields (persona, body animations, allowedModes) from the authored NpcDef,
+  so a client cannot smuggle a forbidden mode. The end-to-end test drives the real route with a fake LLM:
+  talking flips an NPC to talk and it speaks, provoking flips it to attack/flee targeting the player, a
+  dead model degrades safely (no 500) while still archiving, and every exchange lands in history.
+  `npm test` = 171 local tests (no CI); isolation stays clean (npc + voice import no other layer's src;
+  the brain and voice adapters are injected in `server/`); 46 schemas compile. An adversarial review pass
+  ran; its confirmed findings were fixed (the default no-brain path could echo a client-forged
+  `myState.mode` outside the authored allowedModes, since self-context validates the mode enum but not
+  membership in allowedModes: the stand-in and the route now both clamp the current mode; and an
+  array-returning TTS adapter no longer leaks a non-object audio handle). The real Qwen3 A3B GGUF and
+  TTS/STT adapters drop in behind the same `brain` / `deps.tts` / `deps.stt` seams (04-TECH-STACK.md).
 
 ## Phase 7 - Persistence + UX shell (export/import, adventure browser) [ ]
 

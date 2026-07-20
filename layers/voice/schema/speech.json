@@ -1,0 +1,21 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/voice/speech.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Speech",
+  "description": "The result of synthesizing one NPC utterance: the clean spoken text (emotion tags stripped out into `emotions`), the emotion cues, and an optional audio handle. `audio` is null when no TTS provider is wired, so the caller degrades to text-only (no local codec sidecar, unlike gamentic).",
+  "type": "object",
+  "properties": {
+    "text": { "type": "string", "description": "The spoken line with recognized emotion tags removed." },
+    "emotions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Emotion cues parsed out of the utterance, in order (empty means neutral delivery)."
+    },
+    "audio": {
+      "description": "A provider-returned audio handle (url/ref/format/duration), or null when synthesis was skipped.",
+      "type": ["object", "null"]
+    }
+  },
+  "required": ["text", "emotions", "audio"],
+  "additionalProperties": false
+}

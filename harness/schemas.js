@@ -59,6 +59,11 @@ export const SCHEMA_ID = {
     interactionResult: `${BASE}/npc/interaction-result.json`,
     rosterSpec: `${BASE}/npc/roster-spec.json`,
   },
+  voice: {
+    voiceDesign: `${BASE}/voice/voice-design.json`,
+    speech: `${BASE}/voice/speech.json`,
+    transcript: `${BASE}/voice/transcript.json`,
+  },
   assetRegistry: {
     assetEntry: `${BASE}/asset-registry/asset-entry.json`,
     assetQuery: `${BASE}/asset-registry/asset-query.json`,

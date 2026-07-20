@@ -6,7 +6,9 @@ mode switch plus dialogue at play-time. It decides; it never renders or moves an
 ## Entry points (see CONTRACT.md)
 
 - `authorNpcs(instanceContext, rosterSpec, deps?) -> NpcDef[]`
-- `resolveInteraction(selfContext, interaction) -> InteractionResult`
+- `resolveInteraction(selfContext, interaction, { brain? }) -> InteractionResult`
+- `sanitizeDecision(raw, selfContext)` / `buildInteractionPrompt(selfContext, interaction)` (the model seam)
+- `composeVoiceDesign(seedKey, { exclude? }) -> VoiceDesign`
 
 ## Status
 
@@ -17,11 +19,17 @@ attack clip means no attack mode), narrowed by disposition. Each NPC spawns insi
 rather than at the world origin, so authored adventures are walkable. With no `assetQuery` it falls
 back to a generic humanoid body, so the author path still runs offline.
 
-`resolveInteraction` (play-time) is a deterministic stand-in for the LLM that honors every contract
-invariant: `newMode` is always within `selfContext.allowedModes` (it falls back to the current mode
-rather than emit an action the NPC cannot perform), and `target` references a real nearby entity.
-The grammar-constrained local model (Qwen3 A3B, per 04-TECH-STACK.md) drops in behind the same
-signature at Phase 6.
+`resolveInteraction` (play-time) resolves one interaction to an InteractionResult. With no `brain` it
+runs a deterministic stand-in; when a `brain` (the injected text provider / LLM) is supplied it drives
+the decision. Either way the raw decision passes through `sanitizeDecision`, which re-validates against
+the live snapshot: `newMode` must be within `selfContext.allowedModes` (an off-contract mode is
+rejected wholesale to the current-mode fallback), a `target` is kept only if it references a real
+nearby entity, notable object, exit, or world position (an invented one is dropped), and bad JSON, a
+non-object, or a thrown/timed-out model all collapse to the safe fallback so play never blocks. The
+async model call itself lives in the `server` composition root, which awaits a grammar-constrained
+local model (Qwen3 A3B, per 04-TECH-STACK.md) on `buildInteractionPrompt` and hands the raw completion
+to `sanitizeDecision`. `composeVoiceDesign` stamps each NPC a deterministic, distinct voice descriptor
+(shape owned by the `voice` layer) at author-time.
 
 ## Schema note
 
@@ -33,7 +41,10 @@ interaction, interaction-result, roster-spec) are genuinely owned here.
 
 `npm test`. Asserts a provoke gesture flips to attack or flee within allowedModes, chat produces a
 talk-mode line that echoes the input, an NPC never returns a disallowed mode, and authored NpcDefs
-are schema-valid with `startMode` inside `allowedModes`.
+are schema-valid with `startMode` inside `allowedModes`. The Phase 6 tests add the brain seam: an
+injected model drives a re-validated decision, an off-contract mode falls back, an invented target is
+dropped, malformed/thrown model output collapses to the fallback, and `composeVoiceDesign` is
+deterministic, schema-valid, and distinct across a cast.
 
 ## Modify safely
 

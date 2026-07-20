@@ -1,6 +1,6 @@
 # 05 - Gamentic lineage (what we inherit, what we change)
 
-doplexity-3d is the 3D sibling of gamentic. Gamentic is a self-hosted, browser-based AI dungeon
+duplexity-3d is the 3D sibling of gamentic. Gamentic is a self-hosted, browser-based AI dungeon
 RPG where one local LLM plays every role (narrator plus each NPC) through purpose-built contexts,
 and every world change passes through a validated tool that writes to SQLite (the single source of
 truth). It is 2D and text-first. This doc records exactly what carries over and what has to change,
@@ -83,5 +83,5 @@ so we do not relearn gamentic's hard-won lessons or re-inherit its 2D assumption
 - Image: FLUX.2 [klein] in ComfyUI (ROCm) behind a REST adapter. Voice: Maya1-3B GGUF + SNAC.
 - The `gamentic-anna` variant proves the seam: same brain byte-for-byte, only the invocation edge
   (Anna iframe/Executa) and the model edge (Anna reverse-RPC) swapped. That "stable brain,
-  replaceable edges" property is exactly what doplexity-3d clones, with the presentation/generation
+  replaceable edges" property is exactly what duplexity-3d clones, with the presentation/generation
   edge becoming a 3D engine.

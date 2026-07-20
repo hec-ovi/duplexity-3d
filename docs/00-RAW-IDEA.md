@@ -7,7 +7,7 @@
 
 ## One line
 
-doplexity-3d is a 3D version of gamentic. Simple on the backend side in a way, complex on the frontend because everything is 3D.
+duplexity-3d is a 3D version of gamentic. Simple on the backend side in a way, complex on the frontend because everything is 3D.
 
 ## The specialist that builds worlds ("instances")
 

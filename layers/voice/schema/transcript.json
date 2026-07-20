@@ -1,0 +1,12 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/voice/transcript.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Transcript",
+  "description": "The result of transcribing one spoken player turn to text (STT). Feeds straight into an Interaction of type `voice` as its `text`.",
+  "type": "object",
+  "properties": {
+    "text": { "type": "string" }
+  },
+  "required": ["text"],
+  "additionalProperties": false
+}

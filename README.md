@@ -1,4 +1,4 @@
-# doplexity-3d
+# duplexity-3d
 
 A 3D, LLM-driven adventure engine. It is the 3D sibling of gamentic: an AI narrator spins up
 small explorable worlds ("instances"), fills them with sentient NPCs you can talk to by voice
@@ -7,9 +7,13 @@ or chat, and gives each one a goal to solve before you move to the next.
 The design is locked, and the runtime is a walkable, living slice: `npm run dev` loads a hand-authored
 Adventure and lets you walk it in three.js (WASD and mouse, reach the amulet to solve the instance).
 The NPCs move on their own (a gruff smith idles in the hall, a skeleton patrols the vault), route
-through doorways, and carry name labels; press `E` next to one and it turns to you and speaks a
-scripted line in a bubble. Their decisions run through the real interaction contract, but the "brain"
-is still a canned stub, the actual LLM call arrives later. The worlds themselves are no longer only
+through doorways, and carry name labels; press `E` next to one and it turns to you and speaks. Talking
+now runs a real brain: the runtime hands the NPC an awareness snapshot, a backend route
+(`POST /interaction`) resolves one decision through the npc layer, and whatever comes back is
+re-validated against that NPC's allowed modes and the live scene before it applies, so an off-contract
+or absent model just keeps the NPC where it was (play never blocks on the model). The brain is an
+injectable seam defaulting to a deterministic stand-in (still no model wired); a separate voice layer
+turns a line into speech behind a TTS/STT adapter, or degrades to text. The worlds themselves are no longer only
 hand-authored: the scenario-creator turns an abstract room-adjacency graph into a geometrically valid
 layout, packing rooms onto a grid so every doorway lands on a shared wall, proving no overlaps, full
 connectivity, and a reachable goal, and regenerating anything that fails (so a bad layout is never
@@ -20,7 +24,7 @@ returns a complete multi-instance Adventure, a planner lays out a gated progress
 scenario-creator builds each instance, and the npc layer fills them with bodies that only claim the
 moves their kit animation actually has. No model is required for any of it yet; every LLM caller is a
 deterministic stand-in behind a seam. Under that, every wire format has a JSON Schema and every one of
-the nine layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
+the ten layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
 its own contract, so the codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here
@@ -32,22 +36,23 @@ its own contract, so the codebase can grow huge without any one change rippling 
 - [`docs/04-TECH-STACK.md`](docs/04-TECH-STACK.md) - the researched 2026 tooling (three.js, local AI).
 - [`docs/CONTRACT-CONVENTION.md`](docs/CONTRACT-CONVENTION.md) - the isolation rule every layer obeys.
 - [`docs/INDEX.md`](docs/INDEX.md) - the dispatcher: which folder to open for a given change.
-- [`layers/`](layers/) - the nine isolated blackboxes. Each holds its own `CONTRACT.md`,
+- [`layers/`](layers/) - the ten isolated blackboxes. Each holds its own `CONTRACT.md`,
   `README.md`, `schema/`, `src/`, `tests/`, and `fixtures/`; a layer may depend only on another's
   `CONTRACT.md` + `schema/`, never its `src/`.
 - [`harness/`](harness/) - shared test tooling: the JSON Schema loader and the isolation checker.
 - [`app/`](app/) - the play-time composition root: the place that wires the browser slice (runtime +
   asset-registry + the example Adventure) and mounts it. It sits outside `layers/`, so the isolation
   rule (no layer reaches into another's `src/`) still holds.
-- [`server/`](server/) - the author-time composition root: the `POST /adventure` backend that wires
-  interviewer, narrator, scenario-creator, npc, and persistence into the pipeline. Also outside
-  `layers/`, for the same reason.
+- [`server/`](server/) - the backend composition root: `POST /adventure` (author-time) wires
+  interviewer, narrator, scenario-creator, npc, and persistence into the pipeline, and
+  `POST /interaction` (play-time) runs one NPC's brain and archives the exchange, over one shared
+  store. Also outside `layers/`, for the same reason.
 
 Run `npm install`, then `npm run dev` to walk the slice in the browser, or `node server/index.js` to
-serve the author API (`POST /adventure`). `npm test` validates every schema against its fixtures,
-drives each layer's contract tests, runs the runtime's simulation and jsdom interaction tests, and
-exercises the author route end to end. `npm run schemas` compiles the schemas and checks
-cross-references on their own.
+serve the backend API (`POST /adventure`, `GET /adventure/:id`, `POST /interaction`). `npm test`
+validates every schema against its fixtures, drives each layer's contract tests, runs the runtime's
+simulation and jsdom interaction tests, and exercises the author and interaction routes end to end.
+`npm run schemas` compiles the schemas and checks cross-references on their own.
 
 ## The idea in one paragraph
 
