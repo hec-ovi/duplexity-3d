@@ -14,9 +14,13 @@ hand-authored: the scenario-creator turns an abstract room-adjacency graph into 
 layout, packing rooms onto a grid so every doorway lands on a shared wall, proving no overlaps, full
 connectivity, and a reachable goal, and regenerating anything that fails (so a bad layout is never
 shipped). A generated layout loads and walks in the real runtime today; the graph comes from a
-deterministic stand-in now and a local model later, behind the same seam. Under that, every wire
-format has a JSON Schema and every one of the nine layers has a contract test, behind a shared
-harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
+deterministic stand-in now and a local model later, behind the same seam. The whole author side is
+wired: `POST /adventure` (a small backend in `server/`) takes a creative brief, or nothing, and
+returns a complete multi-instance Adventure, a planner lays out a gated progression graph, the
+scenario-creator builds each instance, and the npc layer fills them with bodies that only claim the
+moves their kit animation actually has. No model is required for any of it yet; every LLM caller is a
+deterministic stand-in behind a seam. Under that, every wire format has a JSON Schema and every one of
+the nine layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
 its own contract, so the codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here
@@ -32,14 +36,18 @@ its own contract, so the codebase can grow huge without any one change rippling 
   `README.md`, `schema/`, `src/`, `tests/`, and `fixtures/`; a layer may depend only on another's
   `CONTRACT.md` + `schema/`, never its `src/`.
 - [`harness/`](harness/) - shared test tooling: the JSON Schema loader and the isolation checker.
-- [`app/`](app/) - the composition root: the one place that wires several layers together (runtime +
-  asset-registry + the example Adventure) and mounts the playable slice. It sits outside `layers/`,
-  so the isolation rule (no layer reaches into another's `src/`) still holds.
+- [`app/`](app/) - the play-time composition root: the place that wires the browser slice (runtime +
+  asset-registry + the example Adventure) and mounts it. It sits outside `layers/`, so the isolation
+  rule (no layer reaches into another's `src/`) still holds.
+- [`server/`](server/) - the author-time composition root: the `POST /adventure` backend that wires
+  interviewer, narrator, scenario-creator, npc, and persistence into the pipeline. Also outside
+  `layers/`, for the same reason.
 
-Run `npm install`, then `npm run dev` to walk the slice in the browser. `npm test` validates every
-schema against its fixtures, drives each layer's contract tests, and runs the runtime's simulation
-and jsdom interaction tests. `npm run schemas` compiles the schemas and checks cross-references on
-their own.
+Run `npm install`, then `npm run dev` to walk the slice in the browser, or `node server/index.js` to
+serve the author API (`POST /adventure`). `npm test` validates every schema against its fixtures,
+drives each layer's contract tests, runs the runtime's simulation and jsdom interaction tests, and
+exercises the author route end to end. `npm run schemas` compiles the schemas and checks
+cross-references on their own.
 
 ## The idea in one paragraph
 

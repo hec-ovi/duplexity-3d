@@ -5,12 +5,19 @@ mode switch plus dialogue at play-time. It decides; it never renders or moves an
 
 ## Entry points (see CONTRACT.md)
 
-- `authorNpcs(instanceContext, rosterSpec) -> NpcDef[]`
+- `authorNpcs(instanceContext, rosterSpec, deps?) -> NpcDef[]`
 - `resolveInteraction(selfContext, interaction) -> InteractionResult`
 
-## Phase 1 status (stub)
+## Status
 
-`resolveInteraction` is a deterministic stand-in for the play-time LLM that honors every contract
+`authorNpcs` (author-time) builds NpcDefs from the narrator's roster. Given an injected
+`deps.assetQuery`, it picks a real `asset-registry` character body per NPC and bounds `allowedModes`
+by the modes that body can actually animate (an NPC never gets a mode whose clip the body lacks: no
+attack clip means no attack mode), narrowed by disposition. Each NPC spawns inside its home room
+rather than at the world origin, so authored adventures are walkable. With no `assetQuery` it falls
+back to a generic humanoid body, so the author path still runs offline.
+
+`resolveInteraction` (play-time) is a deterministic stand-in for the LLM that honors every contract
 invariant: `newMode` is always within `selfContext.allowedModes` (it falls back to the current mode
 rather than emit an action the NPC cannot perform), and `target` references a real nearby entity.
 The grammar-constrained local model (Qwen3 A3B, per 04-TECH-STACK.md) drops in behind the same

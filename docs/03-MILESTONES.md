@@ -87,13 +87,24 @@ Legend: [x] done, [~] in progress, [ ] not started.
   confirmed findings were fixed. The organic Delaunay/MST layout is deferred behind the same
   `RoomGraph -> Instance` seam (04-TECH-STACK.md).
 
-## Phase 5 - Author-time pipeline (interview -> plan -> world -> npcs) [ ]
+## Phase 5 - Author-time pipeline (interview -> plan -> world -> npcs) [x]
 
-- `layers/interviewer/` (creative brief, skippable) -> `layers/narrator/` (adventure plan:
-  instances, goals, progression graph, NPC rosters) -> per-instance `scenario-creator` ->
-  `layers/npc/` authoring -> assembled Adventure doc via `layers/persistence/`.
-- DoD: `POST /adventure` with (or without) a brief yields a complete, playable multi-instance
-  Adventure with a progression graph. End-to-end author test through the real route.
+- [x] `layers/interviewer/` (creative brief, skippable) -> `layers/narrator/` (a deterministic
+  planner, the LLM stand-in behind an injectable `plan` seam, emits a multi-instance AdventurePlan
+  with a gated progression DAG) -> per-instance `scenario-creator` (Phase 4 grid solver) ->
+  `layers/npc/` authoring (real registry body, allowedModes bounded by the body's animation clips,
+  each NPC spawned in its home room) -> assembled Adventure via `layers/persistence/`. The narrator
+  resolves each instance's theme against the registry, so a fantastical brief lays out against an
+  available kit instead of failing with `NO_ASSET_FOR_KIND`. The plan is structurally validated
+  (`PLAN_INVALID`), its progression checked (`PROGRESSION_DEADEND`), and a failed layout surfaces as
+  `INSTANCE_BUILD_FAILED`.
+- [x] DoD met: `POST /adventure` (the real node HTTP route in `server/`, the backend composition root
+  outside `layers/`) with a brief OR without one (the skip path fills defaults) returns a schema-valid,
+  playable, multi-instance Adventure with a progression graph, and persists it (`GET /adventure/:id`
+  returns the saved document). The end-to-end test drives the real route and then loads and walks the
+  authored first instance with the real runtime. `npm test` = 146 local tests (no CI); isolation stays
+  clean (every layer imports only its own src; the pipeline is wired in `server/`). An adversarial
+  review pass ran; its confirmed findings were fixed.
 
 ## Phase 6 - NPC interaction brain + voice/chat (the play-time LLM) [ ]
 

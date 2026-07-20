@@ -34,6 +34,12 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The catalog of usable 3D pieces (kit parts, generated assets) | `layers/asset-registry/` |
 | Generating or enriching 3D assets (ComfyUI / API) | `layers/asset-gen/` |
 | Swapping a text LLM / TTS / image model provider | that layer's `providers/` adapter (config) |
+| The `POST /adventure` author route (wires the backend pipeline) | `server/` (backend composition root) |
+| The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
+
+`app/` and `server/` are the two composition roots. They live OUTSIDE `layers/` and are the only
+places allowed to import several layers at once (the isolation checker does not scan them): `app/`
+wires the play-time browser slice, `server/` wires the author-time HTTP API.
 
 ## The rule you carry into any folder
 
