@@ -189,7 +189,9 @@ export function buildSceneModel(instance) {
     }
   }
 
-  const npcs = instance.npcs.map((n) => ({
+  // A scenario-creator layout has no npcs yet (the narrator folds them in later), so tolerate an
+  // npc-less instance and render an empty world rather than crash.
+  const npcs = (instance.npcs ?? []).map((n) => ({
     id: n.id,
     name: n.name,
     persona: n.persona,

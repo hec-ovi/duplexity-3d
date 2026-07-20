@@ -109,6 +109,15 @@ respective phases, matching the author-time/play-time split.
 - Validate against the layer invariants (no overlaps, full connectivity, portals aligned on both
   walls, goal reachable) and regenerate on reject. Define a grammar-guaranteed simple fallback layout
   so instance creation never hard-fails.
+- **Phase 4 status:** shipped a deterministic **grid-packing solver** in `scenario-creator/src`. The
+  injected `graphGen` (the LLM stand-in) emits the abstract graph (`room-graph.json`, topology only);
+  the solver packs rooms onto a uniform integer grid so every adjacency is a shared full wall and each
+  doorway coincides exactly with a wall of both rooms, which is what the runtime needs to cut a
+  walkable opening. Float-positioned organic layouts (Delaunay + separation-steering + MST) make that
+  plane coincidence fragile, so they are deferred behind the same `RoomGraph -> Instance` seam until
+  real generated GLB geometry justifies them. Connectivity is guaranteed by a union-find repair pass,
+  goal reachability by construction, and a straight-chain fallback keeps creation from hard-failing.
+  The validator (`validate.js`) re-proves all four invariants independently of the solver.
 
 ### Structured output (the enforcement mechanism) -> cross-cutting, `providers/text`
 - Both the scenario-creator (layout graph) and the npc brain (decision) constrain generation with a

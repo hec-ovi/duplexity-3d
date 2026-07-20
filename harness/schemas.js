@@ -50,6 +50,7 @@ export const SCHEMA_ID = {
     instanceSpec: `${BASE}/scenario-creator/instance-spec.json`,
     instance: `${BASE}/scenario-creator/instance.json`,
     validationReport: `${BASE}/scenario-creator/validation-report.json`,
+    roomGraph: `${BASE}/scenario-creator/room-graph.json`,
   },
   npc: {
     npcDef: `${BASE}/npc/npc-def.json`,

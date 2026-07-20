@@ -1,99 +1,74 @@
-// scenario-creator - turn one InstanceSpec into a geometrically valid layout. Imports no other
-// layer's src; the asset-registry query is injected as a function (dependency, not an import).
+// scenario-creator - turn one InstanceSpec into a geometrically valid layout.
 //
-// Phase 1 returns a fixed, valid 3-room layout and runs a real (small) geometry validator on it, so
-// the invariant-checking half of the contract already runs. The LLM room-adjacency graph and the
-// deterministic solver (Delaunator + MST + A*, per 04-TECH-STACK.md) arrive at Phase 4 behind this
-// same signature.
+// Isolation: imports no other layer's src. The asset-registry query and the layout graph generator
+// (the LLM stand-in) both arrive as injected dependencies, never imports.
+//
+// Pipeline (per CONTRACT.md): a graph generator emits an ABSTRACT room-adjacency graph (topology
+// only); a deterministic solver packs it onto a grid and aligns portals; the validator re-proves the
+// geometry; an invalid layout is regenerated, never shipped. A grammar-guaranteed straight-chain
+// fallback keeps instance creation from ever hard-failing on geometry.
 
-function overlaps(a, b) {
-  // AABB overlap on the floor plane (X, Z). position is the room center; size is [w, h, d].
-  const span = (c, s) => [c - s / 2, c + s / 2];
-  const ax = span(a.position[0], a.size[0]);
-  const az = span(a.position[2], a.size[2]);
-  const bx = span(b.position[0], b.size[0]);
-  const bz = span(b.position[2], b.size[2]);
-  const over1d = (p, q) => p[0] < q[1] - 1e-9 && q[0] < p[1] - 1e-9;
-  return over1d(ax, bx) && over1d(az, bz);
+import { solve, NoAssetForKindError } from "./solver.js";
+import { validateLayout } from "./validate.js";
+import { defaultGraphGen, linearChain, isValidGraph } from "./graph-gen.js";
+
+export class LayoutInvalidError extends Error {
+  constructor(report) {
+    super("could not produce a valid layout within the attempt budget");
+    this.code = "LAYOUT_INVALID";
+    this.report = report;
+  }
 }
 
-export function validateLayout(instance) {
-  const rooms = instance.rooms ?? [];
-  const checks = [];
+// FNV-1a: derive a stable default seed from the instance id, so the same spec always lays out the
+// same way without a wall clock or Math.random.
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
 
-  let overlapOk = true;
-  for (let i = 0; i < rooms.length; i++) {
-    for (let j = i + 1; j < rooms.length; j++) {
-      if (overlaps(rooms[i], rooms[j])) overlapOk = false;
+/**
+ * Build one geometrically valid Instance layout from an InstanceSpec.
+ *
+ * @param {object} instanceSpec  the narrator's InstanceSpec (schema: instance-spec.json)
+ * @param {Function} assetQuery  injected asset-registry.query handle ({ kind, theme } -> AssetEntry[])
+ * @param {object} [opts]
+ * @param {Function} [opts.graphGen]   (spec, seed) -> RoomGraph. Defaults to the deterministic
+ *                                     stand-in; Phase 5/6 injects a grammar-constrained model here.
+ * @param {number}  [opts.seed]        base seed (default: hash of the instance id).
+ * @param {number}  [opts.maxAttempts] regenerate budget before the fallback layout (default 8).
+ * @returns {{ instance: object, report: object }}
+ */
+export function createInstance(instanceSpec, assetQuery, opts = {}) {
+  const graphGen = opts.graphGen ?? defaultGraphGen;
+  const baseSeed = opts.seed ?? hashString(instanceSpec.id ?? "inst");
+  const maxAttempts = opts.maxAttempts ?? 8;
+
+  let lastReport = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let graph;
+    try {
+      graph = graphGen(instanceSpec, (baseSeed + attempt) >>> 0);
+    } catch {
+      continue; // a throwing generator is just a failed attempt; try again / fall back.
     }
+    if (!isValidGraph(graph)) continue;
+
+    const instance = solve(graph, instanceSpec, assetQuery); // NO_ASSET_FOR_KIND propagates.
+    const report = validateLayout(instance);
+    lastReport = report;
+    if (report.ok) return { instance, report };
   }
-  checks.push({ name: "no_room_overlap", ok: overlapOk });
 
-  const ids = new Set(rooms.map((r) => r.id));
-  const portalsOk = (instance.portals ?? []).every(
-    (p) => ids.has(p.roomA) && (p.roomB === "EXIT" || ids.has(p.roomB)),
-  );
-  checks.push({ name: "portals_reference_rooms", ok: portalsOk });
-
-  return { ok: checks.every((c) => c.ok), checks };
-}
-
-// A fixed valid layout: three adjacent rooms sharing walls, two portals, a discover_item goal.
-// (The persistence Instance minus npcs; the narrator authors and folds NPCs in afterward.)
-const BASE_LAYOUT = {
-  id: "inst-generated",
-  theme: "dungeon",
-  rules: { pvp: false },
-  rooms: [
-    {
-      id: "room-entry",
-      position: [0, 0, 0],
-      size: [6, 3, 6],
-      floorKit: "kit.floor",
-      wallKit: "kit.wall",
-      objects: [],
-      inventory: [],
-    },
-    {
-      id: "room-hall",
-      position: [0, 0, 6],
-      size: [6, 3, 6],
-      floorKit: "kit.floor",
-      wallKit: "kit.wall",
-      objects: [],
-      inventory: [],
-    },
-    {
-      id: "room-vault",
-      position: [6, 0, 6],
-      size: [6, 3, 6],
-      floorKit: "kit.floor",
-      wallKit: "kit.wall",
-      objects: [],
-      inventory: [{ itemId: "amulet", assetRef: "kit.amulet", position: [6, 0.6, 6] }],
-    },
-  ],
-  portals: [
-    { id: "p1", roomA: "room-entry", roomB: "room-hall", position: [0, 0, 3], axis: "z", size: [1.5, 2.4] },
-    { id: "p2", roomA: "room-hall", roomB: "room-vault", position: [3, 0, 6], axis: "x", size: [1.5, 2.4] },
-  ],
-  goal: { type: "discover_item", itemId: "amulet" },
-  spawn: { position: [0, 0, 0], facing: 0 },
-};
-
-export function createInstance(instanceSpec, assetQuery) {
-  const floor = assetQuery?.({ kind: "room-floor", theme: instanceSpec.theme })?.[0]?.id;
-  const wall = assetQuery?.({ kind: "wall", theme: instanceSpec.theme })?.[0]?.id;
-
-  const instance = structuredClone(BASE_LAYOUT);
-  instance.id = instanceSpec.id;
-  instance.theme = instanceSpec.theme;
-  if (floor) for (const r of instance.rooms) r.floorKit = floor;
-  if (wall) for (const r of instance.rooms) r.wallKit = wall;
-
+  // Grammar-guaranteed fallback: a straight chain always solves and validates.
+  const instance = solve(linearChain(instanceSpec), instanceSpec, assetQuery);
   const report = validateLayout(instance);
-  if (!report.ok) {
-    throw Object.assign(new Error("layout invalid"), { code: "LAYOUT_INVALID", report });
-  }
-  return { instance, report };
+  if (report.ok) return { instance, report };
+  throw new LayoutInvalidError(report ?? lastReport);
 }
+
+export { validateLayout, NoAssetForKindError };

@@ -1,0 +1,39 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/scenario-creator/room-graph.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RoomGraph",
+  "description": "The abstract room-adjacency graph the layout model emits: topology ONLY (rooms with roles, which rooms connect, the entry, the goal room), never coordinates. The deterministic solver owns all geometry. This is the grammar-constrainable shape the LLM is limited to (see 04-TECH-STACK.md: the model is trusted with the abstract graph, never with placement or connectivity proofs).",
+  "type": "object",
+  "properties": {
+    "rooms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "role": {
+            "type": "string",
+            "description": "A rough role hint, e.g. entry, chamber, hall, vault, goal. Advisory; the solver does not depend on it."
+          }
+        },
+        "required": ["id"],
+        "additionalProperties": false
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Undirected adjacencies as [roomIdA, roomIdB] pairs. Advisory: the solver realises an edge as a doorway only when the two rooms end up sharing a wall, and guarantees full connectivity regardless.",
+      "items": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "entry": { "type": "string", "description": "The spawn room id." },
+    "goalRoom": { "type": "string", "description": "The room the goal target lives in (defaults to the last room)." }
+  },
+  "required": ["rooms", "edges", "entry"],
+  "additionalProperties": false
+}

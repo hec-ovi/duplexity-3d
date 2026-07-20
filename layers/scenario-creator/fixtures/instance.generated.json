@@ -1,0 +1,114 @@
+{
+  "id": "inst-001",
+  "theme": "dungeon",
+  "rules": {
+    "pvp": false
+  },
+  "rooms": [
+    {
+      "id": "room-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        3,
+        6
+      ],
+      "floorKit": "dungeon.room-floor",
+      "wallKit": "dungeon.wall",
+      "objects": [],
+      "inventory": []
+    },
+    {
+      "id": "room-1",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "size": [
+        6,
+        3,
+        6
+      ],
+      "floorKit": "dungeon.room-floor",
+      "wallKit": "dungeon.wall",
+      "objects": [],
+      "inventory": []
+    },
+    {
+      "id": "room-2",
+      "position": [
+        6,
+        0,
+        6
+      ],
+      "size": [
+        6,
+        3,
+        6
+      ],
+      "floorKit": "dungeon.room-floor",
+      "wallKit": "dungeon.wall",
+      "objects": [],
+      "inventory": [
+        {
+          "itemId": "inst-001-goal",
+          "position": [
+            6,
+            0.6,
+            6
+          ],
+          "assetRef": "dungeon.prop"
+        }
+      ]
+    }
+  ],
+  "portals": [
+    {
+      "id": "p1",
+      "roomA": "room-0",
+      "roomB": "room-1",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "axis": "x",
+      "size": [
+        1.5,
+        2.4
+      ]
+    },
+    {
+      "id": "p2",
+      "roomA": "room-1",
+      "roomB": "room-2",
+      "position": [
+        6,
+        0,
+        3
+      ],
+      "axis": "z",
+      "size": [
+        1.5,
+        2.4
+      ]
+    }
+  ],
+  "goal": {
+    "type": "discover_item",
+    "itemId": "inst-001-goal"
+  },
+  "spawn": {
+    "position": [
+      0,
+      0,
+      0
+    ],
+    "facing": -1.5707963267948966
+  }
+}

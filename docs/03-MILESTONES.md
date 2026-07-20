@@ -68,15 +68,24 @@ Legend: [x] done, [~] in progress, [ ] not started.
   in the browser composition root). An adversarial review pass ran; its confirmed findings were fixed.
   navmesh via recast-navigation-js is deferred behind the `nav.findPath` seam (see 04-TECH-STACK.md).
 
-## Phase 4 - Scenario creator (the hard layer: geometry that is valid) [ ]
+## Phase 4 - Scenario creator (the hard layer: geometry that is valid) [x]
 
-- `layers/scenario-creator/`: LLM emits an abstract room-adjacency GRAPH (structured output); a
-  deterministic solver places rooms and aligns portals, guarantees no overlaps + full
-  connectivity + reachable exit, and selects kit pieces from `asset-registry`. Invalid layouts are
-  regenerated, never shipped.
-- DoD: given an instance spec, it produces a validated instance the Phase 2 runtime can load and
-  walk. Tests: geometry validator (overlap/connectivity/portal-alignment) on generated + adversarial
-  fixtures.
+- [x] `layers/scenario-creator/`: an injected `graphGen` (the LLM stand-in) emits an abstract
+  room-adjacency GRAPH (topology only, schema `room-graph.json`); a deterministic grid-packing solver
+  places rooms and aligns portals so every adjacency is a shared full wall (exact doorway coincidence,
+  which the runtime's opening-cut needs), guarantees no overlaps + full connectivity (union-find) +
+  a reachable goal/exit, and selects kit pieces from the injected `asset-registry.query`. A validator
+  re-proves the four invariants independently; an invalid layout is regenerated, and a straight-chain
+  fallback means creation never hard-fails on geometry.
+- [x] DoD met: `createInstance` produces a validated Instance (persistence wire format minus npcs).
+  A runtime test loads the generated fixture and walks it spawn to goal through the doorways with the
+  real portal-graph router. Tests cover the geometry validator (overlap / connectivity / portal
+  alignment / goal reachability) on generated AND adversarial fixtures, plus determinism, the
+  regenerate-on-reject loop, the never-hard-fail fallback, `NO_ASSET_FOR_KIND`, and loop closing.
+  `npm test` = 129 local tests (no CI); isolation stays clean (scenario-creator imports no other
+  layer's src; the graph LLM and asset query are injected). An adversarial review pass ran; its
+  confirmed findings were fixed. The organic Delaunay/MST layout is deferred behind the same
+  `RoomGraph -> Instance` seam (04-TECH-STACK.md).
 
 ## Phase 5 - Author-time pipeline (interview -> plan -> world -> npcs) [ ]
 

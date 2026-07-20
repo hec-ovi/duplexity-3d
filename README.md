@@ -9,10 +9,15 @@ Adventure and lets you walk it in three.js (WASD and mouse, reach the amulet to 
 The NPCs move on their own (a gruff smith idles in the hall, a skeleton patrols the vault), route
 through doorways, and carry name labels; press `E` next to one and it turns to you and speaks a
 scripted line in a bubble. Their decisions run through the real interaction contract, but the "brain"
-is still a canned stub, the actual LLM call arrives later. Under that, every wire format has a JSON
-Schema and every one of the nine layers has a contract test, behind a shared harness. The whole thing
-is built around one hard rule: every subsystem is an isolated blackbox with its own contract, so the
-codebase can grow huge without any one change rippling into the rest.
+is still a canned stub, the actual LLM call arrives later. The worlds themselves are no longer only
+hand-authored: the scenario-creator turns an abstract room-adjacency graph into a geometrically valid
+layout, packing rooms onto a grid so every doorway lands on a shared wall, proving no overlaps, full
+connectivity, and a reachable goal, and regenerating anything that fails (so a bad layout is never
+shipped). A generated layout loads and walks in the real runtime today; the graph comes from a
+deterministic stand-in now and a local model later, behind the same seam. Under that, every wire
+format has a JSON Schema and every one of the nine layers has a contract test, behind a shared
+harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
+its own contract, so the codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here
 

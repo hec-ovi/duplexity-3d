@@ -7,10 +7,16 @@ spawn point, and a satisfiable goal. This is the specialist the raw brief center
 sandboxed to its instance's theme and domain (its own context, its own agent).
 
 ## Inputs (params in)
-- `createInstance(InstanceSpec, assetQuery) -> { instance: Instance, report: ValidationReport }`
+- `createInstance(InstanceSpec, assetQuery, opts?) -> { instance: Instance, report: ValidationReport }`
   - `InstanceSpec` (from narrator): `{ id, theme, sizeHint, mood, goalSpec, npcRoster[], connectionHints }`.
     schema: `schema/instance-spec.json`
   - `assetQuery` is a handle to `asset-registry.query` (dependency-injected; not an internal import).
+  - `opts` (all optional): `graphGen(spec, seed) -> RoomGraph` is the abstract-graph generator (the
+    LLM stand-in), injected the same way; it defaults to a deterministic stand-in and Phase 5/6 wires
+    a grammar-constrained local model in here. `seed` (default: hash of the instance id) and
+    `maxAttempts` (regenerate budget before the fallback) round it out. The `RoomGraph` the generator
+    returns is topology only (rooms + roles + adjacencies + entry + goal room), never coordinates.
+    schema: `schema/room-graph.json`
 
 Precondition: the referenced asset kit(s) for the theme exist in `asset-registry`.
 
@@ -24,18 +30,27 @@ Precondition: the referenced asset kit(s) for the theme exist in `asset-registry
 Coordinates are three.js convention: right-handed, Y-up, meters. Rooms are axis-aligned boxes.
 
 ## Internal method (documented so it can be rewritten freely)
-1. LLM emits an ABSTRACT room-adjacency graph (rooms + which connect to which + rough roles),
-   constrained by schema (structured output). Never raw coordinates from the model.
-2. A deterministic solver assigns positions/sizes and places portals so walls align and nothing
-   overlaps.
-3. Validate (below). On failure, regenerate the graph or re-solve, up to N attempts.
-4. Select concrete kit pieces from `asset-registry` for floors/walls/doors/props; place objects and
-   inventories; set the spawn and the goal target.
+1. The injected `graphGen` emits an ABSTRACT room-adjacency graph (rooms + which connect to which +
+   rough roles), constrained by `room-graph.json` (structured output). Never raw coordinates.
+2. A deterministic solver packs the rooms onto a uniform integer GRID so every adjacency becomes a
+   shared full wall face, then places a portal (doorway) on each shared face. Grid packing makes the
+   portal-plane coincidence exact (float-positioned rooms make it fragile), so no-overlap and
+   portal-alignment hold by construction. It repairs connectivity with a union-find pass and adds an
+   EXIT on an outer wall for `reach_exit` goals.
+3. Validate (below). On failure, regenerate the graph (new seed) or re-solve, up to `maxAttempts`; a
+   grammar-guaranteed straight-chain fallback then guarantees creation never hard-fails on geometry.
+4. Select concrete kit pieces from `asset-registry` for floors/walls/props; place the goal item or
+   exit; set the spawn (entry room centre, facing its first doorway).
+
+The organic Delaunay + separation-steering + MST layout (04-TECH-STACK.md) is a later drop-in behind
+this same `RoomGraph -> Instance` seam; the grid solver is the valid-by-construction Phase 4 choice.
 
 ## Errors
-- `LAYOUT_INVALID` - could not produce a valid geometry within N attempts.
-- `NO_ASSET_FOR_KIND` - the theme lacks a required kit piece in the registry.
-- `GOAL_UNSATISFIABLE` - the chosen goal target is not reachable in the laid-out graph.
+- `LAYOUT_INVALID` - could not produce a valid geometry, fallback included (does not occur in Phase 4:
+  the grid fallback always validates).
+- `NO_ASSET_FOR_KIND` - the theme lacks a required kit piece (floor or wall) in the registry.
+- `GOAL_UNSATISFIABLE` - reserved: goal reachability is guaranteed by construction, so an unreachable
+  goal is regenerated rather than returned.
 
 ## Invariants this layer will never break
 - No two rooms overlap.
