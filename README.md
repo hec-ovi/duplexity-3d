@@ -26,8 +26,10 @@ moves their kit animation actually has. No model is required for any of it yet; 
 deterministic stand-in behind a seam. Adventures are portable: any authored world exports to a
 self-contained file and imports byte-identically onto another machine (migrating an older version
 forward, refusing a newer one), and a small vanilla-DOM shell frames it all with an adventure browser
-and New, Import, Export, and Play screens. Under that, every wire format has a JSON Schema and every one of
-the ten layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
+and New, Import, Export, and Play screens. When you want more than the CC0 kits, an optional, async
+asset-generation layer normalizes a generator's output into a licensed catalog entry the world-builder
+and NPCs pick up, and just falls back to kits when it is switched off. Under that, every wire format has
+a JSON Schema and every one of the ten layers has a contract test, behind a shared harness. The whole thing is built around one hard rule: every subsystem is an isolated blackbox with
 its own contract, so the codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here

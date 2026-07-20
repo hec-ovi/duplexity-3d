@@ -185,6 +185,16 @@ respective phases, matching the author-time/play-time split.
 - Hosted fallback for rig-ready hero characters (only the API tier gives quad topology + auto-rig +
   T/A-pose today): Tripo / Meshy / Rodin, behind the same `providers/gen3d` adapter.
 - https://github.com/toastmanAu/trellis-2-rocm-comfyui , https://github.com/microsoft/TRELLIS.2
+- **Phase 8 status:** shipped the `asset-gen` layer as a real async job pipeline WITHOUT a live
+  generator wired. `generate(req) -> { jobId, completion }` runs the injected `providers/gen3d` adapter
+  async, normalizes its output into a valid, licensed AssetEntry (bbox from `targetSpec` when missing,
+  `source: "generated"`, a commercial-use-clear license allow-list, animations required on a character,
+  else `NORMALIZE_FAILED`), and registers it in `asset-registry`; a disabled or failing generator fails
+  cleanly (`PROVIDER_UNAVAILABLE`) and registers nothing, so the kit-based engine is untouched. The real
+  TRELLIS.2 GGUF / ComfyUI (local AMD, still unproven on gfx1151 per the verdict above) or a hosted
+  Tripo/Meshy generator drops in behind the same `provider` seam. An integration test proves a generated
+  themed kit unblocks a theme the seed registry could not build and that scenario-creator, npc, and the
+  runtime pick the generated assets up.
 
 ## Local 3D generation verdict (the gfx1151 reality)
 

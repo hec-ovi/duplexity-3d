@@ -159,13 +159,28 @@ Legend: [x] done, [~] in progress, [ ] not started.
   upload with no user feedback and left the file input unresettable). The import-overwrites-existing
   finding was refuted: that is the store's intended upsert-by-id, matching `save`.
 
-## Phase 8 - Asset generation (optional enrichment, last on purpose) [ ]
+## Phase 8 - Asset generation (optional enrichment, last on purpose) [x]
 
-- `layers/asset-gen/`: generate/enrich 3D assets (ComfyUI on the AMD box if the research says it is
-  viable, otherwise a cloud API) asynchronously and register outputs in `asset-registry`. The engine
-  already runs from kits, so this only enriches.
-- DoD: an async generation request eventually adds a usable, licensed asset the scenario-creator
-  and runtime can pick up. Tests: registry write contract + graceful behavior when gen is disabled.
+- [x] `layers/asset-gen/`: a real async job pipeline. `generate(req)` returns `{ jobId, completion }`
+  immediately; the injected `providers/gen3d` adapter (ComfyUI/TRELLIS.2 on the AMD box or a cloud API)
+  runs async, its output is normalized into a valid, licensed `asset-registry` AssetEntry and registered,
+  and `completion` resolves to the final status. `status(jobId)` polls. Normalization is the gate: only a
+  commercial-use-clear license (an explicit allow-list) with a valid bbox and glbUrl is registered (and a
+  `character` must declare animations), else `NORMALIZE_FAILED`; every registered entry carries
+  `source: "generated"`. It imports no other layer's src (provider + registry injected).
+- [x] DoD met: with a fake provider, an async request registers a licensed, schema-valid AssetEntry the
+  catalog then serves. `server/asset-enrichment.test.js` (a composition-root integration test) generates a
+  `crystal` floor/wall/character for a theme the seed registry could not build, and shows scenario-creator
+  then builds a valid crystal instance from the generated kit, the runtime loads it, and npc picks the
+  generated character (bounding allowedModes by its clips). With generation disabled (no provider) every
+  request fails with `PROVIDER_UNAVAILABLE`, registers nothing, and the kit-based engine is untouched.
+  `npm test` = 196 local tests (no CI); isolation stays clean; 46 schemas compile. An adversarial review
+  pass ran (its most productive: the normalization boundary was too trusting of provider output); its
+  confirmed findings were fixed. Generated ids are now forced into a reserved `gen.` namespace so a stray
+  provider id can never overwrite a curated kit asset; the completion catch no longer throws on a
+  null/undefined rejection (it always resolves to a failed status); and normalization now validates the
+  kind enum, non-string animations, malformed snapPoints, and the bbox (copied, not aliased), with an
+  optional injected AssetEntry schema gate as a final check before register.
 
 ## Phase 9 - Polish [ ]
 

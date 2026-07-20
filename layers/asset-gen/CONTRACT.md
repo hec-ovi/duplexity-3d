@@ -6,8 +6,10 @@ and non-blocking: the engine is fully playable from curated kits alone; this lay
 catalog over time (ComfyUI on the local AMD box, or a cloud API, behind a provider adapter).
 
 ## Inputs (params in)
-- `generate({ kind, prompt?, image?, targetSpec }) -> { jobId }` - request an asset. `targetSpec`
-  carries the required bbox/snap grid so the output is drop-in for the solver.
+- `generate({ kind, prompt?, image?, targetSpec }) -> { jobId, completion }` - request an asset. It
+  returns immediately without blocking; `completion` is a Promise that ALWAYS resolves (never rejects)
+  to the final `GenStatus` once the async provider returns and the output is normalized + registered.
+  `targetSpec` carries the required bbox/snap grid so the output is drop-in for the solver.
   schema: `schema/gen-request.json`
 - `status(jobId) -> { state: queued|running|done|failed, assetId?, error? }` - poll a job.
 
@@ -24,9 +26,13 @@ catalog over time (ComfyUI on the local AMD box, or a cloud API, behind a provid
 - `NORMALIZE_FAILED` - output could not be made into a valid, licensed `AssetEntry`; not registered.
 
 ## Invariants this layer will never break
-- The rest of the engine runs unchanged whether this layer is present, absent, or failing.
-- It only ever registers assets with a known, commercial-use-clear license and a valid bbox/snap
-  grid (else it drops them).
+- The rest of the engine runs unchanged whether this layer is present, absent, or failing. `generate`
+  never throws to its caller and never leaves an unhandled rejection: every path resolves `completion`
+  to a `done` or `failed` status.
+- It only ever registers assets with a known, commercial-use-clear license (an explicit allow-list, a
+  stricter gate than the registry's "license present" check) and a valid bbox (else it drops them via
+  `NORMALIZE_FAILED`); a `character` without animations is dropped too. Every registered entry carries
+  `source: "generated"`.
 - It never mutates play-time state or blocks a play session.
 
 ## Dependencies (contracts only)
