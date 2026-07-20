@@ -7,8 +7,9 @@
 // runtime's own siblings only; asset-registry arrives as an injected dependency.
 
 import * as THREE from "three";
-import { createRuntime } from "./index.js";
+import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
+import { createNpcActors } from "./npc-actor.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -35,6 +36,10 @@ export function createApp(options = {}) {
     warn = console.warn,
     onGoalMet,
     onRoomChange,
+    onInteraction,
+    onHistoryAppend,
+    createText, // text factory for labels/bubbles (browser injects troika; default is head-less)
+    talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
     moveSpeed,
@@ -51,6 +56,8 @@ export function createApp(options = {}) {
     pickupRadius,
     onGoalMet: (id, result) => onGoalMet?.(id, result),
     onRoomChange: (prev, next) => onRoomChange?.(prev, next),
+    onInteraction,
+    onHistoryAppend,
   });
   runtime.load(adventure, instanceId);
   const model = runtime.getSceneModel();
@@ -64,6 +71,10 @@ export function createApp(options = {}) {
 
   const instanceGroup = buildInstanceObject3D(model, { registry, warn });
   scene.add(instanceGroup);
+
+  // Bind each NPC's scene group to its runtime state (position, facing, animation, name label,
+  // speech bubble). Text is injected so this runs head-less in tests.
+  const actors = createNpcActors(instanceGroup, runtime.getNpcs(), { createText });
 
   const width = container.clientWidth || 1;
   const height = container.clientHeight || 1;
@@ -97,11 +108,34 @@ export function createApp(options = {}) {
     camera.rotation.x = pitch;
   }
   syncCamera();
+  actors.sync(runtime.getNpcs(), camera, 0, runtime.getSpeech());
+
+  // The nearest NPC within talkRange (or null), for the E-to-talk control.
+  function nearestNpc() {
+    const p = runtime.getPlayer().position;
+    let best = null;
+    let bestD = Infinity;
+    for (const n of runtime.getNpcs()) {
+      const d = Math.hypot(n.position.x - p.x, n.position.z - p.z);
+      if (d < bestD) {
+        bestD = d;
+        best = n;
+      }
+    }
+    return best && bestD <= talkRange ? best.id : null;
+  }
+
+  function interact(npcId, interaction) {
+    const id = npcId ?? nearestNpc();
+    if (!id) return null;
+    return runtime.interact(id, interaction ?? { type: "chat", playerRef: PLAYER_REF });
+  }
 
   function tick(dt) {
     const clamped = Math.min(dt, DEFAULTS.maxDt);
     const result = runtime.step(clamped, currentInput());
     syncCamera();
+    actors.sync(runtime.getNpcs(), camera, clamped, runtime.getSpeech());
     renderer.render?.(scene, camera);
     return result;
   }
@@ -109,6 +143,7 @@ export function createApp(options = {}) {
   // --- browser input (all guarded so head-less tests never touch pointer lock) ---
   const onKeyDown = (e) => {
     if (KEY_MAP[e.code]) pressed.add(e.code);
+    else if (e.code === "KeyE" && !e.repeat) interact(); // talk to the nearest NPC
   };
   const onKeyUp = (e) => {
     if (KEY_MAP[e.code]) pressed.delete(e.code);
@@ -152,7 +187,9 @@ export function createApp(options = {}) {
     scene,
     instanceGroup,
     tick,
+    interact,
     getPlayer: () => runtime.getPlayer(),
+    getNpcs: () => runtime.getNpcs(),
     setYaw: (yaw) => runtime.setYaw(yaw),
     setPitch: (p) => {
       pitch = p;
@@ -171,6 +208,7 @@ export function createApp(options = {}) {
     },
     dispose() {
       this.stop();
+      actors.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
       win.removeEventListener?.("keyup", onKeyUp);
       win.removeEventListener?.("mousemove", onMouseMove);

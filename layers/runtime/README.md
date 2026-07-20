@@ -31,8 +31,32 @@ simulation is testable without a browser:
   look, and the render loop. The renderer is injectable and the loop is a manual `tick(dt)`, so it
   runs head-less in tests.
 
-Pathfinding, animation, and speech bubbles are Phase 3 (see 04-TECH-STACK.md); NPCs render as static
-placeholders for now.
+## Phase 3 status (NPCs at play-time, still no LLM)
+
+NPCs now move, animate, and talk. Same split: pure logic is node-testable, browser bits are injected.
+
+- `nav.js` (pure) is a portal-graph router: rooms are nodes, portals are edges, `findPath(from, to)`
+  returns the waypoints through each doorway centre. recast-navigation-js drops in behind this seam
+  later (see 04-TECH-STACK.md).
+- `npc-sim.js` (pure) runs each NPC's deterministic mode (idle/wander/patrol/move_to/follow/guard/
+  flee/attack/talk/dead): it steers through nav waypoints, slides on the player's wall colliders, and
+  reports an animation clip. Any "random" choice comes from a seeded RNG (`rng.js`), never
+  `Math.random`, so play replays identically.
+- `self-context.js` (pure) assembles the schema-valid `selfContext` the npc brain receives.
+- `speech.js` (pure) is the bubble model: one line per NPC with a ttl counted in sim dt.
+- `index.js` grows `getNpcs`, `assembleSelfContext`, and `interact(npcId, interaction)`: it asks the
+  injected brain for a decision and validates it against the NPC's `allowedModes` + live context,
+  falling back deterministically (keep mode, stay silent) on anything off-contract. `applyInteraction
+  Result` stays the lenient direct-apply path.
+- `three-scene.js` wraps each NPC in a `npc:<id>` group; `npc-actor.js` drives that group from state,
+  billboards a name label + speech bubble, and plays a procedural placeholder animation. Text is an
+  injected factory (`speech-rig.js` wires troika-three-text in the browser; tests use a head-less
+  stub), so the actor layer runs in jsdom with no GL context.
+- `app.js` binds the actors and adds `E` to talk to the nearest NPC.
+
+The interaction brain is a canned stub in `app/main.js` (no LLM yet, that is Phase 6). NPC bodies are
+still primitive placeholders; real GLB kit characters drop in behind the same builder + `animation`
+field.
 
 ## Run it
 

@@ -4,12 +4,15 @@ A 3D, LLM-driven adventure engine. It is the 3D sibling of gamentic: an AI narra
 small explorable worlds ("instances"), fills them with sentient NPCs you can talk to by voice
 or chat, and gives each one a goal to solve before you move to the next.
 
-The design is locked, and the runtime is now a walkable slice: `npm run dev` loads a hand-authored
+The design is locked, and the runtime is a walkable, living slice: `npm run dev` loads a hand-authored
 Adventure and lets you walk it in three.js (WASD and mouse, reach the amulet to solve the instance).
-Under that, every wire format has a JSON Schema and every one of the nine layers has a contract test,
-behind a shared harness. There is no AI yet (that starts later); the world here is hand-authored. The
-whole thing is built around one hard rule: every subsystem is an isolated blackbox with its own
-contract, so the codebase can grow huge without any one change rippling into the rest.
+The NPCs move on their own (a gruff smith idles in the hall, a skeleton patrols the vault), route
+through doorways, and carry name labels; press `E` next to one and it turns to you and speaks a
+scripted line in a bubble. Their decisions run through the real interaction contract, but the "brain"
+is still a canned stub, the actual LLM call arrives later. Under that, every wire format has a JSON
+Schema and every one of the nine layers has a contract test, behind a shared harness. The whole thing
+is built around one hard rule: every subsystem is an isolated blackbox with its own contract, so the
+codebase can grow huge without any one change rippling into the rest.
 
 ## What lives here
 

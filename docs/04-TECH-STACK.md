@@ -76,6 +76,14 @@ respective phases, matching the author-time/play-time split.
 - Drive the deterministic NPC modes (`move_to/follow/patrol/flee/wander`) from Crowd agents; derive
   the idle/walk/attack animation state from `CrowdAgent` velocity.
 - https://github.com/isaac-mason/recast-navigation-js
+- **Phase 3 status:** the runtime ships a pure, node-testable **portal-graph router** (`nav.js`):
+  rooms are nodes, portals are edges, and a path is the straight run to each doorway centre in turn.
+  It routes NPCs through doorways with no WASM and no navmesh, so the whole NPC sim stays
+  deterministic and testable. recast-navigation-js (checked mid-2026 at `@recast-navigation/three`
+  0.43.1, `threeToSoloNavMesh(meshes, cfg) -> { success, navMesh }`) is the planned browser upgrade
+  behind the same `nav.findPath(from, to) -> waypoints[]` seam. It is deferred until real generated
+  GLB geometry exists (a navmesh baked from placeholder boxes over the hand-authored 3-room fixture
+  would add a WASM dependency with nothing testable to gain yet).
 
 ### NPC animation -> `runtime`
 - **three.js AnimationMixer + AnimationAction** crossfading between clips keyed to the NPC mode

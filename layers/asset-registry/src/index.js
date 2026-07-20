@@ -52,6 +52,17 @@ const SEED = [
     animations: ["idle", "walk", "attack", "hit", "die"],
   },
   {
+    id: "kaykit.character.dwarf",
+    kind: "character",
+    tags: ["dungeon", "npc"],
+    theme: "dungeon",
+    size: [0.5, 1.6, 0.5],
+    glbUrl: "kits/kaykit/characters/dwarf.glb",
+    license: "CC0-1.0",
+    source: "kit",
+    animations: ["idle", "walk", "talk"],
+  },
+  {
     id: "kaykit.props.chest",
     kind: "prop",
     tags: ["dungeon", "container"],

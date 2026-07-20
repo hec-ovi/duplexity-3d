@@ -110,12 +110,23 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
     const radius = Math.min(size[0] / 2 || 0.3, h / 3);
     const length = Math.max(0.1, h - 2 * radius);
     const color = COLORS.npc[npc.disposition] ?? COLORS.npc.neutral;
-    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 4, 8), standard(color));
-    mesh.position.set(npc.position.x, npc.position.y + h / 2, npc.position.z);
-    mesh.rotation.y = npc.facing;
-    mesh.name = `npc:${npc.id}`;
-    mesh.userData = { kind: "npc", npcId: npc.id, placeholder };
-    group.add(mesh);
+
+    // Wrap each NPC in a group anchored at its feet so the runtime can drive position + facing each
+    // frame and the actor (npc-actor.js) can hang a name label and speech bubble off it. The capsule
+    // body sits at local +h/2 and is bobbed/toppled by the actor's procedural placeholder animation.
+    const npcGroup = new THREE.Group();
+    npcGroup.position.set(npc.position.x, npc.position.y, npc.position.z);
+    npcGroup.rotation.y = npc.facing;
+    npcGroup.name = `npc:${npc.id}`;
+    npcGroup.userData = { kind: "npc", npcId: npc.id, placeholder, height: h };
+
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 4, 8), standard(color));
+    body.position.set(0, h / 2, 0);
+    body.name = `npc:${npc.id}:body`;
+    body.userData = { kind: "npc-body", npcId: npc.id };
+    npcGroup.add(body);
+
+    group.add(npcGroup);
     counts.npcs++;
     if (placeholder) counts.placeholders++;
   }

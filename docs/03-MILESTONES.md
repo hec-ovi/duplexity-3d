@@ -49,13 +49,24 @@ Legend: [x] done, [~] in progress, [ ] not started.
   dt, wall-dedupe vertical extent, doorway header height, a one-sided test assertion, and pointer
   lock on the play prompt) were fixed.
 
-## Phase 3 - NPCs at play-time (deterministic, still no LLM) [ ]
+## Phase 3 - NPCs at play-time (deterministic, still no LLM) [x]
 
-- Spawn NPCs from `NpcDef`, run deterministic modes (idle/wander/patrol/move_to/follow), navmesh
-  pathfinding, animation state machine, and in-scene speech bubbles + name labels.
-- Interaction endpoint is a stub returning a canned `interactionResult`.
-- DoD: NPCs move and animate correctly; talking to one shows a bubble from canned data. Proves the
-  NPC data contract and the in-scene UI. Tests for mode transitions + bubble rendering.
+- [x] NPCs spawn from their `NpcDef` and run deterministic modes (idle/wander/patrol/move_to/follow/
+  guard/flee/attack/talk/dead) in a pure, seeded (no `Math.random`/`Date.now`) sim. Movement steers
+  through doorways via a portal-graph router (`nav.js`) and slides on the same wall colliders the
+  player uses. `animationForMode` maps each mode to a clip name; the actor plays a procedural
+  placeholder animation (walk bob, death topple) until real GLB clips land behind the same field.
+- [x] In-scene UI: billboarded name labels + speech bubbles via troika-three-text (browser), injected
+  as a text factory so the sim + jsdom tests stay head-less. Bubbles carry a ttl counted in sim dt.
+- [x] The interaction endpoint is a stub: the runtime assembles a schema-valid `selfContext`, calls an
+  injected canned "brain" (app/main.js: a talker greets, a mute hostile lunges), then VALIDATES the
+  returned `interactionResult` against the NPC's `allowedModes` and live context (a string target must
+  exist there). Off-contract decisions, a missing brain, or a thrown brain all apply the deterministic
+  fallback (keep mode, stay silent). `E` talks to the nearest NPC in range.
+- [x] DoD met: NPCs move + animate; pressing `E` shows a bubble from canned data. `npm test` = 111
+  local tests (no CI), isolation stays clean (runtime imports no other layer's src; troika lives only
+  in the browser composition root). An adversarial review pass ran; its confirmed findings were fixed.
+  navmesh via recast-navigation-js is deferred behind the `nav.findPath` seam (see 04-TECH-STACK.md).
 
 ## Phase 4 - Scenario creator (the hard layer: geometry that is valid) [ ]
 

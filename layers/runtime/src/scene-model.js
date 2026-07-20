@@ -191,12 +191,27 @@ export function buildSceneModel(instance) {
 
   const npcs = instance.npcs.map((n) => ({
     id: n.id,
+    name: n.name,
+    persona: n.persona,
     bodyRef: n.bodyRef,
     homeRoom: n.homeRoom,
     disposition: n.disposition,
+    allowedModes: n.allowedModes ?? [],
+    traits: n.traits ?? [],
     startMode: n.startMode,
     position: vec3(n.spawn.position),
     facing: n.spawn.facing ?? 0,
+  }));
+
+  // Portals as routable data (nav.js walks NPCs through the doorway centres). The wall builder above
+  // already consumed them to cut the openings; here they are exposed for pathfinding and exits.
+  const portalsOut = portals.map((p) => ({
+    id: p.id,
+    roomA: p.roomA,
+    roomB: p.roomB,
+    axis: p.axis,
+    center: vec3(p.position),
+    size: p.size,
   }));
 
   const bounds = rooms.reduce(
@@ -215,6 +230,7 @@ export function buildSceneModel(instance) {
     rooms,
     walls,
     colliders: walls.filter((w) => w.collides).map((w) => w.collider),
+    portals: portalsOut,
     objects,
     items,
     npcs,

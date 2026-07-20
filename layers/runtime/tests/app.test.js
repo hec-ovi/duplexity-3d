@@ -94,6 +94,36 @@ describe("runtime app (browser shell)", () => {
     app.dispose();
   });
 
+  it("pressing E next to an NPC talks to it: a bubble appears and the exchange is archived", async () => {
+    const onHistoryAppend = vi.fn();
+    const { app } = mount({
+      onInteraction: () => ({ newMode: "talk", utterance: "Well met, traveler." }),
+      onHistoryAppend,
+    });
+    const p = app.getPlayer();
+    p.position.x = 0;
+    p.position.z = 5; // about a metre south of the smith at (0,6)
+    app.tick(0.016);
+
+    const user = userEvent.setup();
+    await user.keyboard("e"); // talk to the nearest NPC
+
+    expect(app.getNpcs().find((n) => n.id === "npc-smith").mode).toBe("talk");
+    expect(app.runtime.getSpeech().get("npc-smith").text).toBe("Well met, traveler.");
+    expect(onHistoryAppend).toHaveBeenCalledOnce();
+    app.dispose();
+  });
+
+  it("pressing E with no NPC in range does nothing", async () => {
+    const onInteraction = vi.fn(() => ({ newMode: "talk", utterance: "hi" }));
+    const { app } = mount({ onInteraction });
+    // player spawns in the entry; both NPCs are rooms away, beyond talkRange
+    const user = userEvent.setup();
+    await user.keyboard("e");
+    expect(onInteraction).not.toHaveBeenCalled();
+    app.dispose();
+  });
+
   it("walking onto the amulet fires the goal-met callback", async () => {
     const onGoalMet = vi.fn();
     const { app } = mount({ onGoalMet });
