@@ -4,10 +4,11 @@ A 3D, LLM-driven adventure engine. It is the 3D sibling of gamentic: an AI narra
 small explorable worlds ("instances"), fills them with sentient NPCs you can talk to by voice
 or chat, and gives each one a goal to solve before you move to the next.
 
-Right now this repo is design and architecture only. There is no runnable app yet. The point of
-this stage is to lock the shape before writing code, because the whole thing is built around one
-hard rule: every subsystem is an isolated blackbox with its own contract, so the codebase can
-grow huge without any one change rippling into the rest.
+The design is locked, and Phase 1 has turned the contracts into code: a JSON Schema for every wire
+format, plus a stub and contract tests for each of the nine layers, behind a shared test harness.
+There is no playable app yet (that starts in Phase 2). The whole thing is built around one hard
+rule: every subsystem is an isolated blackbox with its own contract, so the codebase can grow huge
+without any one change rippling into the rest.
 
 ## What lives here
 
@@ -18,7 +19,14 @@ grow huge without any one change rippling into the rest.
 - [`docs/04-TECH-STACK.md`](docs/04-TECH-STACK.md) - the researched 2026 tooling (three.js, local AI).
 - [`docs/CONTRACT-CONVENTION.md`](docs/CONTRACT-CONVENTION.md) - the isolation rule every layer obeys.
 - [`docs/INDEX.md`](docs/INDEX.md) - the dispatcher: which folder to open for a given change.
-- [`docs/layers/`](docs/layers/) - one contract per blackbox (interviewer, narrator, scenario creator, NPC, runtime, persistence).
+- [`layers/`](layers/) - the nine isolated blackboxes. Each holds its own `CONTRACT.md`,
+  `README.md`, `schema/`, `src/`, `tests/`, and `fixtures/`; a layer may depend only on another's
+  `CONTRACT.md` + `schema/`, never its `src/`.
+- [`harness/`](harness/) - shared test tooling: the JSON Schema loader and the isolation checker.
+
+Run `npm install`, then `npm test` to validate every schema against its fixtures and drive each
+layer's contract tests. `npm run schemas` compiles the schemas and checks cross-references on their
+own.
 
 ## The idea in one paragraph
 

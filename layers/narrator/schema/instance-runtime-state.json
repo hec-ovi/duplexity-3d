@@ -1,0 +1,28 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/instance-runtime-state.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InstanceRuntimeState",
+  "description": "The starting play-time state for one instance: each NPC's start mode, initial flags, and the player spawn. The runtime mutates a copy of this during play; the authored Adventure is never mutated.",
+  "type": "object",
+  "properties": {
+    "instanceId": { "type": "string" },
+    "npcStates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "npcId": { "type": "string" },
+          "mode": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" },
+          "target": { "type": "string" },
+          "memory": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["npcId", "mode"],
+        "additionalProperties": false
+      }
+    },
+    "flags": { "type": "object", "additionalProperties": true },
+    "spawn": { "$ref": "https://doplexity-3d.dev/schema/persistence/spawn.json" }
+  },
+  "required": ["instanceId", "npcStates", "spawn"],
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/history-appended.event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "history.appended",
+  "description": "Emitted when the narrator records a play-time interaction, so the runtime/ux-shell can update chrome.",
+  "type": "object",
+  "properties": {
+    "adventureId": { "type": "string" },
+    "record": { "$ref": "https://doplexity-3d.dev/schema/persistence/interaction-record.json" }
+  },
+  "required": ["adventureId", "record"],
+  "additionalProperties": false
+}

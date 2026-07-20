@@ -1,0 +1,15 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/npc/interaction.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interaction",
+  "description": "A single player act toward an NPC. This is the one event that triggers a play-time LLM call.",
+  "type": "object",
+  "properties": {
+    "type": { "type": "string", "enum": ["chat", "voice", "gesture"] },
+    "text": { "type": "string", "description": "Chat text or transcribed voice." },
+    "gesture": { "type": "string", "description": "Gesture id when type=gesture (e.g. \"attack\", \"wave\")." },
+    "playerRef": { "type": "string", "description": "Id of the interacting player entity." }
+  },
+  "required": ["type", "playerRef"],
+  "additionalProperties": false
+}

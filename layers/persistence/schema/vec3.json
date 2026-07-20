@@ -1,0 +1,10 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/vec3.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vec3",
+  "description": "three.js world coordinate [x, y, z] in meters. Right-handed, Y-up.",
+  "type": "array",
+  "items": { "type": "number" },
+  "minItems": 3,
+  "maxItems": 3
+}

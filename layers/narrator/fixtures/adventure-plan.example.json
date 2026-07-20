@@ -1,0 +1,18 @@
+{
+  "meta": {
+    "id": "adv-plan-1",
+    "title": "Planned Adventure",
+    "createdAt": "2026-07-20T12:00:00.000Z",
+    "contractVersion": "1.0.0"
+  },
+  "instances": [
+    {
+      "id": "inst-001",
+      "theme": "dungeon",
+      "sizeHint": "small",
+      "goalSpec": { "type": "discover_item", "hint": "an amulet in the vault" },
+      "npcRoster": [{ "role": "guard" }]
+    }
+  ],
+  "progression": { "nodes": ["inst-001"], "edges": [], "start": "inst-001" }
+}

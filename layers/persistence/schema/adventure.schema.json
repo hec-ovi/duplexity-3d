@@ -1,0 +1,23 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/adventure.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Adventure",
+  "description": "CANONICAL top-level wire format between author-time and play-time. Everything author-time produces and everything play-time consumes is one of these documents. Self-contained except for asset bytes: rooms/objects/NPCs reference asset-registry ids.",
+  "type": "object",
+  "properties": {
+    "meta": { "$ref": "https://doplexity-3d.dev/schema/persistence/meta.json" },
+    "creativeBrief": { "$ref": "https://doplexity-3d.dev/schema/persistence/creative-brief.json" },
+    "progression": { "$ref": "https://doplexity-3d.dev/schema/persistence/progression.json" },
+    "instances": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/instance.json" }
+    },
+    "history": {
+      "type": "array",
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/interaction-record.json" }
+    }
+  },
+  "required": ["meta", "creativeBrief", "progression", "instances", "history"],
+  "additionalProperties": false
+}

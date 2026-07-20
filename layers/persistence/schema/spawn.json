@@ -1,0 +1,16 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/spawn.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Spawn",
+  "description": "A placement: a world position and a facing yaw.",
+  "type": "object",
+  "properties": {
+    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "facing": {
+      "type": "number",
+      "description": "Yaw in radians about the Y axis. 0 faces -Z (three.js default forward)."
+    }
+  },
+  "required": ["position", "facing"],
+  "additionalProperties": false
+}

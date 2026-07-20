@@ -1,0 +1,14 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-gen/gen-status.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GenStatus",
+  "description": "A poll result for a generation job. `assetId` is present only once state=done; `error` only on failed.",
+  "type": "object",
+  "properties": {
+    "state": { "type": "string", "enum": ["queued", "running", "done", "failed"] },
+    "assetId": { "type": "string" },
+    "error": { "type": "string" }
+  },
+  "required": ["state"],
+  "additionalProperties": false
+}

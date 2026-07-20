@@ -1,0 +1,29 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/scenario-creator/validation-report.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ValidationReport",
+  "description": "Proof that a produced layout is legal: one entry per geometry invariant. `ok` is the conjunction of every check.",
+  "type": "object",
+  "properties": {
+    "ok": { "type": "boolean" },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "e.g. no_room_overlap, full_connectivity, portals_aligned, goal_reachable."
+          },
+          "ok": { "type": "boolean" },
+          "detail": { "type": "string" }
+        },
+        "required": ["name", "ok"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["ok", "checks"],
+  "additionalProperties": false
+}

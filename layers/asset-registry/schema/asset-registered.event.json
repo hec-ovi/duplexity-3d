@@ -1,0 +1,12 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-registry/asset-registered.event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "asset.registered",
+  "description": "Emitted when a new entry is added, so a running author job can pick it up.",
+  "type": "object",
+  "properties": {
+    "entry": { "$ref": "https://doplexity-3d.dev/schema/asset-registry/asset-entry.json" }
+  },
+  "required": ["entry"],
+  "additionalProperties": false
+}

@@ -1,0 +1,28 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/interaction-record.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InteractionRecord",
+  "description": "One archived player-NPC interaction, appended to Adventure.history at play-time by the narrator. The interaction/result payloads are stored opaquely here: their strict shapes are owned and validated by the npc layer, so the store never couples to npc's field set.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "at": {
+      "type": ["number", "string"],
+      "description": "Play-time tick (number) or ISO timestamp (string)."
+    },
+    "instanceId": { "type": "string" },
+    "npcId": { "type": "string" },
+    "playerRef": { "type": "string" },
+    "interaction": {
+      "type": "object",
+      "description": "The player's interaction payload (npc/interaction.json shape; stored opaquely)."
+    },
+    "result": {
+      "type": "object",
+      "description": "The NPC decision payload (npc/interaction-result.json shape; stored opaquely)."
+    },
+    "summary": { "type": "string" }
+  },
+  "required": ["instanceId", "npcId", "interaction", "result"],
+  "additionalProperties": false
+}

@@ -1,0 +1,23 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/object.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlacedObject",
+  "description": "A prop placed inside a room. References an asset-registry entry by id.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "assetRef": {
+      "type": "string",
+      "description": "asset-registry AssetEntry id for the mesh (kit part or generated)."
+    },
+    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "rotationY": { "type": "number", "description": "Yaw in radians." },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "interactable": {
+      "type": "boolean",
+      "description": "Whether the player can target this object (e.g. a discover_item goal target)."
+    }
+  },
+  "required": ["id", "assetRef", "position"],
+  "additionalProperties": false
+}

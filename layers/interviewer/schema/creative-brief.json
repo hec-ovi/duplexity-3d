@@ -1,0 +1,7 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/interviewer/creative-brief.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreativeBrief (interviewer output)",
+  "description": "The single artifact the interviewer exists to produce. Shape is the canonical one owned by persistence (it is embedded in the Adventure); this is a thin reference so the interviewer folder self-documents its output without redefining the wire format.",
+  "$ref": "https://doplexity-3d.dev/schema/persistence/creative-brief.json"
+}

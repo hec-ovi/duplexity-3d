@@ -1,0 +1,24 @@
+{
+  "whoAmI": {
+    "name": "Vex",
+    "persona": "A relentless skeleton guard bound to the vault.",
+    "disposition": "hostile",
+    "goal": "guard the vault"
+  },
+  "myBody": {
+    "animations": ["idle", "walk", "attack", "hit", "die"],
+    "actions": ["patrol", "attack"]
+  },
+  "whereIAm": {
+    "roomId": "room-vault",
+    "position": [6, 0, 8],
+    "nearbyEntities": [{ "id": "player-1", "kind": "player", "position": [6, 0, 6] }],
+    "notableObjects": ["obj-chest-1"],
+    "exits": ["p2"]
+  },
+  "myState": {
+    "mode": "patrol",
+    "memory": []
+  },
+  "allowedModes": ["patrol", "idle", "attack", "flee"]
+}

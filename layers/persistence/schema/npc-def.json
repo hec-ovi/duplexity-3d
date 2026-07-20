@@ -1,0 +1,54 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/npc-def.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NpcDef",
+  "description": "The authored definition of one NPC (data, not behavior). Produced by the npc layer at author-time and embedded in the Adventure. `bodyRef` names an asset-registry character asset, which fixes the animation clips the body can actually perform.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "persona": { "type": "string", "description": "Public personality/summary the model speaks from." },
+    "knowledge": { "type": "string", "description": "Private lore the NPC knows but does not volunteer." },
+    "appearance": { "type": "string" },
+    "disposition": {
+      "type": "string",
+      "enum": ["friendly", "neutral", "wary", "hostile"]
+    },
+    "relation": {
+      "type": "object",
+      "description": "Allegiances/relationships to other entities, keyed loosely.",
+      "additionalProperties": true
+    },
+    "allowedModes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" }
+    },
+    "bodyRef": {
+      "type": "string",
+      "description": "asset-registry character AssetEntry id. Its declared animations bound the allowedModes."
+    },
+    "homeRoom": { "type": "string", "description": "Room id this NPC belongs to." },
+    "spawn": { "$ref": "https://doplexity-3d.dev/schema/persistence/spawn.json" },
+    "voiceDesign": {
+      "type": "object",
+      "description": "Deterministic voice parameters (ported from gamentic's voice-design composer).",
+      "additionalProperties": true
+    },
+    "traits": { "type": "array", "items": { "type": "string" } },
+    "startMode": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" }
+  },
+  "required": [
+    "id",
+    "name",
+    "persona",
+    "disposition",
+    "allowedModes",
+    "bodyRef",
+    "homeRoom",
+    "spawn",
+    "startMode"
+  ],
+  "additionalProperties": false
+}

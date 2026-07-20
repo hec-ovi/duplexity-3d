@@ -1,0 +1,25 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/scenario-creator/instance.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Instance (scenario-creator layout output)",
+  "description": "The layout the scenario-creator returns: the persistence Instance minus npcs (the narrator authors and folds those in afterward). Objects are nested inside rooms (room.objects), matching the canonical Room shape. Rooms/portals/goal/spawn reference the persistence wire format directly.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "theme": { "type": "string" },
+    "rules": { "type": "object", "additionalProperties": true },
+    "rooms": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/room.json" }
+    },
+    "portals": {
+      "type": "array",
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/portal.json" }
+    },
+    "goal": { "$ref": "https://doplexity-3d.dev/schema/persistence/goal.json" },
+    "spawn": { "$ref": "https://doplexity-3d.dev/schema/persistence/spawn.json" }
+  },
+  "required": ["id", "theme", "rooms", "portals", "goal", "spawn"],
+  "additionalProperties": false
+}

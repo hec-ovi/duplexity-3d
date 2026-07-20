@@ -1,0 +1,7 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/npc/npc-def.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NpcDef (npc layer output)",
+  "description": "npc.authorNpcs produces NpcDef. Its shape is the canonical one owned by persistence (it is embedded in the Adventure document); this is a thin reference so the npc folder self-documents its output without redefining the wire format.",
+  "$ref": "https://doplexity-3d.dev/schema/persistence/npc-def.json"
+}

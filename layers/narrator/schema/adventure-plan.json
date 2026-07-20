@@ -1,0 +1,18 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/adventure-plan.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdventurePlan",
+  "description": "The narrator's internal plan before it delegates to scenario-creator and npc: the meta, one InstanceSpec per instance, and the progression graph. Not the final Adventure (that has assembled instances).",
+  "type": "object",
+  "properties": {
+    "meta": { "$ref": "https://doplexity-3d.dev/schema/persistence/meta.json" },
+    "instances": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/scenario-creator/instance-spec.json" }
+    },
+    "progression": { "$ref": "https://doplexity-3d.dev/schema/persistence/progression.json" }
+  },
+  "required": ["meta", "instances", "progression"],
+  "additionalProperties": false
+}

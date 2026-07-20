@@ -1,0 +1,11 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/interviewer/interview-skip.in.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InterviewSkipIn",
+  "description": "POST /interview/skip body: bypass the chat. Empty is valid (fully random); seedHints is optional loose text.",
+  "type": "object",
+  "properties": {
+    "seedHints": { "type": "string" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,27 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/npc/roster-spec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RosterSpec",
+  "description": "The narrator's roster ask for one instance: how many NPCs and what roles, which npc.authorNpcs turns into NpcDefs.",
+  "type": "object",
+  "properties": {
+    "count": { "type": "integer", "minimum": 0 },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string" },
+          "disposition": { "type": "string", "enum": ["friendly", "neutral", "wary", "hostile"] },
+          "count": { "type": "integer", "minimum": 1 },
+          "notes": { "type": "string" }
+        },
+        "required": ["role"],
+        "additionalProperties": false
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "required": ["count"],
+  "additionalProperties": false
+}

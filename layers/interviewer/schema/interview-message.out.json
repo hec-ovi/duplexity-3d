@@ -1,0 +1,15 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/interviewer/interview-message.out.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InterviewMessageOut",
+  "description": "Interview reply. `ready` flips true (monotone) once enough is known; `brief` is present only once ready.",
+  "type": "object",
+  "properties": {
+    "sessionId": { "type": "string" },
+    "reply": { "type": "string" },
+    "ready": { "type": "boolean" },
+    "brief": { "$ref": "https://doplexity-3d.dev/schema/persistence/creative-brief.json" }
+  },
+  "required": ["sessionId", "reply", "ready"],
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/runtime/load-input.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuntimeLoadInput",
+  "description": "What the runtime.load entry point receives: a full Adventure document and the id of the instance within it to build and play.",
+  "type": "object",
+  "properties": {
+    "adventure": { "$ref": "https://doplexity-3d.dev/schema/persistence/adventure.schema.json" },
+    "instanceId": { "type": "string" }
+  },
+  "required": ["adventure", "instanceId"],
+  "additionalProperties": false
+}

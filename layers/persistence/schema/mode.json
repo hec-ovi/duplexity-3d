@@ -1,0 +1,19 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/mode.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NpcMode",
+  "description": "The closed set of NPC high-level states. Each has a deterministic client-side behavior in the runtime; the play-time LLM only ever chooses WHICH mode. Adding a mode is an additive change here plus a runtime behavior for it.",
+  "type": "string",
+  "enum": [
+    "idle",
+    "wander",
+    "patrol",
+    "move_to",
+    "follow",
+    "guard",
+    "flee",
+    "attack",
+    "talk",
+    "dead"
+  ]
+}

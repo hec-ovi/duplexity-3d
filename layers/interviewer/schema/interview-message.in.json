@@ -1,0 +1,13 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/interviewer/interview-message.in.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InterviewMessageIn",
+  "description": "POST /interview/message body: start or continue an interview chat.",
+  "type": "object",
+  "properties": {
+    "sessionId": { "type": "string", "description": "Omitted starts a new session." },
+    "text": { "type": "string" }
+  },
+  "required": ["text"],
+  "additionalProperties": false
+}

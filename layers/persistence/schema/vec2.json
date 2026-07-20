@@ -1,0 +1,10 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/vec2.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vec2",
+  "description": "A 2D extent [width, height] in meters (used for portal openings on a wall plane).",
+  "type": "array",
+  "items": { "type": "number" },
+  "minItems": 2,
+  "maxItems": 2
+}

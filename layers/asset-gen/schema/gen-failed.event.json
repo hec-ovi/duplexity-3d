@@ -1,0 +1,13 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-gen/gen-failed.event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "gen.failed",
+  "description": "Emitted when a generation job fails cleanly (nothing else in the engine is affected).",
+  "type": "object",
+  "properties": {
+    "jobId": { "type": "string" },
+    "error": { "type": "string" }
+  },
+  "required": ["jobId", "error"],
+  "additionalProperties": false
+}

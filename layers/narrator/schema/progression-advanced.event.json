@@ -1,0 +1,15 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/progression-advanced.event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "progression.advanced",
+  "description": "Emitted when a stage is cleared and the narrator resolves the next node (or marks the adventure done).",
+  "type": "object",
+  "properties": {
+    "adventureId": { "type": "string" },
+    "fromInstanceId": { "type": "string" },
+    "toInstanceId": { "type": "string" },
+    "done": { "type": "boolean" }
+  },
+  "required": ["adventureId", "fromInstanceId"],
+  "additionalProperties": false
+}

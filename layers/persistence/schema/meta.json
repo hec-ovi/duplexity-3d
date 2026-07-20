@@ -1,0 +1,21 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/meta.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AdventureMeta",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "contractVersion": {
+      "type": "string",
+      "description": "The Adventure wire-format version this document was written against (semver)."
+    },
+    "seed": {
+      "type": "integer",
+      "description": "Deterministic authoring seed."
+    }
+  },
+  "required": ["id", "title", "createdAt", "contractVersion"],
+  "additionalProperties": false
+}

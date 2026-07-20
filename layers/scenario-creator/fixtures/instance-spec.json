@@ -1,0 +1,9 @@
+{
+  "id": "inst-001",
+  "theme": "dungeon",
+  "sizeHint": "small",
+  "mood": "tense",
+  "goalSpec": { "type": "discover_item", "hint": "an amulet in the guarded vault" },
+  "npcRoster": [{ "role": "smith" }, { "role": "guard", "count": 1 }],
+  "connectionHints": { "loops": false }
+}

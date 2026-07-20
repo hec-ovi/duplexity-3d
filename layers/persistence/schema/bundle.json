@@ -1,0 +1,24 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/bundle.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bundle",
+  "description": "A portable export: an Adventure plus any non-kit (generated) assets it references, so it opens on a machine that only has the base CC0 kits. Kit assets stay referenced by id; generated assets are embedded. Embedded entries are kept opaque here (their strict shape is asset-registry's concern) but must carry an id and a resolvable license.",
+  "type": "object",
+  "properties": {
+    "adventure": { "$ref": "https://doplexity-3d.dev/schema/persistence/adventure.schema.json" },
+    "generatedAssets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "license": { "type": "string" },
+          "glbUrl": { "type": "string" }
+        },
+        "required": ["id", "license"]
+      }
+    }
+  },
+  "required": ["adventure"],
+  "additionalProperties": false
+}

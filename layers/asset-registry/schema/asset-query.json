@@ -1,0 +1,24 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-registry/asset-query.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AssetQuery",
+  "description": "A filter over the catalog, used by the scenario-creator to pick pieces. All fields optional; an empty query matches everything.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["room-floor", "wall", "door", "corridor", "prop", "character", "decal"]
+    },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "theme": { "type": "string" },
+    "sizeConstraints": {
+      "type": "object",
+      "properties": {
+        "maxSize": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "minSize": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

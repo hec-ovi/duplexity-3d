@@ -1,0 +1,33 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/instance.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Instance",
+  "description": "One fully-assembled 3D world in the Adventure: a scenario-creator layout plus its authored NPCs and goal. This is the play-time unit the runtime loads.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "theme": { "type": "string" },
+    "rules": {
+      "type": "object",
+      "description": "Per-instance rule flags (e.g. pvp, time limits). Freeform.",
+      "additionalProperties": true
+    },
+    "rooms": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/room.json" }
+    },
+    "portals": {
+      "type": "array",
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/portal.json" }
+    },
+    "npcs": {
+      "type": "array",
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/npc-def.json" }
+    },
+    "goal": { "$ref": "https://doplexity-3d.dev/schema/persistence/goal.json" },
+    "spawn": { "$ref": "https://doplexity-3d.dev/schema/persistence/spawn.json" }
+  },
+  "required": ["id", "theme", "rooms", "portals", "npcs", "goal", "spawn"],
+  "additionalProperties": false
+}

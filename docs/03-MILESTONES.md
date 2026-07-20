@@ -16,15 +16,19 @@ Legend: [x] done, [~] in progress, [ ] not started.
 - Definition of done: a new agent can read `docs/INDEX.md` and know exactly which blackbox owns
   what, and the wire formats between them are named.
 
-## Phase 1 - Skeleton + contract tests (isolation is real from day one) [ ]
+## Phase 1 - Skeleton + contract tests (isolation is real from day one) [x]
 
-- Create `layers/<name>/` folders with `CONTRACT.md`, `README.md`, `schema/`, `tests/`, `fixtures/`.
-- Author the shared **Adventure** JSON Schema (`layers/persistence/schema/adventure.schema.json`)
-  and a hand-written example Adventure fixture (one instance, 3 rooms, 2 portals, 2 NPCs, 1 goal).
-- Stand up a contract-test harness that validates fixtures against schemas and drives each layer's
-  (mocked) entry points. Every layer is a stub that satisfies its contract with canned data.
-- DoD: `npm test` (and backend test cmd) pass; every schema validates its fixtures; no layer
-  imports another's internals.
+- [x] `layers/<name>/` folders created with `CONTRACT.md` (moved out of `docs/layers/`),
+  `README.md`, `schema/`, `src/`, `tests/`, `fixtures/`.
+- [x] Shared **Adventure** JSON Schema (`layers/persistence/schema/adventure.schema.json`) plus 41
+  sub/peer schemas (draft 2020-12), and a hand-written example Adventure fixture (1 instance, 3
+  wall-adjacent rooms, 2 aligned portals, 2 NPCs, a `discover_item` goal) that validates against it.
+- [x] Shared test harness (`harness/`): an Ajv loader with a canonical `SCHEMA_ID` map, and a static
+  isolation checker (scans `src/` AND `tests/`, catches side-effect imports). Every layer is a
+  dependency-injected stub that satisfies its contract with canned data.
+- [x] DoD met: `npm test` passes (52 local contract tests, no CI); every schema validates its
+  fixtures; no layer imports another's internals. An adversarial review pass ran and its 18 confirmed
+  findings were fixed.
 
 ## Phase 2 - Runtime vertical slice (render + walk, no AI) [ ]
 

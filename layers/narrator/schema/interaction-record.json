@@ -1,0 +1,7 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/interaction-record.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InteractionRecord (narrator I/O)",
+  "description": "The narrator appends these to Adventure.history. Shape is the canonical one owned by persistence; this is a thin reference so the narrator folder self-documents its input without redefining the wire format.",
+  "$ref": "https://doplexity-3d.dev/schema/persistence/interaction-record.json"
+}

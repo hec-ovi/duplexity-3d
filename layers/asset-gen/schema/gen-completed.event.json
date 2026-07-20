@@ -1,0 +1,13 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-gen/gen-completed.event.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "gen.completed",
+  "description": "Emitted when a generation job finishes and its asset is registered.",
+  "type": "object",
+  "properties": {
+    "jobId": { "type": "string" },
+    "assetId": { "type": "string" }
+  },
+  "required": ["jobId", "assetId"],
+  "additionalProperties": false
+}

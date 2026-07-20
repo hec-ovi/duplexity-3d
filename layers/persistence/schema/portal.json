@@ -1,0 +1,24 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/portal.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Portal",
+  "description": "A door/gate joining two rooms, or joining a room to the instance EXIT. `position` sits on the shared wall plane of both rooms; `axis` is the wall normal; `size` is the opening [width, height].",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "roomA": { "type": "string", "description": "Room id on one side." },
+    "roomB": {
+      "type": "string",
+      "description": "Room id on the other side, or the literal \"EXIT\" for the instance exit."
+    },
+    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "axis": {
+      "type": "string",
+      "enum": ["x", "z"],
+      "description": "Wall normal direction. The portal opening lies in the plane perpendicular to this axis."
+    },
+    "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec2.json" }
+  },
+  "required": ["id", "roomA", "roomB", "position", "axis", "size"],
+  "additionalProperties": false
+}

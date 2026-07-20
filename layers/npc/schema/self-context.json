@@ -1,0 +1,71 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/npc/self-context.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SelfContext",
+  "description": "The awareness snapshot the runtime assembles fresh at interaction time and hands to the npc brain. 'Sentience' is exactly this snapshot plus the closed set of modes it may switch to; there is no background process.",
+  "type": "object",
+  "properties": {
+    "whoAmI": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "persona": { "type": "string" },
+        "disposition": { "type": "string" },
+        "goal": { "type": "string", "description": "This NPC's current goal/allegiance in play." }
+      },
+      "required": ["name", "persona"],
+      "additionalProperties": false
+    },
+    "myBody": {
+      "type": "object",
+      "description": "What this body can physically do (from its asset-registry character animations).",
+      "properties": {
+        "animations": { "type": "array", "items": { "type": "string" } },
+        "actions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["animations"],
+      "additionalProperties": false
+    },
+    "whereIAm": {
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+        "nearbyEntities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string" },
+              "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" }
+            },
+            "required": ["id", "kind"],
+            "additionalProperties": false
+          }
+        },
+        "notableObjects": { "type": "array", "items": { "type": "string" } },
+        "exits": { "type": "array", "items": { "type": "string" }, "description": "Portal ids." }
+      },
+      "required": ["roomId", "position"],
+      "additionalProperties": false
+    },
+    "myState": {
+      "type": "object",
+      "properties": {
+        "mode": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" },
+        "target": { "type": "string" },
+        "memory": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["mode"],
+      "additionalProperties": false
+    },
+    "allowedModes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" }
+    }
+  },
+  "required": ["whoAmI", "myBody", "whereIAm", "myState", "allowedModes"],
+  "additionalProperties": false
+}

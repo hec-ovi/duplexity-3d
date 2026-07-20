@@ -1,0 +1,139 @@
+{
+  "meta": {
+    "id": "adv-example-001",
+    "title": "The Vault of the Gruff Smith",
+    "createdAt": "2026-07-20T12:00:00.000Z",
+    "contractVersion": "1.0.0",
+    "seed": 12345
+  },
+  "creativeBrief": {
+    "universes": ["dungeon fantasy"],
+    "likedNpcs": ["a gruff blacksmith", "a relentless skeleton guard"],
+    "tone": "adventurous",
+    "difficulty": "normal",
+    "themes": ["dungeon"],
+    "freeText": "small crawl that ends at a guarded treasure vault",
+    "seed": 12345
+  },
+  "progression": {
+    "nodes": ["inst-001"],
+    "edges": [],
+    "start": "inst-001"
+  },
+  "instances": [
+    {
+      "id": "inst-001",
+      "theme": "dungeon",
+      "rules": { "pvp": false },
+      "rooms": [
+        {
+          "id": "room-entry",
+          "position": [0, 0, 0],
+          "size": [6, 3, 6],
+          "floorKit": "kaykit.dungeon.floor",
+          "wallKit": "kaykit.dungeon.wall",
+          "objects": [
+            {
+              "id": "obj-torch-1",
+              "assetRef": "kaykit.dungeon.torch",
+              "position": [-2.8, 1.5, 0],
+              "rotationY": 1.5708,
+              "tags": ["light"]
+            }
+          ],
+          "inventory": []
+        },
+        {
+          "id": "room-hall",
+          "position": [0, 0, 6],
+          "size": [6, 3, 6],
+          "floorKit": "kaykit.dungeon.floor",
+          "wallKit": "kaykit.dungeon.wall",
+          "objects": [
+            {
+              "id": "obj-anvil-1",
+              "assetRef": "kaykit.props.anvil",
+              "position": [1.5, 0, 6],
+              "tags": ["smithing"]
+            }
+          ],
+          "inventory": []
+        },
+        {
+          "id": "room-vault",
+          "position": [6, 0, 6],
+          "size": [6, 3, 6],
+          "floorKit": "kaykit.dungeon.floor.gold",
+          "wallKit": "kaykit.dungeon.wall",
+          "objects": [
+            {
+              "id": "obj-chest-1",
+              "assetRef": "kaykit.props.chest",
+              "position": [7.5, 0, 8],
+              "tags": ["container"]
+            }
+          ],
+          "inventory": [
+            {
+              "itemId": "amulet",
+              "assetRef": "kaykit.props.amulet",
+              "position": [6, 0.6, 6]
+            }
+          ]
+        }
+      ],
+      "portals": [
+        {
+          "id": "p1",
+          "roomA": "room-entry",
+          "roomB": "room-hall",
+          "position": [0, 0, 3],
+          "axis": "z",
+          "size": [1.5, 2.4]
+        },
+        {
+          "id": "p2",
+          "roomA": "room-hall",
+          "roomB": "room-vault",
+          "position": [3, 0, 6],
+          "axis": "x",
+          "size": [1.5, 2.4]
+        }
+      ],
+      "npcs": [
+        {
+          "id": "npc-smith",
+          "name": "Bruk Ironhand",
+          "persona": "A gruff dwarven blacksmith who guards the hall and warms to anyone who respects the craft.",
+          "knowledge": "Knows the amulet is real and that the skeleton in the vault cannot be reasoned with.",
+          "appearance": "Stout dwarf, soot-streaked apron, braided grey beard.",
+          "disposition": "neutral",
+          "relation": { "npc-guard": "wary" },
+          "allowedModes": ["idle", "talk", "follow", "guard"],
+          "bodyRef": "kaykit.character.dwarf",
+          "homeRoom": "room-hall",
+          "spawn": { "position": [0, 0, 6], "facing": 0 },
+          "voiceDesign": { "pitch": "low", "rate": "measured", "emotionTags": ["gruff"] },
+          "traits": ["gruff", "loyal", "proud"],
+          "startMode": "idle"
+        },
+        {
+          "id": "npc-guard",
+          "name": "Vex",
+          "persona": "A relentless skeleton guard bound to the vault. It does not speak; it only patrols and strikes intruders.",
+          "appearance": "Weathered skeleton in rusted mail, notched blade.",
+          "disposition": "hostile",
+          "allowedModes": ["patrol", "idle", "attack", "flee"],
+          "bodyRef": "kaykit.character.skeleton",
+          "homeRoom": "room-vault",
+          "spawn": { "position": [6, 0, 8], "facing": 3.1416 },
+          "traits": ["relentless", "mindless"],
+          "startMode": "patrol"
+        }
+      ],
+      "goal": { "type": "discover_item", "itemId": "amulet" },
+      "spawn": { "position": [0, 0, 0], "facing": 0 }
+    }
+  ],
+  "history": []
+}

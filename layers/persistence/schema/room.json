@@ -1,0 +1,40 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/room.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Room",
+  "description": "An axis-aligned box room. `position` is the room center; `size` is [width(x), height(y), depth(z)] in meters.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "floorKit": {
+      "type": "string",
+      "description": "asset-registry id (or kit family tag) for the floor pieces."
+    },
+    "wallKit": {
+      "type": "string",
+      "description": "asset-registry id (or kit family tag) for the wall pieces."
+    },
+    "objects": {
+      "type": "array",
+      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/object.json" }
+    },
+    "inventory": {
+      "type": "array",
+      "description": "Pick-up items available in this room.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "itemId": { "type": "string" },
+          "assetRef": { "type": "string" },
+          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" }
+        },
+        "required": ["itemId"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["id", "position", "size", "floorKit", "wallKit"],
+  "additionalProperties": false
+}

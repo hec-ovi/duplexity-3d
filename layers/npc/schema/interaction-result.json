@@ -1,0 +1,22 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/npc/interaction-result.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InteractionResult",
+  "description": "The npc brain's decision for one interaction: which mode to switch to, an optional target/line/emote, and an optional memory note. Schema-constrained so the model physically cannot emit an off-contract action. At Phase 6 a GBNF grammar is derived from this schema; if a grammar gap forces it, additionalProperties may be relaxed there while the deterministic re-validate stays strict.",
+  "type": "object",
+  "properties": {
+    "newMode": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" },
+    "target": {
+      "description": "An entity id, or a world position, that must exist in the given selfContext.",
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" }
+      ]
+    },
+    "utterance": { "type": "string", "description": "The line the NPC speaks (may carry emotion tags)." },
+    "emote": { "type": "string", "description": "A short emote/animation cue." },
+    "memoryDelta": { "type": "string", "description": "A note to fold into the NPC's memory." }
+  },
+  "required": ["newMode"],
+  "additionalProperties": false
+}

@@ -1,0 +1,26 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/asset-gen/gen-request.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GenRequest",
+  "description": "A request to generate/enrich one asset. `targetSpec` carries the required bbox/snap grid so the output is drop-in for the solver.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["room-floor", "wall", "door", "corridor", "prop", "character", "decal"]
+    },
+    "prompt": { "type": "string" },
+    "image": { "type": "string", "description": "Reference image url or data URI for image-to-3D." },
+    "targetSpec": {
+      "type": "object",
+      "properties": {
+        "bbox": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "snap": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["bbox"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["kind", "targetSpec"],
+  "additionalProperties": false
+}

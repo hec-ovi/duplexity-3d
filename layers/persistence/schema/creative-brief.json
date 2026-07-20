@@ -1,0 +1,18 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/creative-brief.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CreativeBrief",
+  "description": "The player-taste artifact the interviewer produces (and the narrator plans from). Canonical here because it is embedded in the Adventure document; the interviewer layer ships a thin $ref wrapper to this shape. Always valid even from an empty skip: the interviewer fills defaults, so every field is present (arrays may be empty).",
+  "type": "object",
+  "properties": {
+    "universes": { "type": "array", "items": { "type": "string" } },
+    "likedNpcs": { "type": "array", "items": { "type": "string" } },
+    "tone": { "type": "string" },
+    "difficulty": { "type": "string", "enum": ["easy", "normal", "hard"] },
+    "themes": { "type": "array", "items": { "type": "string" } },
+    "freeText": { "type": "string" },
+    "seed": { "type": "integer" }
+  },
+  "required": ["universes", "likedNpcs", "tone", "difficulty", "themes", "freeText"],
+  "additionalProperties": false
+}

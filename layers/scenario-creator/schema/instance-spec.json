@@ -1,0 +1,44 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/scenario-creator/instance-spec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InstanceSpec",
+  "description": "One instance's build order from the narrator. The scenario-creator turns this into a geometrically valid layout. NPC roster is carried as loose role hints here; the actual NpcDefs are authored separately by the npc layer.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "theme": { "type": "string" },
+    "sizeHint": { "type": "string", "enum": ["small", "medium", "large"] },
+    "mood": { "type": "string" },
+    "goalSpec": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["reach_exit", "unlock_dialog", "discover_item", "defeat", "survive"]
+        },
+        "hint": { "type": "string" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "npcRoster": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": { "type": "string" },
+          "count": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["role"],
+        "additionalProperties": false
+      }
+    },
+    "connectionHints": {
+      "type": "object",
+      "description": "Hints about room count and topology (loops vs linear). Advisory; the solver owns final geometry.",
+      "additionalProperties": true
+    }
+  },
+  "required": ["id", "theme", "goalSpec"],
+  "additionalProperties": false
+}

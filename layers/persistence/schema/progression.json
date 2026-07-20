@@ -1,0 +1,41 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/progression.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Progression",
+  "description": "The DAG over instances. `nodes` are instance ids; each `edge` unlocks when the source instance's goal is met; `start` is the first instance. Exactly one start and at least one terminal (a node with no outgoing edge) is a narrator invariant checked in its tests, not by this schema.",
+  "type": "object",
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "unlock": { "$ref": "#/$defs/goalRef" }
+        },
+        "required": ["from", "to", "unlock"],
+        "additionalProperties": false
+      }
+    },
+    "start": { "type": "string" }
+  },
+  "required": ["nodes", "start"],
+  "additionalProperties": false,
+  "$defs": {
+    "goalRef": {
+      "type": "object",
+      "description": "Refers to the goal whose completion traverses the edge: the source instance's goal.",
+      "properties": {
+        "instanceId": { "type": "string" }
+      },
+      "required": ["instanceId"],
+      "additionalProperties": false
+    }
+  }
+}

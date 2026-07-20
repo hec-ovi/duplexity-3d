@@ -1,0 +1,14 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/narrator/goal-result.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GoalResult",
+  "description": "The runtime's report that an instance goal was (or was not) met. The narrator reads it to pick the next instance in the progression graph. Produced client-side, consumed by narrator.nextInstance.",
+  "type": "object",
+  "properties": {
+    "instanceId": { "type": "string" },
+    "goalMet": { "type": "boolean" },
+    "details": { "type": "object", "additionalProperties": true }
+  },
+  "required": ["instanceId", "goalMet"],
+  "additionalProperties": false
+}

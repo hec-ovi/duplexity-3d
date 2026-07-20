@@ -1,0 +1,98 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/persistence/goal.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Goal",
+  "description": "An instance win condition the runtime can check every tick without an LLM. A primitive goal or a composite (sequence/all) of goals.",
+  "oneOf": [
+    { "$ref": "#/$defs/reach_exit" },
+    { "$ref": "#/$defs/unlock_dialog" },
+    { "$ref": "#/$defs/discover_item" },
+    { "$ref": "#/$defs/defeat" },
+    { "$ref": "#/$defs/survive" },
+    { "$ref": "#/$defs/sequence" },
+    { "$ref": "#/$defs/all" }
+  ],
+  "$defs": {
+    "reach_exit": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "reach_exit" },
+        "portalId": {
+          "type": "string",
+          "description": "Optional specific EXIT portal; omitted means any EXIT portal."
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+    "unlock_dialog": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "unlock_dialog" },
+        "npcId": { "type": "string" },
+        "requiredMode": { "$ref": "https://doplexity-3d.dev/schema/persistence/mode.json" },
+        "flag": {
+          "type": "string",
+          "description": "Optional named flag the interaction must set (e.g. \"gave_key\")."
+        }
+      },
+      "required": ["type", "npcId"],
+      "additionalProperties": false
+    },
+    "discover_item": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "discover_item" },
+        "itemId": { "type": "string" }
+      },
+      "required": ["type", "itemId"],
+      "additionalProperties": false
+    },
+    "defeat": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "defeat" },
+        "npcId": { "type": "string" }
+      },
+      "required": ["type", "npcId"],
+      "additionalProperties": false
+    },
+    "survive": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "survive" },
+        "seconds": { "type": "number", "minimum": 0 }
+      },
+      "required": ["type", "seconds"],
+      "additionalProperties": false
+    },
+    "sequence": {
+      "type": "object",
+      "description": "Complete the steps in order.",
+      "properties": {
+        "type": { "const": "sequence" },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/goal.json" }
+        }
+      },
+      "required": ["type", "steps"],
+      "additionalProperties": false
+    },
+    "all": {
+      "type": "object",
+      "description": "Complete every sub-goal, order-independent.",
+      "properties": {
+        "type": { "const": "all" },
+        "of": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/goal.json" }
+        }
+      },
+      "required": ["type", "of"],
+      "additionalProperties": false
+    }
+  }
+}
