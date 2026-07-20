@@ -155,6 +155,12 @@ describe("npc - play-time brain via an injected model (Phase 6)", () => {
     expect(sanitizeDecision({ newMode: "attack", target: "player-1" }, selfContext).target).toBe("player-1");
   });
 
+  it("passes a named story flag through when the model sets one (for an unlock_dialog goal)", () => {
+    const result = sanitizeDecision({ newMode: "idle", flag: "gave-key" }, selfContext);
+    expect(result.flag).toBe("gave-key");
+    expect(validate(SCHEMA_ID.npc.interactionResult, result).ok).toBe(true);
+  });
+
   it("parses a JSON-string completion and scrubs leaked markup out of the utterance", () => {
     const result = sanitizeDecision('{"newMode":"idle","utterance":"Hold <break> there"}', selfContext);
     expect(result.newMode).toBe("idle");

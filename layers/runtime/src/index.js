@@ -37,6 +37,9 @@ const DEFAULTS = {
   npcRadius: NPC_DEFAULTS.radius,
 };
 
+// How close (m) to an EXIT portal's opening counts as reaching it (reach_exit).
+const EXIT_REACH = 1.5;
+
 export function createRuntime(deps = {}) {
   const cfg = {
     playerRadius: deps.playerRadius ?? DEFAULTS.playerRadius,
@@ -66,6 +69,18 @@ export function createRuntime(deps = {}) {
       speed: cfg.npcSpeed,
       radius: cfg.npcRadius,
     };
+  }
+
+  // Record a mode an NPC has been in (for goal evaluation: unlock_dialog needs "reached mode X",
+  // defeat needs "was dead"). Sticky: once seen, it stays in the history.
+  function recordMode(id, mode) {
+    if (!scene) return;
+    let seen = scene.modeHistory.get(id);
+    if (!seen) {
+      seen = new Set();
+      scene.modeHistory.set(id, seen);
+    }
+    seen.add(mode);
   }
 
   // The animation clip names the NPC's body can perform, from the injected registry (empty when the
@@ -147,10 +162,12 @@ export function createRuntime(deps = {}) {
 
     state.mode = result.newMode;
     scene.npcModes[npcId] = result.newMode;
+    recordMode(npcId, result.newMode); // an interaction drove this mode (unlock_dialog); passive sim modes are not counted
     state.target = point; // {x,z} destination for move_to (null when none)
     state.targetRef = ref; // string ref echoed back in the next selfContext.myState.target
     if (result.utterance) speech.say(npcId, result.utterance);
     if (result.memoryDelta) state.memory.push(result.memoryDelta);
+    if (typeof result.flag === "string" && result.flag) scene.flags.add(result.flag); // a named story flag (unlock_dialog.flag)
     return result;
   }
 
@@ -187,6 +204,12 @@ export function createRuntime(deps = {}) {
         npcModes: Object.fromEntries([...npcStates.values()].map((s) => [s.id, s.mode])),
         goal: instance.goal,
         discovered: new Set(),
+        reachedExits: new Set(), // EXIT portals the player has walked up to (reach_exit)
+        exitArmed: new Set(), // exits the player has been clear of, so a spawn-adjacent exit does not auto-fire
+        modeHistory: new Map([...npcStates.values()].map((s) => [s.id, new Set()])), // modes an INTERACTION has driven each NPC into (unlock_dialog); seeded empty so a startMode is not counted
+        flags: new Set(), // named story flags an interaction result sets (unlock_dialog.flag)
+        elapsed: 0, // accumulated sim seconds (survive)
+        seqProgress: new Map(), // per-sequence-goal step index (ordered composites)
         goalMet: false,
       };
       const spawn = model.spawn;
@@ -237,6 +260,7 @@ export function createRuntime(deps = {}) {
     // nearby items (which can meet the goal).
     step(dt, input = {}) {
       if (!model || !player) throw new InstanceInvalidError(scene?.instanceId);
+      scene.elapsed += dt; // survive goals count sim time, never a wall clock
       const from = { x: player.position.x, z: player.position.z };
       const delta = movementVector(input, player.yaw, cfg.moveSpeed, dt);
 
@@ -260,6 +284,17 @@ export function createRuntime(deps = {}) {
         deps.onRoomChange?.(prev, room);
       }
 
+      // reach_exit: an EXIT portal's opening has no collider, so the player can walk through it.
+      // Coming within EXIT_REACH of its centre counts as reaching it (latched), but an exit only counts
+      // once it has been "armed" by the player standing clear of it first, so an exit right next to the
+      // spawn does not fire on frame 1 before the player has moved.
+      for (const p of model.portals) {
+        if (p.roomA !== "EXIT" && p.roomB !== "EXIT") continue;
+        const d = Math.hypot(p.center.x - pos.x, p.center.z - pos.z);
+        if (d > EXIT_REACH) scene.exitArmed.add(p.id);
+        else if (scene.exitArmed.has(p.id)) scene.reachedExits.add(p.id);
+      }
+
       // Advance NPCs against the freshly moved player, then age bubbles.
       const ctx = npcCtx();
       for (const state of npcStates.values()) {
@@ -275,6 +310,7 @@ export function createRuntime(deps = {}) {
         }
       }
 
+      api.evaluateGoal(); // time / position / mode goals latch during play, not only on a pickup
       return { position: player.position, yaw: player.yaw, currentRoom: player.currentRoom };
     },
 
@@ -301,6 +337,12 @@ export function createRuntime(deps = {}) {
     interact(npcId, interaction) {
       if (!npcStates.has(npcId)) throw new Error(`unknown npc: ${npcId}`);
       const selfContext = api.assembleSelfContext(npcId);
+      // Capture this interaction's identity BEFORE applying/evaluating: evaluating the goal can fire
+      // onRequestNextInstance, whose host may synchronously load() the next instance (resetting scene
+      // and interactionSeq). Archiving must use the pre-reload id/seq, not the next instance's.
+      const instanceId = scene.instanceId;
+      interactionSeq += 1;
+      const seq = interactionSeq;
       let decision = null;
       try {
         decision = deps.onInteraction ? deps.onInteraction(selfContext, interaction) : null;
@@ -308,23 +350,25 @@ export function createRuntime(deps = {}) {
         decision = null; // MODEL_UNAVAILABLE / MODEL_TIMEOUT -> fallback
       }
       const applied = applyDecision(npcId, decision, selfContext);
-      interactionSeq += 1;
       deps.onHistoryAppend?.({
-        id: `${scene.instanceId}:${npcId}:${interactionSeq}`,
-        at: interactionSeq,
-        instanceId: scene.instanceId,
+        id: `${instanceId}:${npcId}:${seq}`,
+        at: seq,
+        instanceId,
         npcId,
         playerRef: interaction?.playerRef ?? PLAYER_REF,
         interaction,
         result: applied,
       });
+      api.evaluateGoal(); // an interaction can meet a goal (defeat, unlock_dialog); fire AFTER archiving
       return applied;
     },
 
     // Apply a backend NPC decision directly (lenient target resolution). Kept for direct/tested use;
     // interact() is the full assemble->decide->validate path.
     applyInteractionResult(npcId, result) {
-      return applyDecision(npcId, result, null);
+      const applied = applyDecision(npcId, result, null);
+      api.evaluateGoal(); // defeat / unlock_dialog can complete on a direct decision too
+      return applied;
     },
 
     discover(itemId) {
@@ -346,11 +390,45 @@ export function createRuntime(deps = {}) {
   return api;
 }
 
+// Evaluate an instance win condition against the live play-time scene, no LLM. Every primitive is
+// monotonic/latched (a met goal stays met), so composites are stable: `all` needs every sub-goal, and
+// `sequence` advances a per-goal step index only when the current step is met, enforcing order.
 function goalMet(goal, scene) {
   switch (goal?.type) {
     case "discover_item":
       return scene.discovered.has(goal.itemId);
-    // reach_exit, unlock_dialog, defeat, survive, sequence, all wire in as behaviours land.
+
+    case "reach_exit":
+      return goal.portalId ? scene.reachedExits.has(goal.portalId) : scene.reachedExits.size > 0;
+
+    case "defeat":
+      return scene.npcModes[goal.npcId] === "dead";
+
+    case "survive":
+      return scene.elapsed >= goal.seconds;
+
+    case "unlock_dialog": {
+      const modes = scene.modeHistory.get(goal.npcId) ?? new Set(); // modes an interaction drove this NPC into
+      if (goal.requiredMode && !modes.has(goal.requiredMode)) return false;
+      if (goal.flag && !scene.flags.has(goal.flag)) return false;
+      // with no requiredMode/flag, "unlock" just means the player engaged and drove the NPC's mode
+      if (!goal.requiredMode && !goal.flag) return modes.size > 0;
+      return true;
+    }
+
+    case "all":
+      // an empty composite is not a win (never auto-complete on frame 1); the schema requires >= 1 anyway
+      return goal.of?.length > 0 && goal.of.every((g) => goalMet(g, scene));
+
+    case "sequence": {
+      const steps = goal.steps ?? [];
+      if (steps.length === 0) return false;
+      let idx = scene.seqProgress.get(goal) ?? 0;
+      while (idx < steps.length && goalMet(steps[idx], scene)) idx += 1;
+      scene.seqProgress.set(goal, idx);
+      return idx >= steps.length;
+    }
+
     default:
       return false;
   }

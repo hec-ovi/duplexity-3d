@@ -257,6 +257,7 @@ export function sanitizeDecision(raw, selfContext) {
   if (typeof d.emote === "string" && d.emote.trim()) result.emote = d.emote.trim();
   if (d.target != null && targetResolves(d.target, selfContext)) result.target = d.target;
   if (typeof d.memoryDelta === "string" && d.memoryDelta.trim()) result.memoryDelta = d.memoryDelta.trim();
+  if (typeof d.flag === "string" && d.flag.trim()) result.flag = d.flag.trim();
   return result;
 }
 

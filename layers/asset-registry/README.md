@@ -10,13 +10,14 @@ loads them). Leaf layer.
 - `get(id) -> AssetEntry`
 - `register(entry) -> id`
 
-## Phase 1 status (stub)
+## Status
 
-`createRegistry()` is an in-memory catalog seeded with a few CC0 kit entries (floor, wall, a rigged
-character with declared animations, a prop). `register` enforces two invariants directly: it
+`createRegistry()` is an in-memory catalog seeded with a few CC0 dungeon kit entries (floor, wall, a
+rigged character with declared animations, a prop). `register` enforces two invariants directly: it
 rejects an entry with no license (`LICENSE_MISSING`) and a `character` with no animations. The same
 character-needs-animations rule is also expressed in `schema/asset-entry.json` via if/then, so the
-schema catches it too.
+schema catches it too. `asset-gen` calls `register` to add async-generated assets (namespaced under
+`gen.` so they can never overwrite a kit).
 
 ## Run the tests
 

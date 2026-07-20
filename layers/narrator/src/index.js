@@ -4,8 +4,8 @@
 //
 // Author-time is a two-step, validated-mutation pipeline:
 //   1. plan: a graph/LLM stand-in emits an AdventurePlan (meta + one InstanceSpec per instance +
-//      a progression DAG). The default planner is deterministic; Phase 6 injects a real model
-//      behind the same `deps.plan` seam. The plan is structurally validated before it is realised.
+//      a progression DAG). The default planner is deterministic; a real author-time model drops in
+//      behind the same `deps.plan` seam later. The plan is structurally validated before it is realised.
 //   2. realise: one scenario-creator call per instance builds a valid layout, one npc.authorNpcs
 //      call per roster fills it, and the pieces assemble into a schema-valid Adventure.
 

@@ -54,9 +54,12 @@ NPCs now move, animate, and talk. Same split: pure logic is node-testable, brows
   stub), so the actor layer runs in jsdom with no GL context.
 - `app.js` binds the actors and adds `E` to talk to the nearest NPC.
 
-The interaction brain is a canned stub in `app/main.js` (no LLM yet, that is Phase 6). NPC bodies are
-still primitive placeholders; real GLB kit characters drop in behind the same builder + `animation`
-field.
+The real per-interaction brain now lives behind the backend `POST /interaction` route (added in
+Phase 6); the browser slice in `app/main.js` still uses a small canned brain for the offline demo, and
+could call the route instead. Play-time goal evaluation covers the full goal set (discover_item,
+reach_exit, defeat, survive, unlock_dialog, and the sequence/all composites), all latched and checked
+each frame with no LLM. NPC bodies are still primitive placeholders; real GLB kit characters drop in
+behind the same builder + `animation` field.
 
 ## Run it
 

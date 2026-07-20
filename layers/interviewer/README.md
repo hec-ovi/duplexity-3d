@@ -8,7 +8,7 @@ an empty skip still yields a valid brief with defaults filled.
 - `message({ sessionId?, text }) -> { sessionId, reply, ready, brief? }`
 - `skip({ seedHints? }) -> creativeBrief`
 
-## Phase 1 status (stub)
+## Status
 
 `createInterviewer()` keeps in-memory sessions. `skip` returns a default-filled brief immediately.
 `message` asks a question on the first turn (`ready: false`) and returns `ready: true` with a brief

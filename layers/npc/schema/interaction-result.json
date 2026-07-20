@@ -15,7 +15,8 @@
     },
     "utterance": { "type": "string", "description": "The line the NPC speaks (may carry emotion tags)." },
     "emote": { "type": "string", "description": "A short emote/animation cue." },
-    "memoryDelta": { "type": "string", "description": "A note to fold into the NPC's memory." }
+    "memoryDelta": { "type": "string", "description": "A note to fold into the NPC's memory." },
+    "flag": { "type": "string", "description": "A named story flag this interaction sets (e.g. \"gave_key\"), which an unlock_dialog goal can require." }
   },
   "required": ["newMode"],
   "additionalProperties": false

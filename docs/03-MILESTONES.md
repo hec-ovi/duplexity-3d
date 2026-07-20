@@ -182,10 +182,26 @@ Legend: [x] done, [~] in progress, [ ] not started.
   kind enum, non-string animations, malformed snapPoints, and the bbox (copied, not aliased), with an
   optional injected AssetEntry schema gate as a final check before register.
 
-## Phase 9 - Polish [ ]
+## Phase 9 - Polish [~]
 
 - Spatial/positional audio, more goal types, more NPC modes, more kits/themes, performance passes
   (instancing, LOD), accessibility. Each addition is an additive contract change on one layer.
+- [x] Full play-time goal evaluation in `runtime`: `discover_item` was the only implemented win
+  condition; the rest are now live and latched, checked each frame with no LLM. `reach_exit` (walk up
+  to an EXIT portal's opening), `defeat` (target NPC reaches dead), `survive` (accrued sim seconds, never
+  a wall clock), `unlock_dialog` (the NPC reaches a required mode / a set flag), and the `all` (every
+  sub-goal) and `sequence` (steps in order, via a per-goal step index) composites. An adversarial review
+  of the evaluator ran; its five confirmed edge cases were fixed: a spawn-adjacent EXIT no longer
+  auto-fires (an exit arms only once the player is clear of it); a required mode is satisfied only by an
+  interaction-driven change, not a seeded/passive start mode; an empty `all`/`sequence` never auto-wins;
+  `unlock_dialog`'s `flag` is now winnable via an additive `InteractionResult.flag` an interaction sets;
+  and `interact()` archives under the current instance even when a goal advance reloads the next
+  synchronously. `npm test` = 209 (`layers/runtime/tests/goals.test.js` drives each type + edge case
+  through the real runtime). Also swept and fixed stale/incorrect comments and README headers left from
+  earlier phases (two `(stub)` headers on fully-real layers; a couple of "arrives in Phase 6" notes that
+  had since landed).
+- Remaining polish (spatial audio, more NPC modes, more kits/themes, instancing/LOD, accessibility) is
+  open-ended and additive; pick items as needed.
 
 ## Compaction points
 

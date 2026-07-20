@@ -15,9 +15,11 @@ const roomEl = document.getElementById("room");
 const statusEl = document.getElementById("status");
 const promptEl = document.getElementById("prompt");
 
-// A canned interaction "brain" for Phase 3 (no LLM yet): a talker greets and switches to talk; a mute
-// hostile lunges to attack the player. It returns an InteractionResult the runtime validates against
-// the NPC's allowedModes and live context. Real per-interaction model calls arrive in Phase 6.
+// A canned interaction "brain" for the offline browser slice: a talker greets and switches to talk; a
+// mute hostile lunges to attack the player. It returns an InteractionResult the runtime validates
+// against the NPC's allowedModes and live context. The real per-interaction model now lives behind the
+// backend POST /interaction route (added in Phase 6); this slice keeps the canned brain so `npm run dev`
+// runs with no backend.
 const SMITH_LINES = [
   "Mind the forge, traveler. Respect the craft and we will get on.",
   "That vault ahead? Bones guard it. Reason will not move them.",
