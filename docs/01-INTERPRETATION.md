@@ -119,12 +119,15 @@ reason this matters here specifically: the scenario creator and the NPC brain ar
 parts most likely to get rewritten repeatedly as 2026 models improve, so they must be swappable
 without touching the runtime or the narrator.
 
-## Open decisions deferred to the tech research
+## Open decisions (now resolved in the tech research)
 
-These wait for [04-TECH-STACK.md](04-TECH-STACK.md):
+These are answered in [04-TECH-STACK.md](04-TECH-STACK.md):
 
-- Do we generate 3D assets locally (ComfyUI on the AMD box) or lean on curated modular kits with
-  optional async generation? (leaning kits-first, generation-as-enrichment)
-- Which library renders NPC speech bubbles in-scene.
-- Which pathfinding/animation stack the runtime uses.
-- How the scenario creator's structured layout output is constrained (JSON Schema vs grammar).
+- Local vs curated assets: **kits-first** (CC0 Kenney/KayKit/Quaternius, rigged + animated on a shared
+  rig), AI generation kept optional and async behind `asset-gen`. Local gen on the gfx1151 box is
+  viable but unproven, so it is a spike, not the critical path.
+- NPC speech bubbles: **troika-three-text** wrapped in a reusable NpcLabel/SpeechBubble rig.
+- Movement/animation: **recast-navigation-js** (runtime navmesh + Crowd) + three.js AnimationMixer on
+  the kit's own clips, deliberately no runtime skeleton retargeting.
+- Structured output: a **GBNF grammar generated from each layer's JSON Schema** (llama.cpp), plus a
+  deterministic re-validate, so the model cannot emit an off-contract object.

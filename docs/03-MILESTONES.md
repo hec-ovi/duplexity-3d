@@ -8,11 +8,11 @@ CI is added, ever. Tests run through each layer's real entry points against its 
 
 Legend: [x] done, [~] in progress, [ ] not started.
 
-## Phase 0 - Design lock (this repo, now) [~]
+## Phase 0 - Design lock (this repo, now) [x]
 
 - [x] Raw idea, interpretation, architecture, contract convention, dispatcher captured in `docs/`.
-- [~] Tech stack researched and written to `04-TECH-STACK.md`.
-- [~] One `CONTRACT.md` per layer under `docs/layers/`.
+- [x] Tech stack researched (7 domains, fact-checked) and written to `04-TECH-STACK.md`.
+- [x] One `CONTRACT.md` per layer under `docs/layers/`.
 - Definition of done: a new agent can read `docs/INDEX.md` and know exactly which blackbox owns
   what, and the wire formats between them are named.
 
