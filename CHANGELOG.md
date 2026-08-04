@@ -7,6 +7,9 @@ What the project does now, newest first.
 - `SKILL.md` makes the repo an agentic skill: pick a capability, run one command, check the result.
   It ships at the root and in `skills/` and `plugins/` so any installer finds it, kept identical by
   `npm run skill:sync` and a test that fails on drift.
+- `npm run dev` plays a generated city: walk the street, go through a front door, up a stairwell, and
+  out through the gate once every place is finished. A map overlay fills in as you walk, drawing only
+  the rooms you have been in and marking a door you cannot use yet. `?seed=1234` replays a city.
 - `tools/level.js` builds a `city`, a `street`, a `building` or a `house`, and checks a level with
   `validate` (schema, geometry, map; exit 1 when broken) and `map` (what is unlocked, what the gate is
   waiting for). Everything is deterministic and seeded.

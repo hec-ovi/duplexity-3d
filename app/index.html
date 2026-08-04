@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>duplexity-3d - runtime slice</title>
+    <title>duplexity-3d</title>
     <style>
       html,
       body {
@@ -29,6 +29,18 @@
       #hud b {
         color: #ffd479;
       }
+      #gate {
+        color: #7fd39b;
+      }
+      #blueprint {
+        position: fixed;
+        right: 12px;
+        top: 12px;
+        z-index: 2;
+        border-radius: 8px;
+        border: 1px solid rgba(159, 180, 194, 0.25);
+        pointer-events: none;
+      }
       #prompt {
         position: fixed;
         left: 50%;
@@ -45,10 +57,12 @@
   <body>
     <div id="app"></div>
     <div id="hud">
-      <div>duplexity-3d runtime slice - <span id="room">-</span></div>
-      <div>WASD move, mouse look, <b>E</b> to talk to a nearby NPC, reach the <b>amulet</b> to win.</div>
+      <div><span id="place">-</span> - <span id="room">-</span></div>
+      <div>WASD move, mouse look, <b>E</b> to talk. Walk into a door to go through it.</div>
+      <div id="gate"></div>
       <div id="status"></div>
     </div>
+    <canvas id="blueprint" width="220" height="220"></canvas>
     <div id="prompt">click to play</div>
     <script type="module" src="./main.js"></script>
   </body>

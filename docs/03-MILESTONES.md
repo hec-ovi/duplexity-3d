@@ -250,6 +250,24 @@ Legend: [x] done, [~] in progress, [ ] not started.
 - [x] DoD met: `npm test` = 265 local tests (no CI), 50 schemas compile, isolation clean. Verified
   against the live API: a real key returns real mp3 through the project's own code path.
 
+## Phase 13 - The city, played [x]
+
+- [x] `runtime/src/app.js` can change instance mid-run: `goTo(id, { spawnRoomId })` rebuilds the scene
+  (disposing the old geometry, so crossing doors does not leak GPU buffers) and an `onFrame` hook lets a
+  host draw a HUD outside the 3D scene.
+- [x] `runtime/src/blueprint-hud.js` draws the floor plan from above: rooms walked into, the doors on
+  their walls (locked ones in red, stairs picked out), and where the player stands and faces. It draws
+  only what `blueprint()` hands over, so an unexplored floor cannot leak through the map.
+- [x] `app/` plays a GENERATED city: map-state answers the locks, walking into a door loads the far
+  side, finishing a place ticks it off the gate's list, and reaching the open gate wins the run.
+  `?seed=1234` replays the same city.
+- [x] Fixed: the runtime asked the lock oracle about every portal, including plain interior doorways
+  that map-state rightly does not know, so they failed closed and drew as locked. A portal with no
+  authored `lock` is now open without asking.
+- [x] DoD met: `npm test` = 269 local tests, 50 schemas, `npm run build` clean, and the page verified in
+  a real headless browser: the generated city renders, the overlay draws, the gate reports what is left,
+  and the console is silent.
+
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1

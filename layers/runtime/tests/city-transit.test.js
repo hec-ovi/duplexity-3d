@@ -96,6 +96,8 @@ describe("runtime - cross-instance doors, locked gates, blueprint reveal", () =>
     expect(plan.rooms.map((r) => r.id)).toEqual(["street-w"]);
     expect(plan.rooms[0].here).toBe(true);
     expect(plan.doors.map((d) => d.id).sort()).toEqual(["door-a", "street-join"]);
+    // an ordinary doorway carries no lock, so it is open without anyone being asked
+    expect(plan.doors.find((d) => d.id === "street-join").open).toBe(true);
     expect(plan.doors.find((d) => d.id === "door-a")).toMatchObject({
       kind: "enter",
       to: "bldg-a-f1",

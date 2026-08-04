@@ -38,6 +38,9 @@ export function createApp(options = {}) {
     onRoomChange,
     onInteraction,
     onHistoryAppend,
+    onTransit, // the player walked into a door leading to another instance
+    isPortalOpen, // lock oracle (map-state); absent means every portal is open
+    onFrame, // called after every tick, for a HUD drawn outside the 3D scene
     createText, // text factory for labels/bubbles (browser injects troika; default is head-less)
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
@@ -58,9 +61,9 @@ export function createApp(options = {}) {
     onRoomChange: (prev, next) => onRoomChange?.(prev, next),
     onInteraction,
     onHistoryAppend,
+    onTransit,
+    isPortalOpen,
   });
-  runtime.load(adventure, instanceId);
-  const model = runtime.getSceneModel();
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d10);
@@ -69,12 +72,25 @@ export function createApp(options = {}) {
   sun.position.set(4, 10, 6);
   scene.add(sun);
 
-  const instanceGroup = buildInstanceObject3D(model, { registry, warn });
-  scene.add(instanceGroup);
-
-  // Bind each NPC's scene group to its runtime state (position, facing, animation, name label,
+  // The scene is rebuilt whenever play moves to another instance (through a street door, up a
+  // stairwell). `instanceGroup` and `actors` are therefore let, not const: goTo swaps them.
+  let instanceGroup = null;
+  // Binds each NPC's scene group to its runtime state (position, facing, animation, name label,
   // speech bubble). Text is injected so this runs head-less in tests.
-  const actors = createNpcActors(instanceGroup, runtime.getNpcs(), { createText });
+  let actors = null;
+
+  function build(id, opts) {
+    runtime.load(adventure, id, opts);
+    if (instanceGroup) {
+      actors.dispose();
+      scene.remove(instanceGroup);
+      disposeObject3D(instanceGroup);
+    }
+    instanceGroup = buildInstanceObject3D(runtime.getSceneModel(), { registry, warn });
+    scene.add(instanceGroup);
+    actors = createNpcActors(instanceGroup, runtime.getNpcs(), { createText });
+  }
+  build(instanceId);
 
   const width = container.clientWidth || 1;
   const height = container.clientHeight || 1;
@@ -137,6 +153,7 @@ export function createApp(options = {}) {
     syncCamera();
     actors.sync(runtime.getNpcs(), camera, clamped, runtime.getSpeech());
     renderer.render?.(scene, camera);
+    onFrame?.(clamped);
     return result;
   }
 
@@ -185,9 +202,20 @@ export function createApp(options = {}) {
     runtime,
     camera,
     scene,
-    instanceGroup,
+    get instanceGroup() {
+      return instanceGroup;
+    },
     tick,
     interact,
+    // Move play to another instance: rebuild the scene, put the player in `spawnRoomId` when given.
+    // The host calls this from onTransit; the runtime never loads the next instance itself.
+    goTo(id, opts = {}) {
+      build(id, opts);
+      syncCamera();
+      actors.sync(runtime.getNpcs(), camera, 0, runtime.getSpeech());
+      return runtime.getScene();
+    },
+    blueprint: () => runtime.blueprint(),
     getPlayer: () => runtime.getPlayer(),
     getNpcs: () => runtime.getNpcs(),
     setYaw: (yaw) => runtime.setYaw(yaw),
@@ -222,6 +250,17 @@ export function createApp(options = {}) {
 
 function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+// Release the GPU buffers of a scene we are leaving. Materials and geometries are not garbage
+// collected on their own, so a level with many doors would leak one instance's worth per crossing.
+function disposeObject3D(root) {
+  root.traverse?.((node) => {
+    node.geometry?.dispose?.();
+    const material = node.material;
+    if (Array.isArray(material)) material.forEach((m) => m.dispose?.());
+    else material?.dispose?.();
+  });
 }
 
 function doc() {

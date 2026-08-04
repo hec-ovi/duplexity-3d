@@ -13,9 +13,10 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
 - player input - local (keyboard/mouse/touch/gamepad); never leaves the client.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
-- `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. Absent means
-  every portal is open. A locked portal is scenery: the player cannot leave through it and it does not
-  satisfy `reach_exit`. A thrown or unanswerable check fails CLOSED.
+- `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
+  ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
+  open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through
+  it and it does not satisfy `reach_exit`. A thrown or unanswerable check fails CLOSED.
 
 ## Outputs (params out) - the events it emits to the backend
 - `onInteraction(selfContext, interaction) -> InteractionResult` - the ONLY per-frame-ish thing that

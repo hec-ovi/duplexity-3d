@@ -129,10 +129,14 @@ goal you can actually reach.
 ## Play
 
 ```bash
-npm run dev                      # the browser slice
+npm run dev                      # a generated city in the browser: WASD, mouse look, E to talk
 node server/index.js             # the API: authoring, interactions, speech
 npm test                         # every layer's contract tests
 ```
+
+`npm run dev` builds a new city each visit. `?seed=1234` plays the same one again, so a seed is a
+level you can pass to someone. A map overlay in the corner fills in as you walk: it draws only the
+rooms you have been in, and marks a door you cannot use yet in red.
 
 The rogue rule: each instance has a goal. Clearing every required instance opens the exit gate, and
 walking into an open gate wins the run. The gate never counts the instance it stands in.

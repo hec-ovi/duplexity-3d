@@ -72,13 +72,15 @@ export function createRuntime(deps = {}) {
     };
   }
 
-  // Is this portal passable right now? Locks live in map-state (which knows what the run has
-  // cleared), so the runtime asks rather than deciding. No injected answer means no locks: every
-  // portal is open, which is every pre-city adventure.
-  function portalOpen(portalId) {
+  // Is this portal passable right now? A portal with no authored `lock` has nothing to satisfy and is
+  // simply open: an ordinary doorway is never worth asking about. A locked one is decided by map-state
+  // (which knows what the run has cleared), so the runtime asks rather than deciding. No injected
+  // answer means no locks, which is every pre-city adventure.
+  function portalOpen(portal) {
+    if (!portal.lock) return true;
     if (!deps.isPortalOpen) return true;
     try {
-      return deps.isPortalOpen(portalId) !== false;
+      return deps.isPortalOpen(portal.id) !== false;
     } catch {
       return false; // an unanswerable lock fails closed
     }
@@ -297,7 +299,7 @@ export function createRuntime(deps = {}) {
           width: p.size[0],
           kind: p.link?.kind ?? (p.roomA === "EXIT" || p.roomB === "EXIT" ? "exit" : "room"),
           to: p.link?.instanceId ?? null,
-          open: portalOpen(p.id),
+          open: portalOpen(p),
         }));
       return {
         instanceId: scene.instanceId,
@@ -363,7 +365,7 @@ export function createRuntime(deps = {}) {
           continue;
         }
         if (!scene.exitArmed.has(p.id)) continue;
-        if (!portalOpen(p.id)) continue; // a locked gate is scenery until map-state opens it
+        if (!portalOpen(p)) continue; // a locked gate is scenery until map-state opens it
         if (isExit) {
           scene.reachedExits.add(p.id);
         } else if (!scene.usedDoors.has(p.id)) {
