@@ -205,6 +205,26 @@ export function createSurfaceMaterials({
       return windowMats.get(key);
     },
 
+    /** A holo advert: a lit panel, read off its front. */
+    advert(part) {
+      const [across, up] = part.size;
+      const plan = planFor(`advert:${part.text}:${part.colour}:${part.portrait}`, "advert", {
+        text: part.text,
+        colour: part.colour,
+        portrait: part.portrait,
+        metresWide: across,
+        metresTall: up,
+      });
+      const face = materialFor(plan, plan.metres[0], plan.metres[1]);
+      const edge = new THREE.MeshStandardMaterial({
+        color: 0x0d1014,
+        emissive: new THREE.Color(part.colour ?? "#ff5f9e"),
+        emissiveIntensity: 0.4,
+        roughness: 0.5,
+      });
+      return [edge, edge, edge, edge, face, edge];
+    },
+
     /** What colour a building burns over its door, once its facade has been painted. */
     signColour(blockId) {
       return plans.get(`facade:${blockId}`)?.signColour ?? null;

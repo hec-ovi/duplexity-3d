@@ -14,6 +14,8 @@ export function createRng(seed) {
     next,
     int: (min, max) => min + Math.floor(next() * (max - min + 1)),
     pick: (list) => list[Math.floor(next() * list.length)],
+    range: (min, max) => min + next() * (max - min),
+    chance: (p) => next() < p,
   };
 }
 

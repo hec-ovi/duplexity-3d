@@ -17,6 +17,8 @@ import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
 import { createSurfaceMaterials } from "./surface-materials.js";
 import { createLightRig } from "./lights.js";
+import { createTraffic } from "./traffic.js";
+import { seededRng, hashString } from "./rng.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -97,6 +99,9 @@ export function createApp(options = {}) {
   let materials = null;
   // The lights of the place you are in now, and only those.
   let rig = null;
+  // What is moving in the sky over it. Outdoors only: there is no sky in a room.
+  let traffic = null;
+  let elapsed = 0;
 
   function build(id, opts) {
     runtime.load(adventure, id, opts);
@@ -106,6 +111,11 @@ export function createApp(options = {}) {
       disposeObject3D(instanceGroup);
       materials?.dispose();
       rig?.dispose();
+      if (traffic) {
+        scene.remove(traffic.group);
+        traffic.dispose();
+        traffic = null;
+      }
     }
     const model = runtime.getSceneModel();
     const open = model.rooms.some((r) => r.open);
@@ -122,6 +132,10 @@ export function createApp(options = {}) {
       tintFor: (light) => (light.blockId ? materials?.signColour(light.blockId) : null),
     });
     actors = createNpcActors(instanceGroup, runtime.getNpcs());
+    if (open) {
+      traffic = createTraffic(model.bounds, seededRng(hashString(model.instanceId), "traffic"));
+      scene.add(traffic.group);
+    }
   }
 
   // Something for a shiny surface to reflect. Built from the scene itself once it is standing, so a
@@ -256,7 +270,9 @@ export function createApp(options = {}) {
     syncCamera(clamped);
     actors.sync(runtime.getNpcs(), camera, clamped);
     syncLabels();
+    elapsed += clamped;
     rig?.update(camera.position, clamped);
+    traffic?.update(elapsed);
     if (composer) composer.render();
     else renderer.render?.(scene, camera);
     onFrame?.(clamped);
@@ -362,6 +378,7 @@ export function createApp(options = {}) {
       actors.dispose();
       materials?.dispose();
       rig?.dispose();
+      traffic?.dispose();
       composer?.dispose();
       pmrem?.dispose();
       labels?.dispose();

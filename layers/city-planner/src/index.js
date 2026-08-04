@@ -12,6 +12,7 @@ import { createRng, hashString } from "./rng.js";
 import { BLOCK, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize } from "./lattice.js";
 import { planPremises } from "./premises.js";
 import { placeLights } from "./lighting.js";
+import { skylineFor } from "./skyline.js";
 import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from "./errors.js";
 
 export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
@@ -126,6 +127,10 @@ export function createStreets(spec, assetQuery, opts = {}) {
     });
   }
 
+  // Beyond the streets you can walk: a ring of towers standing out of reach, so the city carries on
+  // past the last block instead of ending at a line on the ground.
+  const distant = skylineFor(extent, createRng(hashString(`${spec.id}-skyline`)));
+
   // The way out of the city: a gate in the eastern limit, shut until the map is cleared.
   const gateId = `${spec.id}-gate`;
   if (wantExit) {
@@ -160,6 +165,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         inventory: [],
         zones,
         blocks,
+        skyline: distant,
         lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors),
       },
     ],

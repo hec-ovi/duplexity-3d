@@ -10,7 +10,9 @@ const BALCONY = { depth: 1.1, rail: 0.95, slab: 0.14, margin: 0.5 };
 const DOOR_HEAD = 3.1; // the top of a front door: nothing is hung lower than this over one
 const AWNING = { depth: 1.3, drop: 0.3, at: 0.6, clear: 0.55 }; // `at` is a share of the storey
 const SIGN = { height: 0.66, drop: 0.14, at: 0.85, blade: { width: 0.8 } };
-const WINDOW = { width: 1.5, height: 1.35, depth: 0.22, sill: 0.9, margin: 0.6, proud: 0.02 };
+const WINDOW = { width: 1.5, height: 1.35, depth: 0.24, sill: 0.9, margin: 0.6, proud: 0.01 };
+const ADVERT = { depth: 0.4, margin: 1.2, minSpan: 6 };
+const NEON = { thickness: 0.16, proud: 0.1 };
 
 /** Where a wall's outward normal points, and how wide that wall is. */
 export function walls({ w, d }) {
@@ -66,7 +68,8 @@ export function windowsOn(wall, storeyY, bays, litRatio, rng, colours) {
     const lit = rng.chance(litRatio);
     out.push({
       kind: "window",
-      position: on(wall, along, storeyY + WINDOW.sill + WINDOW.height / 2, WINDOW.proud),
+      // set back into the wall, with its face a centimetre clear of it
+      position: on(wall, along, storeyY + WINDOW.sill + WINDOW.height / 2, WINDOW.proud - WINDOW.depth / 2),
       size: [WINDOW.width, WINDOW.height, WINDOW.depth],
       facing: facing(wall),
       lit,
@@ -79,6 +82,39 @@ export function windowsOn(wall, storeyY, bays, litRatio, rng, colours) {
 
 /** How many windows a wall of this width takes. */
 export const windowBays = (span) => Math.max(1, Math.min(8, Math.floor((span - WINDOW.margin) / 2.6)));
+
+/**
+ * A holo advert: a big lit panel bolted flat to a wall, high enough to be seen down the street.
+ * `portrait` runs up the building, `banner` across it.
+ */
+export function advert(wall, y, height, text, colour, portrait) {
+  const across = portrait
+    ? Math.min(wall.span - ADVERT.margin, height * 0.42)
+    : wall.span - ADVERT.margin;
+  return {
+    kind: "advert",
+    position: on(wall, 0, y + height / 2, ADVERT.depth / 2),
+    size: [across, height, ADVERT.depth],
+    facing: facing(wall),
+    text,
+    colour,
+    portrait: Boolean(portrait),
+  };
+}
+
+/** Whether a wall is wide enough to carry an advert at all. */
+export const takesAdvert = (wall) => wall.span >= ADVERT.minSpan;
+
+/** A neon line along the top edge of a tier: what a building wears instead of a roofline. */
+export function neon(wall, y, colour) {
+  return {
+    kind: "neon",
+    position: on(wall, 0, y, NEON.proud),
+    size: [wall.span, NEON.thickness, NEON.thickness],
+    facing: facing(wall),
+    colour,
+  };
+}
 
 /** An awning over a shopfront: a slab standing out over the pavement, under the sign. */
 export function awningHeight(storey) {

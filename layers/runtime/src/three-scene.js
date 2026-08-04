@@ -257,6 +257,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     const parts = buildFacadeParts(dressed.parts, foot, {
       signMaterial: materials ? (part) => materials.sign(part) : undefined,
       windowMaterial: materials ? (part) => materials.window(part) : undefined,
+      advertMaterial: materials ? (part) => materials.advert(part) : undefined,
     });
     parts.name = `dressing:${b.id}`;
     group.add(parts);
@@ -281,6 +282,38 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     });
     group.add(door);
     counts.doors++;
+  }
+
+  // The city past the last block: masses you can see and never reach, wearing windows and the odd
+  // advert so the skyline is lit rather than a row of silhouettes.
+  for (const far of model.skyline ?? []) {
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(far.size.x, far.size.y, far.size.z),
+      materials?.block(far) ?? blockMat
+    );
+    mesh.position.set(far.center.x, far.center.y, far.center.z);
+    mesh.name = `skyline:${far.id}`;
+    group.add(mesh);
+    counts.blocks++;
+    if (!dressFacade) continue;
+    const dressed = dressFacade({
+      id: far.id,
+      seed: far.id,
+      size: { w: far.size.x, h: far.size.y, d: far.size.z },
+      floors: far.floors ?? undefined,
+      storeyHeight: far.floors ? far.size.y / far.floors : undefined,
+      program: "office",
+    });
+    const parts = buildFacadeParts(dressed.parts, {
+      x: far.center.x,
+      y: far.center.y - far.size.y / 2,
+      z: far.center.z,
+    }, {
+      windowMaterial: materials ? (part) => materials.window(part) : undefined,
+      advertMaterial: materials ? (part) => materials.advert(part) : undefined,
+    });
+    parts.name = `skyline-parts:${far.id}`;
+    group.add(parts);
   }
 
   // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is

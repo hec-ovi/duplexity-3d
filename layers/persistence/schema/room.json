@@ -98,6 +98,21 @@
         "additionalProperties": false
       }
     },
+    "skyline": {
+      "type": "array",
+      "description": "Masses standing BEYOND the walkable ground: the city carrying on past the last block. Looked at, never reached. Nothing collides with one, no door is put on one, and the map does not draw them.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "floors": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["id", "position", "size"],
+        "additionalProperties": false
+      }
+    },
     "lights": {
       "type": "array",
       "description": "Where light comes from after dark: a lamp standing on the pavement, a sign over a door. Each says where it stands on the ground and what it is; how tall it is, what colour it burns and how many are lit at once are the renderer's business.",

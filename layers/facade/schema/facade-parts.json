@@ -43,7 +43,7 @@
     "part": {
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "enum": ["window", "balcony", "awning", "sign"] },
+        "kind": { "type": "string", "enum": ["window", "advert", "neon", "balcony", "awning", "sign"] },
         "position": {
           "type": "array",
           "description": "Middle of the part, in the building's frame.",
@@ -66,7 +66,8 @@
         "lit": { "type": "boolean", "description": "window: whether the light behind it is on." },
         "blind": { "type": "boolean", "description": "window: whether a blind is pulled down over it." },
         "colour": { "type": "string", "description": "awning, sign: a CSS colour." },
-        "text": { "type": "string", "description": "sign: what it says." },
+        "text": { "type": "string", "description": "sign, advert: what it says." },
+        "portrait": { "type": "boolean", "description": "advert: running up the building rather than across it." },
         "orientation": {
           "type": "string",
           "enum": ["flat", "blade"],

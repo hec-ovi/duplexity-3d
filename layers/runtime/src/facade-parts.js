@@ -23,7 +23,7 @@ const matte = (color, extra = {}) =>
  * @param {Function} [deps.signMaterial]  (part) -> Material for a lettered cartel; absent, a plain board
  * @returns {THREE.Group}
  */
-export function buildFacadeParts(parts, at, { signMaterial, windowMaterial } = {}) {
+export function buildFacadeParts(parts, at, { signMaterial, windowMaterial, advertMaterial } = {}) {
   const group = new THREE.Group();
   group.name = "facade-parts";
   const slabMat = matte(COLOURS.slab);
@@ -41,12 +41,17 @@ export function buildFacadeParts(parts, at, { signMaterial, windowMaterial } = {
         ? balcony(part, slabMat, railMat)
         : part.kind === "sign"
           ? board(part, signMaterial)
-          : new THREE.Mesh(new THREE.BoxGeometry(...part.size), matte(new THREE.Color(part.colour ?? "#4c5b6b")));
+          : part.kind === "advert"
+            ? holo(part, advertMaterial)
+            : part.kind === "neon"
+              ? new THREE.Mesh(new THREE.BoxGeometry(...part.size), burning(part.colour, 1.6))
+              : new THREE.Mesh(new THREE.BoxGeometry(...part.size), matte(new THREE.Color(part.colour ?? "#4c5b6b")));
 
     piece.position.set(at.x + part.position[0], at.y + part.position[1], at.z + part.position[2]);
     piece.rotation.y = part.facing;
     piece.name = `${part.kind}:${part.text ?? ""}`;
-    piece.userData = { kind: part.kind };
+    // What burns is a source, not a shadow caster: a neon strip casting its own shadow looks wrong.
+    piece.userData = { kind: part.kind === "advert" || part.kind === "neon" ? "light" : part.kind };
     group.add(piece);
   }
   return group;
@@ -104,6 +109,24 @@ function buildWindows(windows, at, windowMaterial) {
     meshes.push(mesh);
   }
   return meshes;
+}
+
+// Something that burns: a neon line, a lit edge. Bright enough for the bloom pass to catch.
+const burning = (colour, intensity) =>
+  new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    emissive: new THREE.Color(colour ?? "#ff5f9e"),
+    emissiveIntensity: intensity,
+    roughness: 0.6,
+  });
+
+// A holo advert: one lit face on a thin box, bolted flat to the wall.
+function holo(part, advertMaterial) {
+  const faces = advertMaterial?.(part);
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(...part.size),
+    faces ?? burning(part.colour, 1.6)
+  );
 }
 
 // A board with the name on it. The lettering is a texture, so the sign is one quad on a box.

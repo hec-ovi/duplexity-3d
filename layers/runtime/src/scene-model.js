@@ -220,6 +220,22 @@ export function buildSceneModel(instance) {
     }
   }
 
+  // The city carrying on past the last block: masses beyond the walkable ground, looked at and never
+  // reached. No collider, no door, and the map does not draw them.
+  const skyline = [];
+  for (const room of instance.rooms) {
+    for (const far of room.skyline ?? []) {
+      const [fx, fy, fz] = far.position;
+      const [fw, fh, fd] = far.size;
+      skyline.push({
+        id: far.id,
+        floors: far.floors ?? null,
+        center: { x: fx, y: fy + fh / 2, z: fz },
+        size: { x: fw, y: fh, z: fd },
+      });
+    }
+  }
+
   // Flat surfaces marked out on the floor (roadway, pavement, square). Walked over, never collided
   // with: they say what the ground is, so it can be surfaced differently and NPCs told where to walk.
   const zones = [];
@@ -309,6 +325,7 @@ export function buildSceneModel(instance) {
     rooms,
     walls,
     blocks,
+    skyline,
     zones,
     lights,
     colliders: [...walls.filter((w) => w.collides).map((w) => w.collider), ...blocks.map((b) => b.collider)],

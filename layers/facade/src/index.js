@@ -10,7 +10,7 @@
 
 import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
-import { MAX_BALCONY_BAYS, awning, balconies, sign, signHeight, walls, windowBays, windowsOn } from "./parts.js";
+import { MAX_BALCONY_BAYS, advert, awning, balconies, neon, sign, signHeight, takesAdvert, walls, windowBays, windowsOn } from "./parts.js";
 import { massingFor, tierWalls } from "./massing.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
@@ -18,6 +18,12 @@ const AWNING_COLOURS = ["#7d4a52", "#4c5b6b", "#6b5a3c", "#3f5c50"];
 const BALCONIED = new Set(["apartments", "house"]);
 // What a lit window looks like from the street: mostly warm, the odd cold office or bar.
 const WINDOW_COLOURS = ["#ffd7a0", "#ffe9c4", "#f6c98a", "#bfe0ff", "#a8f0e0"];
+// What a city puts on the side of a building, and what colour it burns.
+const ADVERT_WORDS = [
+  "KIRIN", "NOMI", "SYNTH", "AKARI", "HOSHI", "NEO GAS", "VITA", "TSUKI", "RAIDEN",
+  "KOBALT", "SUZU", "EAST 9", "OKA", "HALCYON", "MIRAI", "ZEN-KO",
+];
+const ADVERT_COLOURS = ["#ff5f9e", "#4fd7ff", "#c07bff", "#ffb347", "#7cffb2", "#ff6b6b"];
 const BAY = 3; // the same rhythm the facade is painted on, so a balcony lands over a window
 
 export class BuildingInvalidError extends Error {
@@ -78,6 +84,25 @@ export function dressFacade(building) {
       for (let storeyIndex = 1; storeyIndex < Math.min(floors, 7); storeyIndex++) {
         parts.push(...balconies(wall, storeyIndex * storey, bays, rng));
       }
+    }
+  }
+
+  // Holo adverts up the taller walls, and a neon line along the top of every tier. This is what a
+  // street of concrete boxes is missing at night: something bolted to it that burns.
+  for (const tier of tiers) {
+    const bottom = tier.position[1] - tier.size[1] / 2;
+    const top = tier.position[1] + tier.size[1] / 2;
+    const edge = rng.pick(ADVERT_COLOURS);
+    for (const wall of tierWalls(tier)) {
+      if (top - bottom > storey * 1.5 && rng.chance(0.55)) parts.push(neon(wall, top - 0.4, edge));
+      if (!takesAdvert(wall) || top - bottom < storey * 2.5) continue;
+      if (!rng.chance(0.42)) continue;
+      const portrait = rng.chance(0.55);
+      const height = portrait
+        ? Math.min(top - bottom - storey, storey * rng.range(2.5, 4.5))
+        : storey * rng.range(0.9, 1.4);
+      const at = bottom + storey * rng.range(1.2, Math.max(1.3, (top - bottom) / storey - height / storey - 0.5));
+      parts.push(advert(wall, at, height, rng.pick(ADVERT_WORDS), rng.pick(ADVERT_COLOURS), portrait));
     }
   }
 
