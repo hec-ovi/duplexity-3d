@@ -13,15 +13,7 @@ import {
 } from "three/tsl";
 import { bloom } from "three/addons/tsl/display/BloomNode.js";
 import { createRuntime, PLAYER_REF } from "./index.js";
-import { buildInstanceObject3D } from "./three-scene.js";
-import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
-import { createSurfaceMaterials } from "./surface-materials.js";
-import { createLightRig } from "./lights.js";
-import { createTraffic } from "./traffic.js";
-import { createSkyRail } from "./skyrail.js";
-import { createShuttle } from "./shuttle.js";
-import { seededRng, hashString } from "./rng.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -59,10 +51,10 @@ export function createApp(options = {}) {
     isPortalOpen, // lock oracle (map-state); absent means every portal is open
     onFrame, // called after every tick, for a HUD drawn outside the 3D scene
     onPointerLock, // (locked) whenever play starts or the cursor comes back
-    paintSurface, // surfaces.paintSurface (injected); absent means flat colours
-    photoSurface, // surfaces.photoSurface (injected): which surfaces have a photographed material
-    textureBase, // where those material files are served from; absent means paint them instead
-    dressFacade, // facade.dressFacade (injected); absent means bare masses
+    // cityscape.createCityscape (injected): the city as three.js objects, and everything moving in
+    // it. Absent, the world is empty and only the simulation runs, which is what a head-less test
+    // wants.
+    createCityscape,
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
@@ -96,39 +88,19 @@ export function createApp(options = {}) {
   // the height it thins out at: towers rise clear of it, the street does not.
   const HAZE = { colour: 0x2a2246, open: 0.00035, top: 60, indoors: 0.0012, ceiling: 8 };
 
-  // The scene is rebuilt whenever play moves to another instance (through a street door, up a
-  // stairwell). `instanceGroup` and `actors` are therefore let, not const: goTo swaps them.
-  let instanceGroup = null;
-  // Binds each NPC's scene group to its runtime state (position, facing, animation).
-  let actors = null;
-  // Surfaces are painted per scene and thrown away with it, so crossing a door leaks no textures.
-  let materials = null;
-  // The lights of the place you are in now, and only those.
-  let rig = null;
-  // What is moving in the sky over it. Outdoors only: there is no sky in a room.
-  let traffic = null;
-  let rails = null;
-  // The shuttle down the middle street, and whether the player is on it.
-  let shuttle = null;
+  // The city is rebuilt whenever play moves to another instance (through a street door, up a
+  // stairwell). `city` is therefore let, not const: goTo swaps it.
+  let city = null;
+  // Whether the player is aboard the shuttle rather than walking.
   let riding = false;
   let elapsed = 0;
 
   function build(id, opts) {
     runtime.load(adventure, id, opts);
-    if (instanceGroup) {
-      actors.dispose();
-      scene.remove(instanceGroup);
-      disposeObject3D(instanceGroup);
-      materials?.dispose();
-      rig?.dispose();
-      for (const moving of [traffic, rails, shuttle]) {
-        if (!moving) continue;
-        scene.remove(moving.group);
-        moving.dispose();
-      }
-      traffic = null;
-      rails = null;
-      shuttle = null;
+    if (city) {
+      scene.remove(city.group);
+      city.dispose();
+      city = null;
       riding = false;
     }
     const model = runtime.getSceneModel();
@@ -139,25 +111,8 @@ export function createApp(options = {}) {
     scene.fogNode = open
       ? fog(color(HAZE.colour), exponentialHeightFogFactor(HAZE.open, HAZE.top))
       : fog(color(indoors.getHex()), exponentialHeightFogFactor(HAZE.indoors, HAZE.ceiling));
-    materials = createSurfaceMaterials({ paintSurface, photoSurface, textureBase, wet: model.rules?.wet });
-    instanceGroup = buildInstanceObject3D(model, { registry, materials, dressFacade, warn });
-    scene.add(instanceGroup);
-    rig = createLightRig(scene, {
-      lights: model.lights,
-      open,
-      extent: Math.max(model.bounds.maxX - model.bounds.minX, model.bounds.maxZ - model.bounds.minZ),
-      // A sign over a door burns the colour that building's own front is painted.
-      tintFor: (light) => (light.blockId ? materials?.signColour(light.blockId) : null),
-    });
-    actors = createNpcActors(instanceGroup, runtime.getNpcs());
-    if (open) {
-      traffic = createTraffic(model.bounds, seededRng(hashString(model.instanceId), "traffic"));
-      scene.add(traffic.group);
-      rails = createSkyRail(model.bounds, seededRng(hashString(model.instanceId), "rails"));
-      scene.add(rails.group);
-      shuttle = createShuttle(model.transit);
-      if (shuttle) scene.add(shuttle.group);
-    }
+    city = createCityscape?.(model, { registry, warn, npcs: runtime.getNpcs() }) ?? emptyCity();
+    scene.add(city.group);
   }
 
   // Something for a shiny surface to reflect. Built from the scene itself once it is standing, so a
@@ -267,7 +222,7 @@ export function createApp(options = {}) {
     }
   }
   syncCamera();
-  actors.sync(runtime.getNpcs(), camera, 0);
+  city.syncNpcs(runtime.getNpcs(), camera, 0);
 
   // The nearest NPC within talkRange (or null), for the E-to-talk control.
   function nearestNpc() {
@@ -294,16 +249,12 @@ export function createApp(options = {}) {
     const clamped = Math.min(dt, DEFAULTS.maxDt);
     // Riding, the shuttle does the moving: the player is carried, so walking input is ignored.
     const result = runtime.step(clamped, riding ? {} : currentInput());
-    shuttle?.update(clamped);
-    if (riding) runtime.placePlayer(shuttle.seat());
-    syncCamera(clamped);
-    actors.sync(runtime.getNpcs(), camera, clamped);
-    syncLabels();
     elapsed += clamped;
-    rig?.update(camera.position, clamped);
-    traffic?.update(elapsed);
-    rails?.update(elapsed);
-    instanceGroup?.userData.animate?.(elapsed);
+    city.update(elapsed, clamped, camera.position);
+    if (riding) runtime.placePlayer(city.shuttle.seat());
+    syncCamera(clamped);
+    city.syncNpcs(runtime.getNpcs(), camera, clamped);
+    syncLabels();
     // Nothing is drawn until the backend is up: on WebGPU the device comes back a frame or two after
     // the page does, and drawing into it before then throws.
     if (!ready) return result;
@@ -325,6 +276,7 @@ export function createApp(options = {}) {
   // Step on or off the shuttle. You can only do either while it is standing at a stop, so a ride is
   // always stop to stop and you never step off into the middle of a street.
   function ride() {
+    const shuttle = city.shuttle;
     if (!shuttle) return riding;
     if (riding) {
       if (!shuttle.stopped()) return true;
@@ -390,7 +342,7 @@ export function createApp(options = {}) {
     camera,
     scene,
     get instanceGroup() {
-      return instanceGroup;
+      return city.group;
     },
     tick,
     interact,
@@ -400,7 +352,7 @@ export function createApp(options = {}) {
       build(id, opts);
       lightEnvironment();
       syncCamera();
-      actors.sync(runtime.getNpcs(), camera, 0);
+      city.syncNpcs(runtime.getNpcs(), camera, 0);
       syncLabels();
       return runtime.getScene();
     },
@@ -408,8 +360,12 @@ export function createApp(options = {}) {
     ride,
     // What the host can tell the player about the shuttle: whether it is worth pressing F right now.
     shuttleState: () =>
-      shuttle
-        ? { riding, boardable: !riding && shuttle.boardable(runtime.getPlayer().position), stopped: shuttle.stopped() }
+      city.shuttle
+        ? {
+            riding,
+            boardable: !riding && city.shuttle.boardable(runtime.getPlayer().position),
+            stopped: city.shuttle.stopped(),
+          }
         : null,
     blueprint: () => runtime.blueprint(),
     getPlayer: () => runtime.getPlayer(),
@@ -439,10 +395,7 @@ export function createApp(options = {}) {
     },
     dispose() {
       this.stop();
-      actors.dispose();
-      materials?.dispose();
-      rig?.dispose();
-      traffic?.dispose();
+      city.dispose();
       post?.dispose?.();
       pmrem?.dispose();
       labels?.dispose();
@@ -490,15 +443,17 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// Release the GPU buffers of a scene we are leaving. Materials and geometries are not garbage
-// collected on their own, so a level with many doors would leak one instance's worth per crossing.
-function disposeObject3D(root) {
-  root.traverse?.((node) => {
-    node.geometry?.dispose?.();
-    const material = node.material;
-    if (Array.isArray(material)) material.forEach((m) => m.dispose?.());
-    else material?.dispose?.();
-  });
+// A world with nothing in it, for a host that gave us no city builder: the simulation still runs,
+// the player still walks, and there is simply nothing to look at.
+function emptyCity() {
+  return {
+    group: new THREE.Group(),
+    open: false,
+    shuttle: null,
+    syncNpcs() {},
+    update() {},
+    dispose() {},
+  };
 }
 
 function doc() {

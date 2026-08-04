@@ -1,9 +1,11 @@
 # runtime - Contract
 
 ## Purpose
-Load and PLAY one instance in the browser with three.js. It renders, moves the player and NPCs,
-pathfinds, animates, lays names and speech over the canvas as HTML, checks goals locally, and triggers
-progression. It runs no LLM. It is the whole play-time engine minus the single interaction call.
+Load and PLAY one instance in the browser. It simulates: it moves the player and the NPCs, resolves
+collisions, tracks which room they are in, pathfinds, checks goals and triggers progression. Round
+that it wires a camera, the controls, the renderer, and the HTML laid over the canvas (names, the
+dialogue panel, the map). What the place LOOKS like is `cityscape`, handed in. It runs no LLM. It is
+the whole play-time engine minus the single interaction call.
 
 ## Inputs (params in)
 - `load(Adventure, instanceId, opts?)` - builds the scene from the Adventure document and
@@ -19,18 +21,12 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   **right button** pulls the view in.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
-- `deps.dressFacade(building) -> { name, parts }` - injected facade dresser, normally `facade`.
-  Given one, every building gets its windows, its balconies, its awning and the cartel over its door
-  built from the parts it returns. Windows are real objects standing in the wall, one per opening,
-  each with its own light on or off; the ones that look alike are drawn together in one instanced
-  mesh, so a street of them costs a handful of draws rather than hundreds. Absent, buildings are bare
-  masses.
-- `deps.paintSurface(kind, ctxFor, opts) -> SurfacePlan` - injected surface painter, normally
-  `surfaces`. Given one, the scene is textured: the road, the pavement, interior concrete, and every
-  building wrapped in a facade of its own, each repeated at its true size in metres. Absent, every
-  surface is a flat colour and nothing else changes, which is what a head-less test sees.
-- `deps.photoSurface(kind)` + `deps.textureBase` - where a surface has a photographed material and the
-  files are being served, that is used instead of a painted one.
+- `deps.createCityscape(model, deps) -> Cityscape` - injected city builder, normally `cityscape`.
+  Given one, the place is built, lit and moved: ground, buildings, doors, windows, lamps, parked
+  vehicles, rails, traffic, projections and a shuttle. The shell adds its `group` to the scene, calls
+  `update` each frame and `dispose` on the way out, and asks it whether the player can step on the
+  shuttle. Absent, the world is empty and only the simulation runs, which is what a head-less test
+  wants.
 - `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
   ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
   open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through
@@ -58,45 +54,36 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   same `left` list and marks them, pinning one that is off the map to its edge so it still points
   the way.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
+- `placePlayer({ x, y?, z })` - put the player somewhere without walking them there and without
+  asking the collider: for being CARRIED, by a shuttle or anything else that moves you. Room tracking
+  still follows, so arriving by vehicle counts as having been there.
 
-## What it builds that the level does not describe
-A door on a building's face has nothing cut out of it: the mass is solid and what is inside is
-another instance. So the door is BUILT, not carved: a surround standing proud of the wall, a leaf set
-back in it, a handle and a step. An interior doorway is a real hole, so it gets the surround alone. A
-wet road is a mirror laid under the asphalt with the asphalt thinned over it, so what comes back is
-the lamps and the signs rather than a second city. Every door is signed and lit: one that leaves says
-so (EXIT, UP, LIFT DOWN), and one between two rooms says what is through it, a plate each side, so a
-floor can be read without walking into every wall. Indoors has a ceiling, and a room's floor suits
-what the room is for: boards in a living room, tiles in a kitchen, worn concrete in a shop.
+## What it lays over the canvas
+Names and speech are HTML, never glyphs in the scene: glyphs are sized in metres, so a line looks
+fine across a room and swallows the screen when someone stands next to you. A NAME hangs over whoever
+it belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in
+the same place every time, with a header naming who is talking and the controls under it, so a line
+is readable whether or not you can see who said it. The map is a 2D canvas the host draws with
+`drawBlueprint`.
 
-Solid things throw shadows and take them. Outdoors that is one shadow across the level from the moon;
-indoors and near to hand it is the two nearest lamps, since a point light shadow is six renders and
-past those nobody can tell. What a shiny surface reflects is the scene itself, captured once it is
-standing, so a wet road and a tiled floor come back with the sky and the signs in them.
+## How a place is drawn
+The renderer, the camera and the post chain live here: WebGPU where the browser has it and WebGL2
+where it does not, film tone mapping, bloom taken from the scene's emissive output alone, a haze that
+lies on the streets and thins as it climbs, and a grade that pulls the shadows towards violet. What
+stands IN that scene is `cityscape`, injected: the shell holds one per instance and never has to know
+a rail from a lamp.
 
-Names and speech are HTML over the canvas, never glyphs in the scene. A NAME hangs over whoever it
-belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in the
-same place every time, so a line is readable whether or not you can see who said it.
-
-## How it lights a place
-The level says where light STANDS (`room.lights[]`: a lamp on the pavement, a sign over a door, a
-ceiling lamp in a room). This layer decides everything else: how tall each is, what colour it burns,
-and which of them are real lights at any moment. A street can hold forty and a forward renderer will
-not take forty, so a pool of six follows the player and lands on whichever are nearest; the rest are
-still there to look at, as glowing geometry that costs nothing. Outdoors is night with a haze the far
-end of the street fades into; indoors is the room's own lamps over a dim fill. The renderer tone maps
-(ACES) and blooms over what is brighter than the scene, so a sign glows into the air around it.
-
-The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, link)`
-rebuilds the scene in another instance (disposing the one it leaves), and `onFrame(dt)` fires after
-every tick so a host can draw a HUD outside the 3D scene. `src/blueprint-hud.js` is that HUD: it draws
-a `blueprint()` onto a 2D canvas context.
+The browser shell (`src/app.js`) adds three host hooks on top: `goTo(instanceId, link)` rebuilds the
+place in another instance (disposing the one it leaves), `onFrame(dt)` fires after every tick so a
+host can draw a HUD outside the 3D scene, and `ride()` steps the player on and off the shuttle while
+it is standing at a stop. `src/blueprint-hud.js` is that HUD: it draws a `blueprint()` onto a 2D
+canvas context and marks the places still to go.
 
 ## Responsibilities (all local, no backend)
-Rendering, camera, controls, collision, portal traversal between rooms, NPC deterministic mode
-behavior (idle/wander/patrol/move_to/follow/guard/flee/attack/talk), navmesh pathfinding, animation
-state machine, the name tags and the dialogue panel over the canvas, HUD readouts, goal evaluation
-each tick, positional audio.
+Camera, controls, collision, portal traversal between rooms, NPC deterministic mode behavior
+(idle/wander/patrol/move_to/follow/guard/flee/attack/talk), navmesh pathfinding, the name tags and the
+dialogue panel over the canvas, HUD readouts, goal evaluation each tick, the renderer and the post
+chain, positional audio.
 
 ## Errors
 - `ASSET_LOAD_FAILED` - a referenced asset id could not load; substitute a placeholder and warn (do
@@ -117,8 +104,8 @@ each tick, positional audio.
 
 ## Dependencies (contracts only)
 - Adventure schema + `Instance` (persistence), `InteractionResult` + `selfContext` schemas (npc),
-  `asset-registry` (load assets by id), `surfaces` (`paintSurface`) and `facade` (`dressFacade`),
-  both injected. It imports no backend code and no other layer's `src/`.
+  `asset-registry` (load assets by id), and `cityscape` (`createCityscape`), injected. It imports no
+  backend code and no other layer's `src/`.
 
 ## How to modify this blackbox safely
 Swap the render approach, controls, pathfinding lib, animation, or bubble library inside this

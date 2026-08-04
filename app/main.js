@@ -7,6 +7,7 @@
 
 import { createApp } from "../layers/runtime/src/app.js";
 import { drawBlueprint, placesLeft } from "../layers/runtime/src/blueprint-hud.js";
+import { createCityscape } from "../layers/cityscape/src/index.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { paintSurface, photoSurface } from "../layers/surfaces/src/index.js";
 import { dressFacade } from "../layers/facade/src/index.js";
@@ -109,10 +110,16 @@ const app = createApp({
   adventure,
   instanceId: worldMap.entry,
   registry: createRegistry(),
-  paintSurface, // roads, pavements, concrete and every building's outside
-  photoSurface,
-  textureBase, // the CC0 materials, when they have been fetched
-  dressFacade, // balconies, awnings and the cartel over each door
+  // The city itself: geometry, surfaces, lights, and everything moving in it. The shell asks for one
+  // of these per instance and never has to know what is in it.
+  createCityscape: (model, deps) =>
+    createCityscape(model, {
+      ...deps,
+      paintSurface, // roads, pavements, concrete and every building's outside
+      photoSurface,
+      textureBase, // the CC0 materials, when they have been fetched
+      dressFacade, // balconies, awnings, windows and the cartel over each door
+    }),
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   // The hint is only a hint: it goes while you are playing and comes back when the cursor does.

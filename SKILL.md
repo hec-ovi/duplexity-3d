@@ -212,7 +212,7 @@ ground you are standing on, and marks a door you cannot use yet in red.
 
 It is night. Lamps stand on the pavement, signs burn over the doors, and a room lights itself from
 overhead. Where each light stands is in the level; how it looks is the renderer's, in
-`layers/runtime/src/lights.js`.
+`layers/cityscape/src/lights.js`.
 
 The rogue rule: each instance has a goal. Clearing every required instance opens the exit gate, and
 walking into an open gate wins the run. The gate never counts the instance it stands in.
@@ -247,7 +247,8 @@ reading its code.
 | NPC data, modes, the interaction brain | `layers/npc/` |
 | Speech providers | `layers/voice/` |
 | Kits and generated assets | `layers/asset-registry/`, `layers/asset-gen/` |
-| Rendering, camera, collision, the blueprint overlay | `layers/runtime/` |
+| Camera, collision, the renderer, the blueprint overlay, the dialogue panel | `layers/runtime/` |
+| What the city looks like in 3D: buildings, doors, lamps, props, rails, the shuttle | `layers/cityscape/` |
 | What things are made of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
 | What is bolted to a building: balconies, awnings, the cartel over the door | `layers/facade/` |
 | The command line itself | `tools/` |
