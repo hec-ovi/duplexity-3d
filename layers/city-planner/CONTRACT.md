@@ -9,9 +9,12 @@ ids, never on coordinates.
 
 ## Inputs (params in)
 - `createStreets(CitySpec, assetQuery, opts?) -> { instance, lots, report }`
-  - `CitySpec`: `{ id, theme, label?, sizeHint?, lots?, floorsPerLot?, accessibleRatio?, buildings?,
-    npcs?, exit?, seed? }`. `floorsPerLot` sets how tall each building is, in order, repeating its
-    last value. `accessibleRatio` is the share of buildings with a front door (default 1).
+  - `CitySpec`: `{ id, theme, label?, blocks?, sizeHint?, lots?, floorsPerLot?, accessibleRatio?,
+    buildings?, npcs?, exit?, seed? }`. `blocks` is exactly how many city blocks to build on, and
+    `sizeHint` is the shorthand for it. `floorsPerLot` sets how tall each building STANDS, in order,
+    repeating its last value. `accessibleRatio` is the share of buildings with a front door: 1 by
+    default, and 0 as soon as `buildings` names any, so naming the places you want makes everything
+    else scenery.
     `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
     quest); the block is split into enough premises to hold the slot, and everything unpinned is
     generated around it. `wet` (0 to 1) says how wet the streets are, which the renderer reads off
@@ -76,6 +79,9 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
   map and nothing for the exit gate to wait on. At least one building always has a door.
 - Light is PLACED here, never designed here: a lamp says where it stands and what it is, and how tall
   it is, what colour it burns and how many are lit at once are the renderer's decisions.
+- How tall a building STANDS and how much of it you can walk into are two different numbers: a mass
+  carries its storeys, a `LotPlan` carries the floor or three behind its door. A city has a skyline;
+  a run through it is a few conversations.
 - The spawn stands in a street, never inside a building.
 - Exactly one entry (the spawn) and exactly one exit gate, and the gate is locked `all_cleared`.
 - Every `LotPlan` names a door that exists in the returned instance, and no two lots share a door.
