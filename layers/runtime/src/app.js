@@ -53,6 +53,7 @@ export function createApp(options = {}) {
     onTransit, // the player walked into a door leading to another instance
     isPortalOpen, // lock oracle (map-state); absent means every portal is open
     onFrame, // called after every tick, for a HUD drawn outside the 3D scene
+    onPointerLock, // (locked) whenever play starts or the cursor comes back
     paintSurface, // surfaces.paintSurface (injected); absent means flat colours
     photoSurface, // surfaces.photoSurface (injected): which surfaces have a photographed material
     textureBase, // where those material files are served from; absent means paint them instead
@@ -279,6 +280,7 @@ export function createApp(options = {}) {
   };
   const onLockChange = () => {
     locked = doc()?.pointerLockElement === (renderer.domElement ?? null);
+    onPointerLock?.(locked);
   };
   const requestLock = () => renderer.domElement?.requestPointerLock?.();
   // Right button pulls the view in, the way looking harder at something does.

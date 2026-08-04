@@ -104,6 +104,10 @@ const app = createApp({
   dressFacade, // balconies, awnings and the cartel over each door
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
+  // The hint is only a hint: it goes while you are playing and comes back when the cursor does.
+  onPointerLock: (locked) => {
+    promptEl.style.display = locked ? "none" : "";
+  },
   onRoomChange: (_prev, next) => {
     roomEl.textContent = next ?? "doorway";
   },
@@ -141,9 +145,6 @@ showGate();
 // walking there: `duplexity.app.goTo("ashgate-b1-f1", { spawnRoomId: "entry" })`.
 if (import.meta.env?.DEV) globalThis.duplexity = { app, adventure, worldMap };
 
-promptEl.addEventListener("click", () => {
-  promptEl.style.display = "none";
-  app.requestPointerLock(); // same gesture dismisses the overlay and starts mouse-look
-});
+promptEl.addEventListener("click", () => app.requestPointerLock());
 
 app.start();

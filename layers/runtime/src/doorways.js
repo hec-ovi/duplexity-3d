@@ -14,11 +14,12 @@ const HANDLE = { size: 0.07, height: 1.05, inset: 0.28 };
 
 const COLOURS = {
   frame: 0x8c7f6a, // painted timber, light enough to read against a dark wall
-  leaf: 0x3b3026,
+  leaf: 0x6b5a45,
   glass: 0x2a3138,
   handle: 0xd8c08a,
   step: 0x5b6068,
 };
+const PORCH = { size: [0.5, 0.14, 0.34], colour: 0xffe6c0, glow: 1.6, lift: 0.24 };
 
 // What a door says over it, so a way out is something you can see across a room rather than
 // something you have to walk into every wall to find.
@@ -168,7 +169,7 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names }
     new THREE.MeshStandardMaterial({
       color: COLOURS.glass,
       emissive: new THREE.Color(0xffe0b0),
-      emissiveIntensity: 0.5,
+      emissiveIntensity: 1.15,
       roughness: 0.25,
       metalness: 0.1,
     })
@@ -176,6 +177,22 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names }
   place(pane, portal, out, -LEAF.recess + LEAF.thickness * 0.6, groundY + height * 0.66);
   pane.userData = { kind: "light" }; // it is a source, so it neither casts nor takes a shadow
   group.add(pane);
+
+  // A porch lamp over it. A door on an unlit wall is a dark patch; a door with a light over it is a
+  // door from the other side of the street.
+  const porch = new THREE.Mesh(
+    new THREE.BoxGeometry(...(axis === "x" ? [PORCH.size[2], PORCH.size[1], PORCH.size[0]] : PORCH.size)),
+    new THREE.MeshStandardMaterial({
+      color: 0x14171c,
+      emissive: new THREE.Color(PORCH.colour),
+      emissiveIntensity: PORCH.glow,
+      roughness: 0.5,
+    })
+  );
+  place(porch, portal, out, FRAME.proud + PORCH.size[2] / 2, groundY + height + FRAME.margin + PORCH.lift);
+  porch.userData = { kind: "light" };
+  porch.name = `doorway:${portal.id}:porch`;
+  group.add(porch);
 
   const handle = new THREE.Mesh(
     new THREE.BoxGeometry(HANDLE.size, HANDLE.size, HANDLE.size),

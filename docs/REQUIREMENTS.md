@@ -132,3 +132,29 @@ Answers to the three questions that came out of the above:
 > check last screenshot how it looks... like over the texture of windows, etc all windows look the
 > same, etc. i would recommend put windows as different obhects, and they have their own tesxture not
 > a single texture over a whole building
+
+> still issues with those parts over the doors, as screenshot shows, and as you see the other
+> screenshot buildings have still those geeneric like windows... we wont worry about inside rooms
+> yet.. look.. FOCUS ON EXCEL IN TEXTURES, and th eoutside as the main provided images, you managed
+> to do this in other projects, you should be able to make it in here as well, i am trying to provide
+> you advice on how...is getting better but i have the feeling you are rushing or not paying
+> attention.. to show some shining fake stuff. look... doors? they only have the frame now, they
+> should be an object excluded from the bulding. top letters? should be over the doors, and different
+> ones, dynamic as possible but the positions should be relative to the rest, windows? they are all
+> the same size, and same type... what do we want? variations, of windows, balconies, doors, letters,
+> and lights on the streets, so we do variations of models, and real correct ones. all this musy be
+> flexible and dynamic, this means, if we want to do only 4 blocks we should be able to. and the LLM
+> generating it should just provide "x" blocks and "x" functional buldings with whatever label theyt
+> want, so they can do the quests. there is a click to play thing floating always there. the feeling
+> i have is now, is like minecraft, poor cartoonish style. the scene i showed to you is cinematic and
+> hyper realistic. found something might HEAVILY help you, on the buildings at least, this one looks
+> AMAZING https://jeff-beene.com/portfolio/synthcity/ and its open source code:
+> https://github.com/jeffbeene/synthcity and the one i want (that one is macro) the micro one should
+> be like this: https://threejspunk.vercel.app/ however the first one you might get glbs or whatever
+> from buildings, etc check it outr, it has a lot of things, is like blade runner and cyberpunk, so
+> learn aobut it, and see how we can use it... now... once you do that please take a time to organize
+> the code correclty, you know contracts md and make it lean and box based. remember the goal is:
+> ytou have places you go, speak with an npc, once you do few missions just talking basically, the
+> game ends, super easy, and the idea llms can prompt those locations, so a city can be super big,
+> but directions to go and interact are specific places, and whose are inside inner, etc as you sdaid
+> for now the inside poorly because have no realinteriors

@@ -44,8 +44,9 @@ describe("facade contract", () => {
       expect(z).toBeLessThan(-shop.size.d / 2); // outside the south wall
       expect(out[1]).toBeCloseTo(-1, 6); // and facing away from the building
     }
-    // the sign is over the door, not on the floor above it
-    expect(sign.position[1]).toBeLessThan(shop.size.h);
+    // the sign clears the door and the awning under it, and never grows through either
+    expect(sign.position[1]).toBeGreaterThan(awning.position[1] + awning.size[1]);
+    expect(sign.position[1]).toBeGreaterThan(3.1);
   });
 
   it("hangs balconies on the storeys above the street, never over the shopfront", () => {

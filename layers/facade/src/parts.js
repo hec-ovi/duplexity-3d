@@ -7,7 +7,8 @@
 const BALCONY = { depth: 1.1, rail: 0.95, slab: 0.14, margin: 0.5 };
 // A shopfront reads bottom to top: glass, then the awning over it, then the sign on the fascia. The
 // two never share a height, or the sign ends up growing through the awning.
-const AWNING = { depth: 1.3, drop: 0.3, at: 0.6 }; // `at` is a share of the storey
+const DOOR_HEAD = 3.1; // the top of a front door: nothing is hung lower than this over one
+const AWNING = { depth: 1.3, drop: 0.3, at: 0.6, clear: 0.55 }; // `at` is a share of the storey
 const SIGN = { height: 0.66, drop: 0.14, at: 0.85, blade: { width: 0.8 } };
 const WINDOW = { width: 1.5, height: 1.35, depth: 0.22, sill: 0.9, margin: 0.6, proud: 0.02 };
 
@@ -79,18 +80,23 @@ export function windowsOn(wall, storeyY, bays, litRatio, rng, colours) {
 export const windowBays = (span) => Math.max(1, Math.min(8, Math.floor((span - WINDOW.margin) / 2.6)));
 
 /** An awning over a shopfront: a slab standing out over the pavement, under the sign. */
+export function awningHeight(storey) {
+  return Math.max(storey * AWNING.at, DOOR_HEAD + AWNING.clear);
+}
+
 export function awning(wall, along, width, storey, colour) {
   return {
     kind: "awning",
-    position: on(wall, along, storey * AWNING.at, AWNING.depth / 2),
+    position: on(wall, along, awningHeight(storey), AWNING.depth / 2),
     size: [width, AWNING.drop, AWNING.depth],
     facing: facing(wall),
     colour,
   };
 }
 
-/** Where the sign over a shopfront sits: on the fascia, clear above the awning. */
-export const signHeight = (storey) => storey * SIGN.at;
+/** Where the sign over a shopfront sits: on the fascia, clear above the door and the awning. */
+export const signHeight = (storey) =>
+  Math.max(storey * SIGN.at, awningHeight(storey) + SIGN.height * 0.9);
 
 /**
  * A cartel: a board with the name on it. `flat` sits against the wall over the door; `blade` sticks
