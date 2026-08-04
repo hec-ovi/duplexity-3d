@@ -3,13 +3,15 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import * as THREE from "three";
-import { buildInstanceObject3D } from "../src/scene.js";
+import { buildSceneModel } from "../src/scene-model.js";
+import { buildInstanceObject3D } from "../src/three-scene.js";
 import { createNpcActors } from "../src/npc-actor.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const model = JSON.parse(
-  readFileSync(join(HERE, "../../runtime/fixtures/scene-model.example.json"), "utf8"),
+const adventure = JSON.parse(
+  readFileSync(join(HERE, "../../persistence/fixtures/adventure.example.json"), "utf8"),
 );
+const model = buildSceneModel(adventure.instances[0]);
 const npcDescriptors = model.npcs.map((n) => ({ id: n.id, name: n.name }));
 
 function buildActors() {
@@ -17,7 +19,7 @@ function buildActors() {
   return { group, actors: createNpcActors(group, npcDescriptors) };
 }
 
-describe("the NPC groups a city is built with", () => {
+describe("three-scene NPC groups", () => {
   it("wraps each NPC in a feet-anchored group with a named body child and a height", () => {
     const group = buildInstanceObject3D(model, { warn: () => {} });
     const smith = group.getObjectByName("npc:npc-smith");

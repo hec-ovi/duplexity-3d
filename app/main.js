@@ -6,8 +6,7 @@
 // blueprint overlay. Names and speech are HTML the runtime lays over the canvas.
 
 import { createApp } from "../layers/runtime/src/app.js";
-import { drawBlueprint, placesLeft } from "../layers/runtime/src/blueprint-hud.js";
-import { createCityscape } from "../layers/cityscape/src/index.js";
+import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { paintSurface, photoSurface } from "../layers/surfaces/src/index.js";
 import { dressFacade } from "../layers/facade/src/index.js";
@@ -26,8 +25,6 @@ const container = document.getElementById("app");
 const placeEl = document.getElementById("place");
 const roomEl = document.getElementById("room");
 const gateEl = document.getElementById("gate");
-const nextEl = document.getElementById("next");
-const rideEl = document.getElementById("ride");
 const statusEl = document.getElementById("status");
 const promptEl = document.getElementById("prompt");
 const blueprintEl = document.getElementById("blueprint");
@@ -89,37 +86,22 @@ function showPlace() {
   roomEl.textContent = app.getPlayer().currentRoom ?? "doorway";
 }
 
-// The places still to finish, kept as the run changes rather than worked out every frame. The map
-// marks them, and the line under the controls names the nearest and points at it.
-let left = [];
-
 function showGate() {
   const gate = exitState(worldMap, run);
-  left = gate.remaining;
   gateEl.textContent = gate.open
     ? "The gate is open. Head for it."
     : `Gate sealed: ${gate.remaining.length} place(s) left to finish.`;
 }
-
-// Eight ways to point, from a bearing in radians off where the player is looking.
-const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
-const arrowFor = (bearing) => ARROWS[Math.round((bearing / (Math.PI / 4) + 8) % 8)];
 
 const app = createApp({
   container,
   adventure,
   instanceId: worldMap.entry,
   registry: createRegistry(),
-  // The city itself: geometry, surfaces, lights, and everything moving in it. The shell asks for one
-  // of these per instance and never has to know what is in it.
-  createCityscape: (model, deps) =>
-    createCityscape(model, {
-      ...deps,
-      paintSurface, // roads, pavements, concrete and every building's outside
-      photoSurface,
-      textureBase, // the CC0 materials, when they have been fetched
-      dressFacade, // balconies, awnings, windows and the cartel over each door
-    }),
+  paintSurface, // roads, pavements, concrete and every building's outside
+  photoSurface,
+  textureBase, // the CC0 materials, when they have been fetched
+  dressFacade, // balconies, awnings and the cartel over each door
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   // The hint is only a hint: it goes while you are playing and comes back when the cursor does.
@@ -137,28 +119,10 @@ const app = createApp({
   // Redrawn each frame, so the overlay follows the player and reveals each room as it is walked into.
   // It draws only what blueprint() hands over, which is only what has been seen.
   onFrame: () => {
-    const plan = app.blueprint();
-    drawBlueprint(blueprintCtx, plan, {
+    drawBlueprint(blueprintCtx, app.blueprint(), {
       width: blueprintEl.width,
       height: blueprintEl.height,
-      left,
     });
-    const [next] = placesLeft(plan, left);
-    nextEl.textContent = next
-      ? `${arrowFor(next.bearing)} ${next.label} - ${Math.round(next.distance)} m`
-      : "";
-
-    // The shuttle down the middle street: it only says anything when pressing F would do something.
-    const shuttle = app.shuttleState();
-    rideEl.textContent = !shuttle
-      ? ""
-      : shuttle.riding
-        ? shuttle.stopped
-          ? "F to step off"
-          : "riding"
-        : shuttle.boardable
-          ? "F to ride"
-          : "";
   },
   onGoalMet: (instanceId) => {
     // Reaching the open gate wins the run; finishing anywhere else ticks one place off the list.

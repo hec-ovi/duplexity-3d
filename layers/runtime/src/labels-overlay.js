@@ -13,35 +13,18 @@
 const MAX_DISTANCE = 28; // metres past which a name is not worth showing
 const STYLE_ID = "duplexity-labels-style";
 
-// The panel is the city's UI, not a browser dialog: a hairline in the same cyan the pavements burn,
-// a header bar naming who is talking, and the controls along the bottom.
 const CSS = `
 .dx-labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 3; }
 .dx-label { position: absolute; transform: translate(-50%, -100%); text-align: center;
-  font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em;
-  color: #cfe6f2; text-shadow: 0 1px 3px #000, 0 0 6px rgba(42, 212, 230, 0.5);
-  white-space: nowrap; opacity: 0.9; }
-.dx-dialogue { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%);
-  width: min(640px, 84%); display: none;
-  background: linear-gradient(180deg, rgba(9, 16, 22, 0.94), rgba(7, 11, 16, 0.94));
-  border: 1px solid rgba(42, 212, 230, 0.45);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 10px 34px rgba(0, 0, 0, 0.55),
-    inset 0 0 24px rgba(42, 212, 230, 0.06);
-  font: 15px/1.5 system-ui, sans-serif; color: #edf4f8; }
-.dx-dialogue .dx-who { display: block; padding: 7px 14px;
-  border-bottom: 1px solid rgba(42, 212, 230, 0.25);
-  background: rgba(42, 212, 230, 0.09);
-  font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.18em;
-  text-transform: uppercase; color: #7fe4f2; }
-.dx-dialogue .dx-said { display: block; padding: 14px 16px 12px; }
-.dx-dialogue .dx-keys { display: block; padding: 0 16px 11px;
-  font: 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em;
-  color: #6f8595; }
-.dx-dialogue .dx-keys b { color: #a9dbe8; font-weight: 600; }
+  font: 12px/1.3 system-ui, sans-serif; color: #d7dee6; text-shadow: 0 1px 3px #000, 0 0 2px #000;
+  white-space: nowrap; opacity: 0.82; }
+.dx-dialogue { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: min(560px, 76%); padding: 10px 14px; border-radius: 10px;
+  background: rgba(10, 13, 18, 0.86); border: 1px solid rgba(159, 180, 194, 0.28);
+  font: 14px/1.45 system-ui, sans-serif; color: #f2f5f8; display: none; }
+.dx-dialogue .dx-who { display: block; margin-bottom: 3px; font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #9fb4c2; }
 `;
-
-// What you can do while someone is talking to you. The panel says so, so nobody has to guess.
-const KEYS = "<b>E</b> keep talking &middot; walk away to leave";
 
 function ensureStyle(doc) {
   if (!doc || doc.getElementById(STYLE_ID)) return;
@@ -66,17 +49,14 @@ export function createLabelsOverlay(container, { document: doc = globalThis.docu
 
   const nodes = new Map(); // id -> { el, name }
 
-  // One panel, always in the same place: whoever spoke last, what they said, and what you can do.
+  // One panel, always in the same place: whoever spoke last, and what they said.
   const dialogue = doc.createElement("div");
   dialogue.className = "dx-dialogue";
   const who = doc.createElement("span");
   who.className = "dx-who";
   const said = doc.createElement("span");
   said.className = "dx-said";
-  const keys = doc.createElement("span");
-  keys.className = "dx-keys";
-  keys.innerHTML = KEYS;
-  dialogue.append(who, said, keys);
+  dialogue.append(who, said);
   root.appendChild(dialogue);
 
   function nodeFor(id) {
@@ -119,9 +99,7 @@ export function createLabelsOverlay(container, { document: doc = globalThis.docu
       }
     }
 
-    // Named, not cleared: the panel's own rule hides it, so clearing the inline style would hide it
-    // again the moment someone spoke.
-    dialogue.style.display = speaking ? "block" : "none";
+    dialogue.style.display = speaking ? "" : "none";
     if (speaking) {
       who.textContent = speaking.name;
       said.textContent = speaking.says;

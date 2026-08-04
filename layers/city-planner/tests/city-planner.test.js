@@ -133,26 +133,6 @@ describe("city-planner contract", () => {
     expect(instance.rooms[0].blocks.length).toBeGreaterThan(lots.length); // the rest still stands there
   });
 
-  // A generated city stands hundreds of buildings. A run visits a handful of them, far enough apart
-  // that getting to the next one is a walk across the city.
-  it("a handful of places, spread across the blocks", () => {
-    const big = { sizeHint: "large", lots: undefined };
-    expect(build(big).lots).toHaveLength(6); // the default, whatever the city stands
-
-    const { instance, lots } = build({ ...big, places: 4 });
-    expect(lots).toHaveLength(4);
-    expect(instance.rooms[0].blocks.length).toBeGreaterThan(lots.length); // the rest is scenery
-
-    const where = new Map(instance.rooms[0].blocks.map((b) => [b.id, b.position]));
-    const centres = lots.map((l) => where.get(`mass-${l.lotId}`));
-    for (const [ax, , az] of centres) {
-      for (const [bx, , bz] of centres) {
-        const gap = Math.hypot(ax - bx, az - bz);
-        if (gap > 0) expect(gap).toBeGreaterThan(BLOCK); // never two places on one block
-      }
-    }
-  });
-
   it("there is one spawn and one exit, and the gate is locked until the map is cleared", () => {
     const { instance } = build();
     const exits = instance.portals.filter((p) => p.roomB === "EXIT");

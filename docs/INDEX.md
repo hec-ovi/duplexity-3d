@@ -20,13 +20,11 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 
 | If your task touches... | Open only this folder |
 |---|---|
-| The camera, the controls, collision, the renderer and its post chain, the HUD | `layers/runtime/` |
-| What the city LOOKS like in 3D: buildings, doors, lamps, props, rails, traffic, the shuttle | `layers/cityscape/` |
+| The 3D world rendering, camera, controls, HUD frame drawing | `layers/runtime/` |
 | What things are MADE of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
 | What is BOLTED to a building: balconies, awnings, the cartel over the door, what a place is called | `layers/facade/` |
-| NPC movement, pathfinding, deterministic behavior modes | `layers/runtime/` (behavior) + `layers/npc/` (definitions) |
-| NPC bodies and how they animate in the scene | `layers/cityscape/` |
-| Name tags over NPCs, the dialogue panel their lines go in, the map overlay | `layers/runtime/` |
+| NPC movement, pathfinding, animation, deterministic behavior modes | `layers/runtime/` (behavior) + `layers/npc/` (definitions) |
+| Name tags over NPCs, or the dialogue panel their lines go in | `layers/runtime/` |
 | What an NPC says / does when the player interacts (mode switch, dialogue, the model seam) | `layers/npc/` |
 | NPC data model (personality, body, allowed actions, memory, voice design) | `layers/npc/` |
 | Turning an NPC line into speech, or a spoken player turn into text (TTS/STT, emotion tags) | `layers/voice/` |
@@ -44,7 +42,6 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | Swapping a text LLM / TTS / image model provider | that layer's `providers/` adapter (config) |
 | The `POST /adventure` author, `POST /interaction` brain, or `GET/POST` export/import routes | `server/` (backend composition root) |
 | The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
-| Riding the shuttle, the rails over the city, what is parked on the street | `layers/cityscape/` |
 | Generating a level from the command line, and keeping one you liked (the agent-facing toolkit) | `tools/` |
 
 `app/`, `server/` and `tools/` are the composition roots. They live OUTSIDE `layers/` and are the only

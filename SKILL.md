@@ -50,31 +50,15 @@ node tools/level.js city --id ashgate --theme city --label Ashgate \
 | Flag | Default | Change it when |
 | --- | --- | --- |
 | `--size small\|medium\|large` | medium | You want 2x2, 3x3 or 4x4 city blocks. |
-| `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings standing. |
-| `--places <n>` | 6 | The run should visit more or fewer of them. |
+| `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings. |
 | `--floors 2,1,3` | drawn from a mix | Buildings should differ in height. A short list repeats its last value. |
-| `--accessible <0..1>` | - | Places should be a share of the buildings, drawn at random rather than spread out. |
+| `--accessible <0..1>` | 1 | Some buildings should have no way in. |
 | `--wet <0..1>` | 0 | The streets should be wet, so the lamps reflect down them. It never rains. |
 | `--npcs <n>` | 2 | Per instance. `0` builds an empty level. |
 | `--seed <n>` | from the id | You want a different level from the same flags. |
 
 Then always [check it](#check). The output is an Adventure document: the same file the runtime plays,
 `server/` serves and `persistence` exports.
-
-### The spec is the whole authoring surface
-
-A city can stand hundreds of buildings; a run visits six or seven of them, far apart, and the rest is
-scenery with no door and nothing behind it. So one `CitySpec` says everything there is to say:
-
-| Field | Means |
-| --- | --- |
-| `blocks` / `sizeHint` | how big the city is |
-| `lots` | how many buildings stand in it |
-| `places` | how many you can walk into (6 by default), spread one per block until the blocks run out |
-| `buildings[]` | the ones you name: where each stands, what it is called, what it is for, its quest |
-| `wet`, `npcs`, `seed`, `exit` | how wet the streets are, the cast per instance, the level, the gate |
-
-Name nothing and the generator picks the places for you. Name some and those ARE the places.
 
 ### Pinning what matters
 
@@ -212,7 +196,7 @@ ground you are standing on, and marks a door you cannot use yet in red.
 
 It is night. Lamps stand on the pavement, signs burn over the doors, and a room lights itself from
 overhead. Where each light stands is in the level; how it looks is the renderer's, in
-`layers/cityscape/src/lights.js`.
+`layers/runtime/src/lights.js`.
 
 The rogue rule: each instance has a goal. Clearing every required instance opens the exit gate, and
 walking into an open gate wins the run. The gate never counts the instance it stands in.
@@ -247,8 +231,7 @@ reading its code.
 | NPC data, modes, the interaction brain | `layers/npc/` |
 | Speech providers | `layers/voice/` |
 | Kits and generated assets | `layers/asset-registry/`, `layers/asset-gen/` |
-| Camera, collision, the renderer, the blueprint overlay, the dialogue panel | `layers/runtime/` |
-| What the city looks like in 3D: buildings, doors, lamps, props, rails, the shuttle | `layers/cityscape/` |
+| Rendering, camera, collision, the blueprint overlay | `layers/runtime/` |
 | What things are made of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
 | What is bolted to a building: balconies, awnings, the cartel over the door | `layers/facade/` |
 | The command line itself | `tools/` |

@@ -111,33 +111,6 @@ export function paintSlabs(ctx, rng, size, kind) {
   ctx.globalAlpha = 1;
 }
 
-/**
- * What BURNS in a pavement: the joints between the slabs, and nothing else. Cold light coming out of
- * the ground under warm lamps is most of what a night city looks like.
- */
-export function paintSlabGlow(ctx, size, kind) {
-  const p = PALETTE[kind] ?? PALETTE.pavement;
-  const cells = 4;
-  const cell = size / cells;
-  ctx.fillStyle = PALETTE.off;
-  ctx.fillRect(0, 0, size, size);
-
-  ctx.strokeStyle = p.glow;
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.55;
-  for (let i = 0; i <= cells; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * cell, 0);
-    ctx.lineTo(i * cell, size);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, i * cell);
-    ctx.lineTo(size, i * cell);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-}
-
 /** Poured concrete: no joints, just tone and dirt. Indoors this is the floor, the wall and the ceiling. */
 export function paintConcrete(ctx, rng, size, kind = "concrete") {
   const p = PALETTE[kind] ?? PALETTE.concrete;

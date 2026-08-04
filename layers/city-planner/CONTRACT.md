@@ -9,13 +9,12 @@ ids, never on coordinates.
 
 ## Inputs (params in)
 - `createStreets(CitySpec, assetQuery, opts?) -> { instance, lots, report }`
-  - `CitySpec`: `{ id, theme, label?, blocks?, sizeHint?, lots?, places?, floorsPerLot?,
-    accessibleRatio?, buildings?, npcs?, exit?, seed? }`. `blocks` is exactly how many city blocks to
-    build on, and `sizeHint` is the shorthand for it. `lots` is how many buildings STAND; `places` is
-    how many of those you can walk into, 6 by default, spread as far apart as the city allows and one
-    per block until the blocks run out. `accessibleRatio` picks places as a share of the buildings at
-    random instead, and naming `buildings[]` makes exactly those the places. `floorsPerLot` sets how
-    tall each building STANDS, in order, repeating its last value.
+  - `CitySpec`: `{ id, theme, label?, blocks?, sizeHint?, lots?, floorsPerLot?, accessibleRatio?,
+    buildings?, npcs?, exit?, seed? }`. `blocks` is exactly how many city blocks to build on, and
+    `sizeHint` is the shorthand for it. `floorsPerLot` sets how tall each building STANDS, in order,
+    repeating its last value. `accessibleRatio` is the share of buildings with a front door: 1 by
+    default, and 0 as soon as `buildings` names any, so naming the places you want makes everything
+    else scenery.
     `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
     quest); the block is split into enough premises to hold the slot, and everything unpinned is
     generated around it. `wet` (0 to 1) says how wet the streets are, which the renderer reads off
@@ -35,8 +34,7 @@ ids, never on coordinates.
 - `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
   roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a
   block, each carrying its `floors` and `program` so its outside can be dressed to suit), its
-  `lights[]` (four lamps round every block, all of one kind so a street reads as a street, a bracket
-  on some building faces, and a sign over every front door), one `LINK`
+  `lights[]` (a lamp on each side of every block, a sign over every front door), one `LINK`
   portal per building you can enter carrying `blockId` (the door is on that mass's face), and one
   `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
   `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.

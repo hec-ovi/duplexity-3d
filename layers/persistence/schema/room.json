@@ -104,25 +104,12 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "position": {
-            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
-          },
-          "size": {
-            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
-          },
-          "floors": {
-            "type": "integer",
-            "minimum": 1
-          }
+          "id": { "type": "string" },
+          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "floors": { "type": "integer", "minimum": 1 }
         },
-        "required": [
-          "id",
-          "position",
-          "size"
-        ],
+        "required": ["id", "position", "size"],
         "additionalProperties": false
       }
     },
@@ -132,40 +119,17 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
+          "id": { "type": "string" },
           "kind": {
             "type": "string",
-            "enum": [
-              "street_lamp",
-              "wall_lamp",
-              "sign",
-              "ceiling"
-            ],
-            "description": "street_lamp: something standing on the pavement. wall_lamp: a bracket on a building's face, fixed to `blockId`. sign: the glow off a building's front, fixed to `blockId`. ceiling: what lights a room from above."
+            "enum": ["street_lamp", "sign", "ceiling"],
+            "description": "street_lamp: a pole with a head on it. sign: the glow off a building's front, fixed to `blockId`. ceiling: what lights a room from above."
           },
-          "position": {
-            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
-          },
-          "blockId": {
-            "type": "string",
-            "description": "wall_lamp, sign: the mass it is fixed to."
-          },
-          "facing": {
-            "type": "number",
-            "description": "wall_lamp, sign: which way it looks, in radians."
-          },
-          "style": {
-            "type": "string",
-            "description": "street_lamp: post, twin, bollard or reach. Which one changes what stands there, not how it burns."
-          }
+          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "blockId": { "type": "string", "description": "sign: the mass it is fixed to." },
+          "facing": { "type": "number", "description": "sign: which way it looks, in radians." }
         },
-        "required": [
-          "id",
-          "kind",
-          "position"
-        ],
+        "required": ["id", "kind", "position"],
         "additionalProperties": false
       }
     },
@@ -206,74 +170,6 @@
         ],
         "additionalProperties": false
       }
-    },
-    "props": {
-      "type": "array",
-      "description": "Things standing on the street that you walk around: parked vehicles, bins, bollards, traffic lights. Each says where it stands and how much room it takes; what it looks like is the renderer's.",
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "car",
-              "van",
-              "bike",
-              "bin",
-              "bollard",
-              "traffic_light"
-            ]
-          },
-          "position": {
-            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
-          },
-          "size": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "exclusiveMinimum": 0
-            },
-            "minItems": 3,
-            "maxItems": 3,
-            "description": "[across, up, along] in metres, before it is turned."
-          },
-          "facing": {
-            "type": "number",
-            "description": "Radians. 0 points down +z."
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "position",
-          "size"
-        ],
-        "additionalProperties": false
-      }
-    },
-    "transit": {
-      "type": "object",
-      "description": "A line a shuttle runs along, west to east, stopping at each point in turn. A city small enough to walk has none.",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "stops": {
-          "type": "array",
-          "minItems": 2,
-          "items": {
-            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "stops"
-      ],
-      "additionalProperties": false
     }
   },
   "required": [

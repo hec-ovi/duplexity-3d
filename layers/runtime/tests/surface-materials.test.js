@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
-import { createSurfaceMaterials } from "../src/materials.js";
-import { buildInstanceObject3D } from "../src/scene.js";
+import { createSurfaceMaterials } from "../src/surface-materials.js";
+import { buildInstanceObject3D } from "../src/three-scene.js";
 
 // The painter is another box, injected. Here it is a stand-in that reports what it was asked for, so
 // this proves the wiring: the canvas, the repeat, the colour space and the disposal are the runtime's

@@ -9,9 +9,6 @@ import { CitySpecInvalidError } from "./errors.js";
 
 const PROGRAMS = ["apartments", "office", "shop"];
 const HOUSE_PROGRAMS = ["house", "shop"];
-// How many places a run has when nobody says otherwise. A city can be any size; the doors you can
-// open are a handful, far apart, so playing it is a walk between landmarks and not a street of doors.
-const PLACES = 6;
 // A skyline needs a mix, and a street needs walls: heights come from this, so a block reads as a run
 // of tall buildings with the odd low one between them rather than as a suburban strip.
 const STOREY_MIX = [2, 3, 4, 5, 6, 6, 8, 9, 11, 12, 14, 16, 18, 22];
@@ -31,6 +28,8 @@ const PLAYABLE = [1, 1, 1, 2, 2, 3];
  */
 export function planPremises(spec, cells, rng, programFits = () => true) {
   const pins = indexPins(spec.buildings ?? [], cells.length);
+  // Name the places you want and everything else is scenery. Without a single pin, everything opens.
+  const ratio = spec.accessibleRatio ?? (pins.size ? 0 : 1);
   const minimums = cells.map((_, block) => pinnedSlots(pins, block));
   const counts = countPerBlock(cells.length, spec.lots ?? null, minimums, rng);
 
@@ -61,66 +60,8 @@ export function planPremises(spec, cells, rng, programFits = () => true) {
       });
     }
   }
-  openDoors(spec, list, pins.size > 0, rng);
+  assignDoors(list, ratio, rng);
   return list;
-}
-
-/**
- * Which premises are PLACES: the ones with a front door, an interior behind it and a node on the
- * map. Three ways to say it, in the order an author means them:
- *
- *   - `places: n`      exactly this many, spread as far apart as the city allows
- *   - `accessibleRatio` this share of the buildings, drawn at random
- *   - naming buildings  those are the places, and everything else is scenery
- *
- * With none of them, a city gets PLACES places however many buildings it stands.
- */
-function openDoors(spec, list, named, rng) {
-  if (spec.accessibleRatio !== undefined) {
-    byRatio(list, spec.accessibleRatio, rng);
-    return;
-  }
-  if (spec.places === undefined && named) {
-    for (const p of list) p.accessible = p.accessible === true;
-    return;
-  }
-  spreadPlaces(list, Math.min(spec.places ?? PLACES, list.length), rng);
-}
-
-// Pick the places far apart. The first round takes at most one premises per block, choosing each
-// time the candidate furthest from everything already chosen, so a run crosses the city instead of
-// walking one street. Asked for more places than there are blocks, a second round fills up.
-function spreadPlaces(list, wanted, rng) {
-  for (const p of list) p.accessible = p.accessible === true;
-  const chosen = list.filter((p) => p.accessible);
-
-  for (const onePerBlock of [true, false]) {
-    while (chosen.length < wanted) {
-      const taken = new Set(chosen.map((p) => p.block));
-      const pool = list.filter((p) => !p.accessible && !(onePerBlock && taken.has(p.block)));
-      if (pool.length === 0) break;
-      const next = chosen.length === 0 ? rng.pick(pool) : furthestFrom(pool, chosen);
-      next.accessible = true;
-      chosen.push(next);
-    }
-  }
-}
-
-/** The candidate whose nearest chosen place is furthest away. Ties keep lattice order. */
-function furthestFrom(pool, chosen) {
-  let best = pool[0];
-  let bestGap = -1;
-  for (const p of pool) {
-    let gap = Infinity;
-    for (const c of chosen) {
-      gap = Math.min(gap, Math.hypot(p.plot.center.x - c.plot.center.x, p.plot.center.z - c.plot.center.z));
-    }
-    if (gap > bestGap) {
-      bestGap = gap;
-      best = p;
-    }
-  }
-  return best;
 }
 
 /** How much of the plot the building's interior gets: the mass, less its outside walls. */
@@ -231,10 +172,15 @@ function questFor(pin, floors) {
   return { itemId: pin.quest.itemId, floor };
 }
 
-// A share of the buildings, drawn at random. A sealed one is scenery: no door, no instance behind
-// it, and never a node on the map, so the exit gate is not waiting on it. Pinned answers win, and at
-// least one building is always open.
-function byRatio(list, ratio, rng) {
+// Not every building is somewhere you can go. A sealed one is scenery: no door, no instance behind
+// it, and never a node on the map, so the exit gate is not waiting on it. Pinned answers win; the
+// rest are drawn until the ratio is met, and at least one building is always open.
+function assignDoors(list, ratio, rng) {
+  // Nothing asked for and something already named: those are the places, and the rest is scenery.
+  if (ratio <= 0 && list.some((p) => p.accessible === true)) {
+    for (const p of list) p.accessible = p.accessible === true;
+    return;
+  }
   const free = list.filter((p) => p.accessible === undefined);
   if (ratio >= 1) {
     for (const p of free) p.accessible = true;

@@ -10,9 +10,7 @@
 
 import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
-import { advertFace } from "./adverts.js";
-import { styleFor } from "./styles.js";
-import { MAX_BALCONY_BAYS, advert, awning, balconies, neon, sign, signHeight, takesAdvert, walls, windowRise, windowsOn } from "./parts.js";
+import { MAX_BALCONY_BAYS, advert, awning, balconies, neon, sign, signHeight, takesAdvert, walls, windowBays, windowsOn } from "./parts.js";
 import { massingFor, tierWalls } from "./massing.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
@@ -20,6 +18,11 @@ const AWNING_COLOURS = ["#7d4a52", "#4c5b6b", "#6b5a3c", "#3f5c50"];
 const BALCONIED = new Set(["apartments", "house"]);
 // What a lit window looks like from the street: mostly warm, the odd cold office or bar.
 const WINDOW_COLOURS = ["#ffd7a0", "#ffe9c4", "#f6c98a", "#bfe0ff", "#a8f0e0"];
+// What a city puts on the side of a building, and what colour it burns.
+const ADVERT_WORDS = [
+  "KIRIN", "NOMI", "SYNTH", "AKARI", "HOSHI", "NEO GAS", "VITA", "TSUKI", "RAIDEN",
+  "KOBALT", "SUZU", "EAST 9", "OKA", "HALCYON", "MIRAI", "ZEN-KO",
+];
 const ADVERT_COLOURS = ["#ff5f9e", "#4fd7ff", "#c07bff", "#ffb347", "#7cffb2", "#ff6b6b"];
 const BAY = 3; // the same rhythm the facade is painted on, so a balcony lands over a window
 
@@ -49,9 +52,6 @@ export function dressFacade(building) {
   const colour = rng.pick(SIGN_COLOURS);
   const faces = walls({ w, d });
   const parts = [];
-  // The look this one wears: its window, its balcony, how its sign hangs, what its front door is.
-  // Drawn once, so the building is consistent with itself.
-  const style = styleFor(program, Math.round(h / storey), rng);
 
   // What shape it stands in: a stack of tiers, the ground one filling its plot and the ones above
   // stepping back off it.
@@ -60,15 +60,15 @@ export function dressFacade(building) {
   // Windows, on every wall of every tier, storey by storey. One object each, its own light on or
   // off, so no two walls of a city read the same.
   const glazedGround = program === "house";
-  const rise = windowRise(style.window);
   for (const tier of tiers) {
     const bottom = tier.position[1] - tier.size[1] / 2;
     const top = tier.position[1] + tier.size[1] / 2;
     for (const wall of tierWalls(tier)) {
+      const bays = windowBays(wall.span);
       const first = Math.max(glazedGround ? 0 : 1, Math.ceil(bottom / storey));
-      for (let storeyIndex = first; storeyIndex * storey + rise < top; storeyIndex++) {
+      for (let storeyIndex = first; storeyIndex * storey + storey * 0.9 < top; storeyIndex++) {
         parts.push(
-          ...windowsOn(wall, storeyIndex * storey, style.window, building.litRatio ?? 0.45, rng, WINDOW_COLOURS)
+          ...windowsOn(wall, storeyIndex * storey, bays, building.litRatio ?? 0.45, rng, WINDOW_COLOURS)
         );
       }
     }
@@ -82,7 +82,7 @@ export function dressFacade(building) {
     for (const wall of dressed) {
       const bays = Math.max(1, Math.min(MAX_BALCONY_BAYS, Math.round(wall.span / BAY)));
       for (let storeyIndex = 1; storeyIndex < Math.min(floors, 7); storeyIndex++) {
-        parts.push(...balconies(wall, storeyIndex * storey, bays, style.balcony, rng));
+        parts.push(...balconies(wall, storeyIndex * storey, bays, rng));
       }
     }
   }
@@ -102,7 +102,7 @@ export function dressFacade(building) {
         ? Math.min(top - bottom - storey, storey * rng.range(2.5, 4.5))
         : storey * rng.range(0.9, 1.4);
       const at = bottom + storey * rng.range(1.2, Math.max(1.3, (top - bottom) / storey - height / storey - 0.5));
-      parts.push(advert(wall, at, height, advertFace(portrait, rng), rng.pick(ADVERT_COLOURS), portrait));
+      parts.push(advert(wall, at, height, rng.pick(ADVERT_WORDS), rng.pick(ADVERT_COLOURS), portrait));
     }
   }
 
@@ -114,10 +114,7 @@ export function dressFacade(building) {
     }
     if (name) {
       const width = Math.min(front.span - 0.8, Math.max(2.2, name.length * 0.3));
-      // A roof sign stands on the parapet; every other mounting hangs over the door.
-      const mount = style.mount === "roof" && h > storey * 3 ? "roof" : style.mount;
-      const height = mount === "roof" ? h + 0.5 : signHeight(storey);
-      parts.push(sign(front, mount === "roof" ? 0 : along, height, width, { text: name, colour, mount }));
+      parts.push(sign(front, along, signHeight(storey), width, { text: name, colour }));
       // Something tall enough to be seen down the street gets a second one, out at right angles,
       // hung clear above the shopfront so the two never share a wall.
       if (floors >= 3 && rng.chance(0.55)) {
@@ -129,16 +126,12 @@ export function dressFacade(building) {
           sign(front, Math.max(-room, Math.min(room, along + width * 0.7)), Math.min(storey * 1.75, h - 1.4), blade, {
             text: name.split(" ")[0],
             colour,
-            mount: "blade",
+            blade: true,
           })
         );
       }
     }
   }
 
-  // What the front door is, for whoever builds it. The facade decides, because a door is part of a
-  // building's look: a shop has a glazed shopfront, an office a pair of flush leaves.
-  const door = front ? { style: style.door, colour } : null;
-
-  return { name, shape, tiers, bands, parts, style, door };
+  return { name, shape, tiers, bands, parts };
 }

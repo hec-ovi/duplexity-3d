@@ -16,13 +16,6 @@ function inflated(block, by) {
   return { minX: cx - w / 2 - by, maxX: cx + w / 2 + by, minZ: cz - d / 2 - by, maxZ: cz + d / 2 + by };
 }
 
-/** A prop as the footprint it actually takes up, once it has been turned to face the way it says. */
-function turned(prop) {
-  const [w, h, d] = prop.size;
-  const swap = Math.abs(Math.cos(prop.facing ?? 0)) <= 0.5;
-  return { position: prop.position, size: swap ? [d, h, w] : [w, h, d] };
-}
-
 function inside(box, x, z) {
   return x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ;
 }
@@ -55,12 +48,7 @@ export function reachableInRoom(room, from, targets) {
   const minZ = cz - d / 2;
   const cols = Math.max(1, Math.ceil(w / CELL));
   const rows = Math.max(1, Math.ceil(d / CELL));
-  // A building stops you, and so does anything parked or standing on the street. A prop is turned,
-  // so a van's length may run across the street rather than along it.
-  const blocks = [
-    ...(room.blocks ?? []).map((b) => inflated(b, CLEARANCE)),
-    ...(room.props ?? []).map((p) => inflated(turned(p), CLEARANCE)),
-  ];
+  const blocks = (room.blocks ?? []).map((b) => inflated(b, CLEARANCE));
 
   const key = (i, j) => j * cols + i;
   const cellOf = (x, z) => ({

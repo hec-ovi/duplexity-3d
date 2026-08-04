@@ -1,11 +1,10 @@
-// One building's outside, painted as a single sheet: what it is clad in, a ledge under each storey,
-// a shopfront along the ground and a parapet across the top.
+// One building's outside, painted as a single sheet: a window per storey per bay, a ledge under each
+// storey, a shopfront along the ground and a parapet across the top.
 //
 // The sheet is planned first and painted twice, so the lit windows in the emissive map are exactly
 // the windows in the albedo map and can never drift apart.
 
 import { PALETTE } from "./palette.js";
-import { FACADE_SETS, paintCladding, setColours } from "./facade-sets.js";
 
 const BAY = 3; // metres of frontage per window bay
 const CELL = 72; // pixels per bay, before the sheet is capped
@@ -21,8 +20,6 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
  * @param {object} rng
  */
 export function planFacade({ metresWide, floors, storeyHeight, litRatio, program }, rng) {
-  // What this one is clad in. Drawn per building, so no two walls on a street are the same wall.
-  const set = rng.pick(FACADE_SETS);
   const bays = clamp(Math.round(metresWide / BAY), MIN_BAYS, MAX_BAYS);
   const rows = Math.max(1, floors);
   const width = Math.min(MAX, bays * CELL);
@@ -52,7 +49,6 @@ export function planFacade({ metresWide, floors, storeyHeight, litRatio, program
   };
 
   return {
-    set,
     bays,
     rows,
     width,
@@ -68,7 +64,7 @@ export function planFacade({ metresWide, floors, storeyHeight, litRatio, program
 
 /** The daylight colour of the building: concrete, ledges, frames, the dark glass in them. */
 export function paintFacadeAlbedo(ctx, plan, rng) {
-  const p = { ...PALETTE.facade, ...setColours(plan.set) };
+  const p = PALETTE.facade;
   const { width, height, bayW, rowH, rows } = plan;
 
   ctx.fillStyle = p.base;
@@ -86,9 +82,6 @@ export function paintFacadeAlbedo(ctx, plan, rng) {
     ctx.fillRect(rng.range(0, width - 2), rng.range(0, height - 2), 2, 2);
   }
   ctx.globalAlpha = 1;
-
-  // what it is clad in: panels, tile, sheet, brick or glass
-  paintCladding(ctx, plan, plan.set);
 
   // a ledge under every storey, so the building reads in layers from across the street
   ctx.fillStyle = p.ledge;

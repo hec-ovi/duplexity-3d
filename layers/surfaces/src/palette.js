@@ -11,21 +11,17 @@ export const PALETTE = {
     wet: "#14171b",
     puddle: "#0d1014",
   },
-  // The pavement is where the city's colour comes from after dark: slabs with light in the joints
-  // between them, cold against the warm lamps over them.
   pavement: {
-    base: "#243138",
-    grain: ["#1f2b32", "#2a3941", "#1b262c"],
-    joint: "#31474f",
-    stain: "#1d282e",
-    glow: "#2ad4e6", // what runs in the joints, and along the kerb
+    base: "#5f646d",
+    grain: ["#575c65", "#686d77", "#525761"],
+    joint: "#3f434b",
+    stain: "#4c5058",
   },
   plaza: {
-    base: "#28353d",
-    grain: ["#233038", "#2e3d46", "#1f2a31"],
-    joint: "#354c55",
-    stain: "#212c33",
-    glow: "#22c2d8",
+    base: "#6b707a",
+    grain: ["#646973", "#747a85", "#5d626b"],
+    joint: "#4a4e57",
+    stain: "#565b64",
   },
   concrete: {
     base: "#585d66",

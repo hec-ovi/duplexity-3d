@@ -40,21 +40,9 @@ export function createSurfaceMaterials({
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
   const windowMats = new Map(); // one material per kind of window, shared by every one of them
-  const waiting = new Map(); // file -> the textures still showing a blank while it loads
+  const loaded = new Map(); // one loaded image per file, however many surfaces are cut from it
   const textures = [];
-  const loader = textureBase ? new THREE.ImageLoader() : null;
-  // Every texture starts on one WHITE pixel, so it can be uploaded the moment it is used and the
-  // real image can arrive whenever it arrives. A texture with no image at all is fine on WebGL and
-  // throws on WebGPU; a texture on an EMPTY canvas is transparent, and a surface multiplied by that
-  // is black, which is what a road looks like when its photograph has not landed yet.
-  const blank = doc.createElement("canvas");
-  blank.width = 1;
-  blank.height = 1;
-  const ink = blank.getContext?.("2d");
-  if (typeof ink?.fillRect === "function") {
-    ink.fillStyle = "#ffffff";
-    ink.fillRect(0, 0, 1, 1);
-  }
+  const loader = textureBase ? new THREE.TextureLoader() : null;
 
   // A photographed material, if one is catalogued for this surface and the files are there. The
   // images are loaded once and cloned per surface, so each keeps its own repeat.
@@ -63,25 +51,14 @@ export function createSurfaceMaterials({
     return photoSurface(kind);
   }
 
-  // Hand back a texture now and fill in its image when the file lands. Every texture cut from one
-  // file is remembered, so they all get the picture at the same moment.
+  function imageFor(file) {
+    if (!loaded.has(file)) loaded.set(file, loader.load(`${textureBase}/${file}`));
+    return loaded.get(file);
+  }
+
   function mapped(file, repeatX, repeatY, colour) {
-    const texture = new THREE.Texture(blank);
+    const texture = imageFor(file).clone();
     texture.needsUpdate = true;
-    if (!waiting.has(file)) {
-      waiting.set(file, []);
-      loader.load(`${textureBase}/${file}`, (image) => {
-        for (const t of waiting.get(file) ?? []) {
-          t.image = image;
-          // The one-pixel placeholder was already uploaded at ONE PIXEL. A picture of a different
-          // size needs the GPU texture behind it thrown away and made again, or the surface keeps
-          // sampling that pixel however many times it is told the image changed.
-          t.dispose();
-          t.needsUpdate = true;
-        }
-      });
-    }
-    waiting.get(file).push(texture);
     if (colour) texture.colorSpace = THREE.SRGBColorSpace; // albedo is colour; the rest is data
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
@@ -106,9 +83,6 @@ export function createSurfaceMaterials({
     if (photo.maps.arm) {
       const arm = mapped(photo.maps.arm, ...repeat);
       material.aoMap = arm;
-      // Ambient occlusion baked into a photographed tile is for the crevices in it. Laid over a
-      // whole road it only takes the night down to black, so it is held well back.
-      material.aoMapIntensity = 0.45;
       material.roughnessMap = arm;
       material.metalnessMap = arm;
     }
@@ -228,11 +202,9 @@ export function createSurfaceMaterials({
      * a few colours, blind up or down), so they are painted once each and shared.
      */
     window(part) {
-      const style = part.style ?? "square";
-      const key = `window:${style}:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
+      const key = `window:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
       const [w, h] = part.size;
       const plan = planFor(key, "window", {
-        style,
         lit: part.lit,
         colour: part.colour,
         blind: part.blind,
@@ -257,9 +229,8 @@ export function createSurfaceMaterials({
     /** A holo advert: a lit panel, read off its front. */
     advert(part) {
       const [across, up] = part.size;
-      const plan = planFor(`advert:${part.text ?? part.graphic}:${part.colour}:${part.portrait}`, "advert", {
+      const plan = planFor(`advert:${part.text}:${part.colour}:${part.portrait}`, "advert", {
         text: part.text,
-        graphic: part.graphic,
         colour: part.colour,
         portrait: part.portrait,
         metresWide: across,
@@ -283,7 +254,6 @@ export function createSurfaceMaterials({
     dispose() {
       for (const texture of textures) texture.dispose();
       for (const material of windowMats.values()) material.dispose();
-      waiting.clear();
       textures.length = 0;
       windowMats.clear();
       plans.clear();

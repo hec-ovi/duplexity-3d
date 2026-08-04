@@ -2,14 +2,14 @@ import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { buildInstanceObject3D } from "../src/scene.js";
+import { buildSceneModel } from "../src/scene-model.js";
+import { buildInstanceObject3D } from "../src/three-scene.js";
 
-// The input is a runtime SceneModel, taken from the example it publishes: this box is held to the
-// shape it is given, not to the code that makes it.
 const HERE = dirname(fileURLToPath(import.meta.url));
-const model = JSON.parse(
-  readFileSync(join(HERE, "../../runtime/fixtures/scene-model.example.json"), "utf8"),
+const adventure = JSON.parse(
+  readFileSync(join(HERE, "../../persistence/fixtures/adventure.example.json"), "utf8"),
 );
+const model = buildSceneModel(adventure.instances[0]);
 
 // A stand-in for the asset-registry contract: knows two assets, throws ASSET_NOT_FOUND otherwise.
 // (Injected, never imported, so the runtime stays isolated from the asset-registry layer.)
@@ -30,7 +30,7 @@ function fakeRegistry() {
   };
 }
 
-describe("the cityscape builder", () => {
+describe("three-scene builder", () => {
   it("builds a named instance group with a mesh per floor, wall, object, item and npc", () => {
     const warn = vi.fn();
     const group = buildInstanceObject3D(model, { registry: fakeRegistry(), warn });

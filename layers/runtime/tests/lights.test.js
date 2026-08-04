@@ -68,15 +68,15 @@ describe("the night rig", () => {
     rig.update(new THREE.Vector3(0, 1.6, 0), 1 / 60);
     const first = pooled(scene)[0].intensity;
     expect(first).toBeGreaterThan(0);
+    expect(first).toBeLessThan(28); // on its way up, not there yet
 
     settle(rig, new THREE.Vector3(0, 1.6, 0));
-    const full = pooled(scene)[0].intensity;
-    expect(first).toBeLessThan(full); // one frame in it was on its way up, not there yet
+    expect(pooled(scene)[0].intensity).toBeCloseTo(28, 5);
 
     // step far away: the lights fade out rather than vanishing between one frame and the next
     rig.update(new THREE.Vector3(116, 1.6, 0), 1 / 60);
     const dimming = pooled(scene).map((p) => p.intensity);
-    expect(dimming.some((i) => i > 0 && i < full)).toBe(true);
+    expect(dimming.some((i) => i > 0 && i < 28)).toBe(true);
   });
 
   it("a sign burns the colour of the building it is fixed to", () => {

@@ -23,16 +23,11 @@
       "minimum": 0,
       "description": "How many buildings to place across the whole city. Default: two to four per block, drawn from the seed."
     },
-    "places": {
-      "type": "integer",
-      "minimum": 1,
-      "description": "How many buildings have a front door, an interior and a node on the map. Default 6. They are spread as far apart as the city allows, one per block until the blocks run out, so a run is a walk between landmarks. Everything else is scenery: no door, nothing built behind it, and the exit gate never waits on it."
-    },
     "accessibleRatio": {
       "type": "number",
       "minimum": 0,
       "maximum": 1,
-      "description": "Places as a share of the buildings, drawn at random rather than spread out. Overrides `places`. One building always opens."
+      "description": "Share of buildings with a front door. Default 1, or 0 when `buildings` names any: name the places you want and everything else is scenery. A sealed building has no door, nothing built behind it, and the exit gate never waits on it."
     },
     "buildings": {
       "type": "array",

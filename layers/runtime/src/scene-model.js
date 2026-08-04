@@ -212,7 +212,6 @@ export function buildSceneModel(instance) {
       lights.push({
         id: light.id,
         kind: light.kind,
-        style: light.style ?? null, // which lamp stands there: post, twin, bollard, reach
         room: room.id,
         blockId: light.blockId ?? null,
         facing: light.facing ?? 0,
@@ -236,32 +235,6 @@ export function buildSceneModel(instance) {
       });
     }
   }
-
-  // Things standing on the street: parked vehicles, bins, traffic lights. Solid, so you walk round
-  // them, and turned, so a collider covers the box they actually take up.
-  const props = [];
-  for (const room of instance.rooms) {
-    for (const prop of room.props ?? []) {
-      const [px, py, pz] = prop.position;
-      const [pw, ph, pd] = prop.size;
-      const facing = prop.facing ?? 0;
-      // Turned a quarter, a van's length runs across the street rather than along it.
-      const across = Math.abs(Math.cos(facing)) > 0.5 ? pw : pd;
-      const along = Math.abs(Math.cos(facing)) > 0.5 ? pd : pw;
-      props.push({
-        id: prop.id,
-        kind: prop.kind,
-        room: room.id,
-        facing,
-        center: { x: px, y: py + ph / 2, z: pz },
-        size: { x: pw, y: ph, z: pd },
-        collider: { minX: px - across / 2, maxX: px + across / 2, minZ: pz - along / 2, maxZ: pz + along / 2 },
-      });
-    }
-  }
-
-  // The line a shuttle runs along, if the level has one: a list of stops, west to east.
-  const transit = instance.rooms.map((r) => r.transit).find(Boolean) ?? null;
 
   // Flat surfaces marked out on the floor (roadway, pavement, square). Walked over, never collided
   // with: they say what the ground is, so it can be surfaced differently and NPCs told where to walk.
@@ -355,13 +328,7 @@ export function buildSceneModel(instance) {
     skyline,
     zones,
     lights,
-    props,
-    transit,
-    colliders: [
-      ...walls.filter((w) => w.collides).map((w) => w.collider),
-      ...blocks.map((b) => b.collider),
-      ...props.map((p) => p.collider),
-    ],
+    colliders: [...walls.filter((w) => w.collides).map((w) => w.collider), ...blocks.map((b) => b.collider)],
     portals: portalsOut,
     objects,
     items,

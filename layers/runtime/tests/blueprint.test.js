@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createApp } from "../src/app.js";
-import { drawBlueprint, placesLeft } from "../src/blueprint-hud.js";
+import { drawBlueprint } from "../src/blueprint-hud.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const city = JSON.parse(
@@ -47,8 +47,6 @@ function recordingContext() {
     moveTo: record("moveTo"),
     lineTo: record("lineTo"),
     arc: record("arc"),
-    closePath: record("closePath"),
-    setLineDash: record("setLineDash"),
     stroke: record("stroke"),
     fill: record("fill"),
     fillText: record("fillText"),
@@ -88,8 +86,8 @@ describe("runtime - the blueprint overlay and moving between instances", () => {
     expect(ctx.calls.filter((c) => c.name === "strokeRect")).toHaveLength(1);
     // the player marker
     expect(ctx.calls.some((c) => c.name === "arc")).toBe(true);
-    // the label along the bottom names the place
-    expect(ctx.calls.filter((c) => c.name === "fillText").at(-1).args[0]).toContain("Ashgate Street");
+    // the label names the place
+    expect(ctx.calls.find((c) => c.name === "fillText").args[0]).toContain("Ashgate Street");
 
     // The spawn is level with the edge of the opening between the two street rooms, so step onto the
     // centre line (+Z) before heading east (+X) into the second room.
@@ -103,37 +101,6 @@ describe("runtime - the blueprint overlay and moving between instances", () => {
     expect(app.blueprint().rooms.map((r) => r.id).sort()).toEqual(["street-e", "street-w"]);
     expect(after.calls.filter((c) => c.name === "strokeRect")).toHaveLength(2);
     app.dispose();
-  });
-
-  // A city stands hundreds of buildings and a run visits a handful. Without a marker the player has
-  // no way of telling which door on the street is one of them.
-  it("marks the places still to finish, nearest first, and points at that one", () => {
-    const app = mount();
-    // Walk east so both halves of the street have been seen: the map never marks a place on ground
-    // the player has not stood on.
-    app.setYaw(Math.PI);
-    for (let i = 0; i < 36; i++) app.runtime.step(1 / 60, { forward: true });
-    app.setYaw(-Math.PI / 2);
-    for (let i = 0; i < 300; i++) app.runtime.step(1 / 60, { forward: true });
-
-    const plan = app.blueprint();
-    const left = ["bldg-a-f1", "bldg-b-f1"];
-
-    const places = placesLeft(plan, left);
-    expect(places.map((p) => p.id).sort()).toEqual(left);
-    expect(places[0].distance).toBeLessThanOrEqual(places[1].distance);
-    expect(Math.abs(places[0].bearing)).toBeLessThanOrEqual(Math.PI);
-
-    const ctx = recordingContext();
-    drawBlueprint(ctx, plan, { width: 200, height: 200, left });
-    expect(ctx.calls.filter((c) => c.name === "closePath")).toHaveLength(2); // one marker each
-    const written = ctx.calls.filter((c) => c.name === "fillText").map((c) => c.args[0]);
-    expect(written.some((t) => t.startsWith(places[0].label))).toBe(true);
-
-    // Finish one and its marker goes: what is left is what is left.
-    const after = recordingContext();
-    drawBlueprint(after, plan, { width: 200, height: 200, left: ["bldg-b-f1"] });
-    expect(after.calls.filter((c) => c.name === "closePath")).toHaveLength(1);
   });
 
   it("an empty or absent plan clears the canvas and draws nothing", () => {
