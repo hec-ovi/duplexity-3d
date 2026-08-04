@@ -11,6 +11,7 @@ import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
 import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
+import { createSurfaceMaterials } from "./surface-materials.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -42,6 +43,7 @@ export function createApp(options = {}) {
     onTransit, // the player walked into a door leading to another instance
     isPortalOpen, // lock oracle (map-state); absent means every portal is open
     onFrame, // called after every tick, for a HUD drawn outside the 3D scene
+    paintSurface, // surfaces.paintSurface (injected); absent means flat colours
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
@@ -78,6 +80,8 @@ export function createApp(options = {}) {
   let instanceGroup = null;
   // Binds each NPC's scene group to its runtime state (position, facing, animation).
   let actors = null;
+  // Surfaces are painted per scene and thrown away with it, so crossing a door leaks no textures.
+  let materials = null;
 
   function build(id, opts) {
     runtime.load(adventure, id, opts);
@@ -85,10 +89,12 @@ export function createApp(options = {}) {
       actors.dispose();
       scene.remove(instanceGroup);
       disposeObject3D(instanceGroup);
+      materials?.dispose();
     }
     const model = runtime.getSceneModel();
     scene.background = model.rooms.some((r) => r.open) ? sky : indoors;
-    instanceGroup = buildInstanceObject3D(model, { registry, warn });
+    materials = createSurfaceMaterials({ paintSurface });
+    instanceGroup = buildInstanceObject3D(model, { registry, materials, warn });
     scene.add(instanceGroup);
     actors = createNpcActors(instanceGroup, runtime.getNpcs());
   }
@@ -278,6 +284,7 @@ export function createApp(options = {}) {
     dispose() {
       this.stop();
       actors.dispose();
+      materials?.dispose();
       labels?.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
       win.removeEventListener?.("keyup", onKeyUp);

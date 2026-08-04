@@ -18,7 +18,7 @@ import { parseArgs, asInt, asIntList } from "./src/args.js";
 import { composeCity } from "./src/compose-city.js";
 import { checkpointsDir, loadCheckpoint, saveCheckpoint } from "./src/checkpoints.js";
 import { createStreets } from "../layers/city-planner/src/index.js";
-import { createBuilding } from "../layers/building-planner/src/index.js";
+import { createBuilding, programFits } from "../layers/building-planner/src/index.js";
 import { validateLayout } from "../layers/scenario-creator/src/index.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { buildWorldMap, createProgress, exitState } from "../layers/map-state/src/index.js";
@@ -68,7 +68,7 @@ save / load
 
 const registry = createRegistry();
 const assetQuery = (q) => registry.query(q);
-const deps = { assetQuery, validateInstance: validateLayout };
+const deps = { assetQuery, validateInstance: validateLayout, programFits };
 
 function emit(args, payload) {
   const text = JSON.stringify(payload, null, 2);

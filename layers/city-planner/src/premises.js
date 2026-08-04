@@ -19,9 +19,11 @@ const FLOOR_MIX = [1, 1, 1, 2, 2, 3, 4, 6, 9];
  * @param {object} spec  CitySpec
  * @param {Array}  cells the lattice, from `lattice.cells`
  * @param {object} rng   the seeded generator
- * @returns {Array<{id,block,slot,plot,face,floors,program,label,accessible,quest?}>}
+ * @param {Function} programFits injected building-planner.programFits: whether a room mix fits a
+ *   footprint. Without it every program is assumed to fit, and the caller owns that.
+ * @returns {Array<{id,block,slot,plot,footprint,face,floors,program,label,accessible,quest?}>}
  */
-export function planPremises(spec, cells, rng) {
+export function planPremises(spec, cells, rng, programFits = () => true) {
   const pins = indexPins(spec.buildings ?? [], cells.length);
   const minimums = cells.map((_, block) => pinnedSlots(pins, block));
   const counts = countPerBlock(cells.length, spec.lots ?? null, minimums, rng);
@@ -34,14 +36,16 @@ export function planPremises(spec, cells, rng) {
       const pin = pins.get(`${block}:${slot}`) ?? {};
       const ordinal = list.length + 1;
       const floors = pin.floors ?? floorsFor(spec, list.length, rng);
+      const footprint = footprintOf(plots[slot]);
       list.push({
         id: `${spec.id}-b${ordinal}`,
         block,
         slot,
         plot: plots[slot],
+        footprint,
         floors,
         face: outwardFace(cells[block].center, plots[slot].center, rng),
-        program: pin.program ?? (floors > 1 ? rng.pick(PROGRAMS) : rng.pick(HOUSE_PROGRAMS)),
+        program: programFor(pin, floors, footprint, programFits, rng),
         label: pin.label ?? `${spec.label ?? spec.id} ${ordinal}`,
         accessible: pin.accessible ?? (pin.quest ? true : undefined),
         ...(pin.quest ? { quest: questFor(pin, floors) } : {}),
@@ -50,6 +54,29 @@ export function planPremises(spec, cells, rng) {
   }
   assignDoors(list, spec.accessibleRatio ?? 1, rng);
   return list;
+}
+
+/** How much of the plot the building's interior gets: the mass, less its outside walls. */
+function footprintOf(plot) {
+  return { width: Math.max(6, plot.size.w - 2), depth: Math.max(6, plot.size.d - 2) };
+}
+
+// What the place is for. A small premises cannot be an open-plan office, so only the mixes that fit
+// inside this footprint are on the table, and an author who pinned one that does not is told so.
+function programFor(pin, floors, footprint, programFits, rng) {
+  if (pin.program) {
+    if (!programFits(pin.program, footprint)) {
+      throw new CitySpecInvalidError(
+        `a ${pin.program} does not fit in the ${footprint.width.toFixed(1)}x${footprint.depth.toFixed(1)}m ` +
+          `premises pinned at block ${pin.block} slot ${pin.slot}`
+      );
+    }
+    return pin.program;
+  }
+  const wanted = floors > 1 ? PROGRAMS : HOUSE_PROGRAMS;
+  const usable = wanted.filter((p) => programFits(p, footprint));
+  if (usable.length === 0) throw new CitySpecInvalidError("a premises is too small to build anything in");
+  return rng.pick(usable);
 }
 
 function indexPins(list, blockCount) {

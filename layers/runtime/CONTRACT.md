@@ -13,6 +13,10 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
 - player input - local (keyboard/mouse/touch/gamepad); never leaves the client.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
+- `deps.paintSurface(kind, ctxFor, opts) -> SurfacePlan` - injected surface painter, normally
+  `surfaces`. Given one, the scene is textured: the road, the pavement, interior concrete, and every
+  building wrapped in a facade of its own, each repeated at its true size in metres. Absent, every
+  surface is a flat colour and nothing else changes, which is what a head-less test sees.
 - `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
   ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
   open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through
@@ -66,7 +70,8 @@ positional audio.
 
 ## Dependencies (contracts only)
 - Adventure schema + `Instance` (persistence), `InteractionResult` + `selfContext` schemas (npc),
-  `asset-registry` (load assets by id). It imports no backend code.
+  `asset-registry` (load assets by id), `surfaces` (`paintSurface`, injected). It imports no backend
+  code and no other layer's `src/`.
 
 ## How to modify this blackbox safely
 Swap the render approach, controls, pathfinding lib, animation, or bubble library inside this

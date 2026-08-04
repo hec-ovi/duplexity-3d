@@ -86,6 +86,9 @@ export const SCHEMA_ID = {
     citySpec: `${BASE}/city-planner/city-spec.json`,
     lotPlan: `${BASE}/city-planner/lot-plan.json`,
   },
+  surfaces: {
+    surfacePlan: `${BASE}/surfaces/surface-plan.json`,
+  },
 };
 
 function collectSchemaFiles() {

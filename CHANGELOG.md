@@ -2,6 +2,23 @@
 
 What the project does now, newest first.
 
+## 0.5 - Made of something
+
+- `surfaces` is a new box: it paints asphalt, paving, plaza and concrete as tiling sheets, and a whole
+  building's outside as one sheet with a window per storey per bay, a ledge under each storey, a
+  glazed shopfront along the ground and a parapet across the top. It draws onto a canvas the caller
+  hands it and knows nothing about three.js, so it is proved without a browser or a GPU.
+- The runtime wraps those onto the scene: each surface repeats at its true size in metres, so a paving
+  slab is the same size on a 4m pavement and an 80m road, and a building carries its own facade on all
+  four sides with the bays the same width whichever way you look at it. Lit windows and shop signs are
+  an emissive map painted from the same plan as the albedo, so a window that glows is always a window
+  that is there. Without the painter injected, everything falls back to flat colour.
+- A mass now carries its `floors` and `program`, so a shop is glazed along the ground and a house is
+  not, and a six-storey building gets six rows of windows.
+- The street asks the building side what fits before handing out a brief (`building-planner.programFits`),
+  so a small premises is never given an office floor plan it cannot hold. A city now builds for every
+  seed at every size, which is what `npm run dev` picks at random.
+
 ## 0.4 - Cities you can author, and keep
 
 - A building can be sealed: a mass with no door, nothing built behind it, and no node on the map, so

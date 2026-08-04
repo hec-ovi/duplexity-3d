@@ -17,6 +17,7 @@ export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
 
 const SKY = 60; // how high the invisible limit reaches, metres: taller than anything built under it
 const STOREY = 3.2; // a building's mass grows this much per floor it holds
+const PARAPET = 1; // and carries this much past its top floor
 const DOOR = [2, 3];
 const GATE = [6, 4];
 const GROUND_ROOM = "ground";
@@ -38,6 +39,7 @@ function pickKit(assetQuery, kind, theme) {
  * @param {Function} assetQuery  injected asset-registry.query handle
  * @param {object} [opts]
  * @param {Function} [opts.validateInstance] injected scenario-creator.validateLayout
+ * @param {Function} [opts.programFits] injected building-planner.programFits
  * @param {number}  [opts.seed]
  * @returns {{ instance: object, lots: object[], report: object }}
  */
@@ -48,7 +50,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const wantExit = spec.exit !== false;
 
   const lattice = cells(n);
-  const premises = planPremises(spec, lattice, rng);
+  const premises = planPremises(spec, lattice, rng, opts.programFits);
 
   const floorKit = pickKit(assetQuery, "room-floor", spec.theme);
   const wallKit = pickKit(assetQuery, "wall", spec.theme);
@@ -76,9 +78,11 @@ export function createStreets(spec, assetQuery, opts = {}) {
     blocks.push({
       id: blockId,
       position: [p.plot.center.x, 0, p.plot.center.z],
-      size: [p.plot.size.w, Math.min(SKY - 2, p.floors * STOREY + 2), p.plot.size.d],
+      size: [p.plot.size.w, Math.min(SKY - 2, p.floors * STOREY + PARAPET), p.plot.size.d],
       assetRef: wallKit,
       label: p.label,
+      floors: p.floors, // so the outside can be given a window per storey
+      program: p.program,
     });
     if (!p.accessible) continue; // scenery: a mass with no way in, so nothing is built behind it
 
@@ -104,7 +108,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
       returnInstanceId: spec.id,
       returnRoomId: GROUND_ROOM,
       doorPortalId,
-      footprint: { width: Math.max(6, p.plot.size.w - 2), depth: Math.max(6, p.plot.size.d - 2) },
+      footprint: p.footprint,
       ...(p.quest ? { quest: p.quest } : {}),
     });
   }

@@ -192,6 +192,8 @@ export function buildSceneModel(instance) {
         room: room.id,
         label: block.label ?? null,
         assetRef: block.assetRef ?? null,
+        floors: block.floors ?? null,
+        program: block.program ?? null,
         center: { x: bx, y: by + bh / 2, z: bz },
         size: { x: bw, y: bh, z: bd },
         min: { x: bx - bw / 2, z: bz - bd / 2 },

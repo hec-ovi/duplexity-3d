@@ -75,6 +75,15 @@
           },
           "label": {
             "type": "string"
+          },
+          "floors": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Storeys the mass holds, so its outside can be given a window per storey. Omitted is worked out from its height."
+          },
+          "program": {
+            "type": "string",
+            "description": "What the building is for, so its outside can be dressed to suit (a shop is glazed along the ground, a house is not)."
           }
         },
         "required": [

@@ -171,4 +171,14 @@ describe("a generated city is a valid, connected, winnable level", () => {
   it("the same spec builds the same city, every time", () => {
     expect(composeCity(spec).adventure).toEqual(composeCity(spec).adventure);
   });
+
+  // `npm run dev` picks a seed at random, so a city that only builds for some of them is a city that
+  // breaks in front of a player. Every seed and every size, or it is not a generator.
+  it("builds for any seed, at any size", () => {
+    for (let seed = 0; seed < 30; seed++) {
+      for (const sizeHint of ["small", "medium", "large"]) {
+        expect(() => composeCity({ id: "ashgate", theme: "city", sizeHint, seed, npcs: 0 })).not.toThrow();
+      }
+    }
+  });
 });

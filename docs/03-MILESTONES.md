@@ -315,11 +315,23 @@ Ordered so each step is one box and lands green.
   as a process: a spec file builds the city it describes, the quest item exists exactly once on the
   floor asked for, and a checkpoint round trips unchanged.
 
-### 16b - Surfaces (own geometry, own textures)
-- Procedural canvas textures in `layers/runtime/`: asphalt with lane markings, kerb, paving slabs,
-  concrete, facade sheets with window rows in a seeded lit/dark mix. Public-domain photo textures only
-  where they beat a canvas.
-- Facade shaping on a mass: ground-floor shopfront band, floor ledges, parapet. Still our boxes.
+### 16b - Surfaces (own geometry, own textures) [x]
+- [x] `layers/surfaces/` is its own box, not part of the runtime: it paints asphalt, paving, plaza and
+  concrete as tiling sheets, and a building's whole outside as one sheet (a window per storey per bay
+  in a seeded lit/dark mix, a ledge under each storey, a glazed shopfront, a parapet). It draws onto a
+  canvas the caller hands it and imports no three.js and no DOM, so it is proved with a recording stub.
+- [x] `runtime/src/surface-materials.js` wraps them onto the scene: repeat computed from the metres a
+  tile covers, sRGB colour space on both the albedo and the emissive, a facade per building on all four
+  sides with the bays the same width whichever way you look, and disposal when a scene is torn down.
+  No painter injected, flat colours, which is what a head-less test sees.
+- [x] A mass carries its `floors` and `program` (additive on `persistence/schema/room.json`), so its
+  outside can be dressed to suit.
+- [x] Fixed: a quarter-block premises could be given an `office` room plan that does not fit in it, so
+  some seeds threw `LOT_PLAN_INVALID` in the browser. `building-planner.programFits` is now public and
+  injected into `city-planner`, which only offers a mix that fits and rejects a pinned one that does
+  not. `tools/compose-city.test.js` builds every size at 30 seeds.
+- Ledges, shopfront and parapet are PAINTED here. Modelled relief (balconies, awnings, signs standing
+  off the wall) is 16d.
 
 ### 16c - Lighting (its own runtime module)
 - Fog, ACES tone mapping + exposure, a night key/fill, and **bloom** over emissive materials.

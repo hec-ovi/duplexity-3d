@@ -5,7 +5,7 @@
 // asset catalog together. Each layer still knows only its own contract; the wiring lives here.
 
 import { createStreets } from "../../layers/city-planner/src/index.js";
-import { createBuilding } from "../../layers/building-planner/src/index.js";
+import { createBuilding, programFits } from "../../layers/building-planner/src/index.js";
 import { validateLayout } from "../../layers/scenario-creator/src/index.js";
 import { createRegistry } from "../../layers/asset-registry/src/index.js";
 import { buildWorldMap } from "../../layers/map-state/src/index.js";
@@ -54,7 +54,9 @@ export function composeCity(spec, deps = {}) {
   const validateInstance = deps.validateInstance ?? validateLayout;
 
   const cast = spec.npcs ?? 2;
-  const { instance: street, lots } = createStreets(spec, assetQuery, { validateInstance });
+  // The street asks the building side what fits before it hands out a brief, so a small premises is
+  // never given a room mix that cannot be laid out in it.
+  const { instance: street, lots } = createStreets(spec, assetQuery, { validateInstance, programFits });
   const instances = [populate(street, cast, assetQuery)];
   for (const lot of lots) {
     const { instances: floors } = createBuilding(lot, assetQuery, { validateInstance });

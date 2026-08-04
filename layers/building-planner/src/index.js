@@ -46,6 +46,18 @@ export class LayoutInvalidError extends Error {
   }
 }
 
+/**
+ * Can this program be laid out inside this footprint? The street asks before it hands out a brief,
+ * so the answer lives here, next to the room mixes it depends on, and is never written twice.
+ *
+ * @param {string} program
+ * @param {{width:number, depth:number}} footprint metres
+ */
+export function programFits(program, footprint) {
+  const [cols, rows] = PROGRAMS[program] ?? PROGRAMS.house;
+  return footprint.width / cols >= MIN_ROOM && footprint.depth / rows >= MIN_ROOM;
+}
+
 // Prefer the indoor piece when the kit distinguishes one, but never require it: a theme with a
 // single floor and wall still builds a floor.
 function pickKit(assetQuery, kind, theme) {
@@ -76,7 +88,7 @@ export function createBuilding(lot, assetQuery, opts = {}) {
     throw new LotPlanInvalidError("floorInstanceIds does not name every floor");
   }
   const [cols, rows] = PROGRAMS[lot.program] ?? PROGRAMS.house;
-  if (lot.footprint.width / cols < MIN_ROOM || lot.footprint.depth / rows < MIN_ROOM) {
+  if (!programFits(lot.program, lot.footprint)) {
     throw new LotPlanInvalidError(`footprint too small for a ${lot.program} floor`);
   }
 

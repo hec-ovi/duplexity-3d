@@ -1,0 +1,53 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/surfaces/surface-plan.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SurfacePlan",
+  "description": "What was painted, and how to turn it into a material: the drawing contexts that were filled, how much world one tile of them covers, and how the surface takes light.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["road", "pavement", "plaza", "concrete", "facade"]
+    },
+    "pixels": {
+      "type": "array",
+      "description": "Size of each map that was painted, in pixels: [width, height].",
+      "items": { "type": "number", "exclusiveMinimum": 0 },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "metres": {
+      "type": "array",
+      "description": "How much world one tile covers: [width, height]. Divide the surface you are covering by this to get the texture repeat.",
+      "items": { "type": "number", "exclusiveMinimum": 0 },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "maps": {
+      "type": "object",
+      "description": "The drawing contexts that were painted, by map name. Whatever the canvas factory returned.",
+      "properties": {
+        "albedo": { "description": "Colour. Read as sRGB." },
+        "emissive": { "description": "What glows in the dark. Black is unlit. Read as sRGB." }
+      },
+      "required": ["albedo"]
+    },
+    "material": {
+      "type": "object",
+      "properties": {
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "emissiveIntensity": { "type": "number", "minimum": 0 }
+      },
+      "required": ["roughness", "metalness"],
+      "additionalProperties": false
+    },
+    "lit": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Facade only: how many windows have a light on."
+    }
+  },
+  "required": ["kind", "pixels", "metres", "maps", "material"],
+  "additionalProperties": false
+}

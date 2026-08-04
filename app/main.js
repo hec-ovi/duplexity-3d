@@ -8,6 +8,7 @@
 import { createApp } from "../layers/runtime/src/app.js";
 import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
+import { paintSurface } from "../layers/surfaces/src/index.js";
 import {
   buildWorldMap,
   createProgress,
@@ -86,6 +87,7 @@ const app = createApp({
   adventure,
   instanceId: worldMap.entry,
   registry: createRegistry(),
+  paintSurface, // roads, pavements, concrete and every building's outside
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   onRoomChange: (_prev, next) => {

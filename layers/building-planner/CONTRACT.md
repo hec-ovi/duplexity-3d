@@ -18,6 +18,9 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
   - `opts.goalFor?(floorIndex, floorInstanceId) -> Goal`: override the win condition of a floor.
     Return nothing for a floor to leave it alone. The default puts one item in the far room and asks
     for it, which is always satisfiable; a goal you name is yours to make satisfiable.
+- `programFits(program, { width, depth }) -> boolean` - can that room mix be laid out in that
+  footprint? The street asks before it hands out a brief, so the answer lives next to the room mixes
+  it depends on and is never written twice.
 
 ## Outputs (params out)
 - `instances` - one persistence Instance per floor, ground floor first, ids exactly

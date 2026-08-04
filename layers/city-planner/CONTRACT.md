@@ -21,13 +21,17 @@ ids, never on coordinates.
   - `opts.validateInstance?`: a handle to `scenario-creator.validateLayout` (injected). When given,
     the street is proved against it before being returned and `LAYOUT_INVALID` is thrown if it fails.
     This layer writes no second definition of "a correct map".
+  - `opts.programFits?`: a handle to `building-planner.programFits` (injected). With it, a premises is
+    only given a room mix that fits inside it, and an author who pins one that does not is told so.
+    Without it, every program is assumed to fit and the caller owns that.
   - `opts.seed?`: overrides `CitySpec.seed`. Same seed and spec give the same street, always.
 
 ## Outputs (params out)
 - `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
   roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a
-  block), one `LINK` portal per building you can enter carrying `blockId` (the door is on that
-  mass's face), and one `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
+  block, each carrying its `floors` and `program` so its outside can be dressed to suit), one `LINK`
+  portal per building you can enter carrying `blockId` (the door is on that mass's face), and one
+  `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
   `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
   schema: owned by `persistence` (`instance.json`).
 - `lots` - `LotPlan[]`, the brief `building-planner` builds from: one per building WITH A DOOR, so a
@@ -74,8 +78,9 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
 - Deterministic: no `Math.random`, no clock.
 
 ## Dependencies (contracts only)
-- `asset-registry` (kit query), `scenario-creator` (the geometry validator), `persistence` (the
-  Instance shape). All injected as handles; it imports no other layer's `src/`.
+- `asset-registry` (kit query), `scenario-creator` (the geometry validator), `building-planner`
+  (`programFits`, and the LotPlan it builds from), `persistence` (the Instance shape). All injected
+  as handles; it imports no other layer's `src/`.
 
 ## How to modify this blackbox safely
 Where the buildings stand, and so where the streets run, is `src/lattice.js` (block size, street

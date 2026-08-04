@@ -14,7 +14,8 @@ a code import.
 | `interviewer` | backend | yes (skippable) | Turn player preferences (or nothing) into a **creative brief**. |
 | `narrator` | backend | yes + graph | Plan the **Adventure** from the brief (instances, goals, progression graph, NPC rosters). Own play-time instance init + interaction history. |
 | `scenario-creator` | backend | yes, structured, per-instance | Turn one instance spec into a geometrically valid 3D **layout** (rooms, portals, objects, spawns). Owns the geometry validator every generator is held to. |
-| `city-planner` | backend | no | Lay one outdoor street level: road network, a front door per lot, the entry point, the locked exit gate, and a `LotPlan` per building. |
+| `surfaces` | frontend | no | Paint what the city is made of: asphalt, paving, concrete, and a whole building's outside (windows, ledges, shopfront, parapet). Draws on a canvas the caller hands it; knows no three.js. |
+| `city-planner` | backend | no | Lay one outdoor street level: open ground, a block lattice with premises on it, a front door per building you can enter, the entry point, the locked exit gate, and a `LotPlan` per building. |
 | `building-planner` | backend | no | Turn one `LotPlan` into the floors behind its door: rooms, interior doors, a stairwell, and a way back out. A house is a one-floor building. |
 | `map-state` | shared | no | The run's ledger: derive the world map from the Adventure, track what has been entered, cleared and seen, and decide what is open (including the exit gate). |
 | `npc` | backend | yes, sparse | Author NPC definitions at author-time; resolve one player interaction into `{mode, target, utterance, emote}` at play-time. |

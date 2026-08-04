@@ -55,10 +55,12 @@ function sizeFor(registry, ref, fallback, warn) {
  * @param {object} model     result of buildSceneModel()
  * @param {object} [opts]
  * @param {object} [opts.registry] asset-registry contract ({ get, query }); optional
+ * @param {object} [opts.materials] surface material cache (surface-materials.js); optional. Absent,
+ *   everything is a flat colour, which is what a head-less test sees.
  * @param {(msg:string)=>void} [opts.warn] warning sink (default console.warn)
  * @returns {THREE.Group}
  */
-export function buildInstanceObject3D(model, { registry, warn = console.warn } = {}) {
+export function buildInstanceObject3D(model, { registry, materials, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
   const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
@@ -76,7 +78,10 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
   const itemMat = standard(COLORS.item, 0x6b5410);
 
   for (const room of model.rooms) {
-    const mat = /gold/i.test(room.floorKit ?? "") ? floorAltMat : floorMat;
+    const tint = /gold/i.test(room.floorKit ?? "") ? COLORS.floorAlt : COLORS.floor;
+    const mat =
+      materials?.ground("concrete", room.size.x, room.size.z, tint) ??
+      (tint === COLORS.floorAlt ? floorAltMat : floorMat);
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(room.size.x, FLOOR_T, room.size.z), mat);
     mesh.position.set(room.center.x, room.floorY - FLOOR_T / 2, room.center.z);
     mesh.name = `floor:${room.id}`;
@@ -89,7 +94,8 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
     // An open room's perimeter still stops you, but there is nothing there to see: the street simply
     // ends. Only walls that render become meshes; the collider stands either way.
     if (w.renders === false) continue;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.size.x, w.size.y, w.size.z), wallMat);
+    const mat = materials?.wall(Math.max(w.size.x, w.size.z), w.size.y, COLORS.wall) ?? wallMat;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.size.x, w.size.y, w.size.z), mat);
     mesh.position.set(w.center.x, w.center.y, w.center.z);
     mesh.name = w.id;
     mesh.userData = { kind: "wall" };
@@ -101,7 +107,8 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
   // the road so the two read apart at a glance and from any angle.
   for (const z of model.zones ?? []) {
     const lift = z.kind === "sidewalk" ? KERB : 0.01;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(z.size.x, lift, z.size.z), zoneMat[z.kind] ?? zoneMat.plaza);
+    const mat = materials?.ground(z.kind, z.size.x, z.size.z) ?? zoneMat[z.kind] ?? zoneMat.plaza;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(z.size.x, lift, z.size.z), mat);
     mesh.position.set(z.center.x, z.center.y + lift / 2, z.center.z);
     mesh.name = `zone:${z.id}`;
     mesh.userData = { kind: "zone", zone: z.kind };
@@ -111,7 +118,7 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
 
   // Buildings on a street: one mass each, drawn from the ground up.
   for (const b of model.blocks ?? []) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), blockMat);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), materials?.block(b) ?? blockMat);
     mesh.position.set(b.center.x, b.center.y, b.center.z);
     mesh.name = `block:${b.id}`;
     mesh.userData = { kind: "block", assetRef: b.assetRef };
