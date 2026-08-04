@@ -52,10 +52,10 @@ const ROOM_SIGN = { colour: "#9fb4c2" };
  * without walking into every wall.
  *
  * @param {object} portal
- * @param {Map<string,string>} [names] roomId -> what that room is called
+ * @param {Map<string,string>} [rooms] roomId -> what that room is called
  * @returns {Array<{text:string, colour:string, side:1|-1}>}
  */
-export function signOver(portal, rooms) {
+function signOver(portal, rooms) {
   const leaving = OVER_DOOR[portal.roomB === "EXIT" ? "EXIT" : portal.link?.kind];
   if (leaving) return [{ ...leaving, side: 1 }];
   if (!rooms) return [];

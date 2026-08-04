@@ -2,6 +2,18 @@
 
 What the project does now, newest first.
 
+## 0.17 - cityscape is its own box
+
+- Everything the city LOOKS like in three.js moved into `layers/cityscape/`: the fabric, the parts
+  bolted to a building, the five doors, the lamps and their haze, the props, the rails, the traffic,
+  the shuttle, the projections, the materials and the pool of real lights. One call in, one object
+  out: a group to add to a scene, and an `update` to call each frame.
+- `runtime` keeps what it is for: the simulation, the camera and controls, the renderer and its post
+  chain, and the HTML over the canvas. It takes the city as a single injected handle, so a head-less
+  test runs the whole game with nothing to look at.
+- `layers/runtime/fixtures/scene-model.example.json` publishes the shape a SceneModel has, so
+  `cityscape` is tested against the shape it is handed rather than against the code that makes it.
+
 ## 0.16 - A city with things in it, and a panel to talk through
 
 - Street props from the LEVEL, so they are solid and the walkability proof counts them: vehicles and

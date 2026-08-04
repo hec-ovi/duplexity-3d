@@ -158,3 +158,64 @@ Answers to the three questions that came out of the above:
 > game ends, super easy, and the idea llms can prompt those locations, so a city can be super big,
 > but directions to go and interact are specific places, and whose are inside inner, etc as you sdaid
 > for now the inside poorly because have no realinteriors
+
+> most of micro level you did i really like it this means, buildings have spaces between i can walk,
+> they are distinct with dinwods, and doors, they have letters. however the street distances, and the
+> buildings like being tall, realistic, etc is not present, in the sample i sent to you this is fixed.
+
+> the trick will be, how you will solve the micro part...? the one i shown you is first, very old
+> repo like 3 years, and is like a ship you move, now... if you can make like travel? then better even
+> so is much more immersive
+
+> doors still, INSIDE the frame they are like transparentg, if you fix that we will make a huge
+> improvement
+
+> all the lighting and the amazing city the dude did in the example i do not see it, all the holo
+> things, big buildings, etc
+
+> chgeck last screenshots, some elements are like floating, etc.. so something on generation is kind
+> of not okey... the sampel he did has like a space ship that flys and you see from top lot of
+> skybuildings, M,ANY of them very tall, amazing colors and lights, some olographic buildings... like
+> trails on the air... vehicles flying... is like alive/vivid
+
+> also i saw a female hologram in one of the buildings and those like train paths on the city, and
+> multiple buildings, etc the guy he probably did some sort of script to do all that dynamically
+
+> okey, first, extremely low performance, something happened, sceond i will show you 2 images,
+> actyaully did more this is yours: Screenshot From 2026-08-04 15-17-28 and the other ones is him...
+> can you check it?
+
+> check the shapes of the buildings, and is extremely high speed, the render super speed super
+> performant, and i gavbe you the full repo actually... the repo takes some time to generate the whole
+> thing but works good
+
+> is crazy because i keep moving forward and keeps generating, is infinite...
+
+> i made even more screenshots, it has like holo arround some buildings.. etc
+
+> the code is the open source i shared and is free license mit to use i saw it so
+
+> check last screenshots is close up to streets
+
+> also check the last screenshot has the menu, that menu should be the like dialogs i want for npcs
+> the ui
+
+> what i would do: keep the streets as we use that texture is nice, but the "veredas" use that cyan
+> material he uses, and best effort is.. on the streets? because it seems all this is auto generated
+> on his repo so... tghats good one side but bad, how we do our custom rooms and doors right? so if
+> you can detect "some" buildings, easy ones, we use ours in those, so we simply inject some of the
+> buildings our onw, the others can be totally fake..., think the map should have a marker, where
+> points direction to where to go, 34 places is too much make it like top... 6, 7 places only, far
+> from each others
+
+> all this should be parameter based
+
+> right, and whatever he did modernize it, is like 3 years old, probably can be optimized and highly
+> improved overall, probably he does not have fiber or all those things.
+
+> he uses a specific texture light tone, etc, check what that is.. so improve it overall
+
+> also you did put some random leters look very bad, i guess that will go now.. but just to let you
+> know...
+
+> proceed and implement every single missing feature, tell me once all is as i asked.

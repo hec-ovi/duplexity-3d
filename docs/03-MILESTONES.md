@@ -383,76 +383,69 @@ Definition of done for the phase: `npm run dev` reads as a street at night rathe
 step keeps `npm test` green and the contracts true, and an agent can build a city, pin one building
 in it, and save the result by name.
 
-## Phase 17 - The city Hector asked for [ ]
+## Phase 17 - The city Hector asked for [x]
 
-Everything still open, in the order it is worth doing. Raw asks are in `docs/REQUIREMENTS.md`; the
-look reference is `~/Pictures/Screenshots` plus SynthCity (https://github.com/jeffbeene/synthcity,
-MIT, so its code and models may be used) and https://threejspunk.vercel.app (the street-level one).
+Raw asks are in `docs/REQUIREMENTS.md`; the look reference is `~/Pictures/Screenshots` plus SynthCity
+(https://github.com/jeffbeene/synthcity, MIT) and https://threejspunk.vercel.app (the street-level
+one). The technique agreed with Hector: OUR shapes, THEIR method. A small library of shapes and
+parts, swappable texture sets per building, seeded per instance. Not downloaded city meshes.
 
-The technique agreed with Hector: OUR shapes, THEIR method. A small library of shapes and parts,
-swappable texture sets per building, seeded per instance. Not downloaded city meshes.
+### 17a - The run, and how an LLM writes it [x]
+- [x] **Six or seven places, spread out.** `places` in a CitySpec, 6 by default, chosen as far apart
+  as the city allows and one per block until the blocks run out.
+- [x] **A marker on the map** at every place still to finish, the nearest one named with the metres
+  to it and a line from where you stand, pinned to the edge of the map when it is off it. The HUD
+  carries an arrow for the direction.
+- [x] **Custom buildings only where a place is real.** A building with no door has no `LotPlan`, so
+  nothing is built behind it and the gate never waits on it.
+- [x] **All of it parameter-driven**, and the CitySpec written up in `SKILL.md` as the one thing an
+  LLM authors.
 
-### 17a - The run, and how an LLM writes it
-- [ ] **Six or seven places, spread out.** A generated city puts far too many doors on the map. Cap
-  the real places and space them across the blocks (one per block at most, and prefer blocks far
-  apart), so a run is a walk between landmarks rather than a street of doors. `city-planner`.
-- [ ] **A marker on the map** pointing at the next place to go. `runtime/src/blueprint-hud.js` plus
-  whatever `map-state` has to say about which node is next.
-- [ ] **Custom buildings only where a place is real.** The named places get our full treatment (real
-  door, real rooms behind it); everything else is scenery and never builds an interior. Mostly true
-  already; make it explicit and cheap.
-- [ ] **All of it parameter-driven**, so a prompt is "eight blocks, six places called X..Z, wet 0.4"
-  and nothing else has to be touched. `CitySpec` covers most of this; finish it and document it in
-  `SKILL.md` as the one thing an LLM writes.
+### 17b - Variety in the parts [x]
+- [x] Window types: square, tall, ribbon, bay, curtain grid. One per building, from its seed.
+- [x] Door types: shopfront, flush, recessed, double, roller shutter.
+- [x] Balcony types: slab, cage, French, corner.
+- [x] Street lamp types (post, twin, reach, bollard), and brackets on building faces.
+- [x] Sign mountings: fascia, blade, roof box, framed.
+- [x] **The advert words.** A panel carries a trade a city would advertise, or no words at all and a
+  lit graphic, which is what most of them are.
 
-### 17b - Variety in the parts
-Today there is one window, one door, one balcony, one lamp. The reference has dozens.
-- [ ] Window types: ribbon, tall, square, bay, shopfront-glazed. Per building, from the seed.
-- [ ] Door types: shopfront, flush, recessed, double, roller shutter.
-- [ ] Balcony types: slab, cage, corner, French.
-- [ ] Street lamp types, and lamps on the buildings as well as the pavement.
-- [ ] Sign mountings: fascia, blade, roof box, projecting frame.
-- [ ] **The advert words look bad.** Random names on giant panels read as nonsense; give them a
-  vocabulary that looks like a city (a trade, a district, a product) or drop the lettering for
-  graphics on most of them.
+### 17c - Alive [x]
+- [x] **Holograms.** A panel that is a projector, with the figure standing in the air in front of it
+  in a cone of haze, its scan drifting.
+- [x] **Elevated rails** threading over the city, lit down both edges, with trains running on them.
+- [x] **Travel.** The level lays a shuttle line down its middle street with a stop opposite each
+  block; `F` steps you on and off while it is standing at one, and riding, it does the moving.
+- [x] Street props, from the LEVEL so they are solid and the walkability proof counts them: vehicles
+  and bins at the kerbs, traffic lights on the corners. Our geometry, not downloaded meshes.
 
-### 17c - Alive
-- [ ] **Holograms.** The reference has a figure projected on a building. A `VideoTexture` (or a
-  seeded animated canvas) on an advert panel, plus a haze cone so it reads as projected.
-- [ ] **Elevated rails / train paths** threading between the towers, with something running on them.
-- [ ] **Travel.** A city big enough to feel like one is too big to walk. A ride you board that moves
-  you along the street at passenger height, with the controls handed over: it reuses the runtime's
-  position and yaw, and it fits the game (go somewhere, talk, leave).
-- [ ] GLB props where they earn it: cars, bikes, people, traffic lights. The city fabric stays ours.
+### 17d - Surfaces and grade [x]
+- [x] **Pavements carry light in their joints**, cold against the warm lamps; the asphalt stays
+  photographed.
+- [x] Per-building CLADDING sets, swapped by seed: precast panel, tile, corrugated sheet, brick, a
+  glass curtain.
+- [x] The atmosphere pass: height haze, emissive-only bloom, a cone of haze under every lamp, and a
+  grade that pulls the shadows towards violet and takes the corners down.
 
-### 17d - Surfaces and grade
-- [ ] **Pavements in the cyan material** from the reference; the asphalt stays as it is (Hector likes
-  it).
-- [ ] Per-building facade texture SETS, swapped by seed, so two buildings never wear the same wall.
-- [ ] Finish the atmosphere pass: the reference is violet haze plus light shafts plus a grade. Height
-  fog and emissive-only bloom are in; shafts and grading are not.
+### 17e - The game [x]
+- [x] **The NPC dialogue panel**: a header bar naming who is talking, the line, and the controls
+  under it, in the city's own colours.
+- [ ] Interiors are furnished only by their floors and their signs. Hector parked furniture; it is
+  what would make a room a place.
 
-### 17e - The game
-- [ ] **The NPC dialogue UI**, styled like the menu in the reference (a panel with choices), not the
-  plain line at the bottom of the screen it is now. `runtime/src/labels-overlay.js` is where the
-  panel lives today.
-- [ ] Interiors are empty rooms. Hector said not to worry yet; furniture is what makes them places.
+### 17f - Housekeeping [x]
+- [x] The reorganisation: `cityscape` is its own box (everything the city looks like in three.js:
+  fabric, parts, doors, lamps, props, rails, traffic, the shuttle, materials, the light pool), with
+  its own CONTRACT and tests. `runtime` keeps the simulation, the shell and the HUD, and takes the
+  city as one injected handle. `docs/INDEX.md` routes to both.
+- [ ] `BatchedMesh` and KTX2. Neither answers a problem the city has now: everything repeated is
+  already instanced, and the CC0 materials are 1k JPEGs loaded once. Worth revisiting when a city
+  is built from many DIFFERENT geometries sharing one material, or when load time starts to show.
 
-### 17f - Housekeeping
-- [ ] The reorganisation pass Hector asked for: every box lean, `CONTRACT.md` true, `docs/INDEX.md`
-  current. `runtime/` has grown a lot of files (surfaces, lights, traffic, doorways, facade-parts,
-  massing) and some of them may want to be their own box.
-- [ ] Keep modernising: `BatchedMesh` for the varied geometry (tiers, bands, doors) now that the
-  renderer is WebGPU, and KTX2 for the CC0 materials.
-
-### Done in this phase already
-- WebGPU renderer with automatic WebGL2 fallback, node post-processing, bloom taken from the
-  emissive buffer only, exponential height fog.
-- The city's facade parts drawn in one pass instead of per building; the skyline wearing one painted
-  sheet per tower. Scene meshes 3614 -> 708.
-- Buildings as stacks of tiers from a shape library, standing tall, with storeys and playable floors
-  as separate numbers.
-- Windows, adverts, neon, doors and signs as objects with their own materials.
+### What is left after this phase
+- Furniture inside the rooms (17e), which is what turns a floor plan into a place.
+- Interiors have no windows onto the street, so a lit room is lit from its ceiling only.
+- The NPC brain behind `POST /interaction` is still the canned browser one in `npm run dev`.
 
 ## Compaction points
 
