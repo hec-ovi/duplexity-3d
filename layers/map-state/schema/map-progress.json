@@ -1,0 +1,31 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/map-state/map-progress.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MapProgress",
+  "description": "One run's progress over a WorldMap: where the player has been, what they have cleared, which rooms the blueprint may reveal, and whether the run is won. Play-time state, never part of the authored Adventure.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "type": "string" },
+    "entered": {
+      "type": "array",
+      "description": "Instances the player has set foot in, in order of first entry.",
+      "items": { "type": "string" }
+    },
+    "cleared": {
+      "type": "array",
+      "description": "Instances whose goal has been met, in order of clearing.",
+      "items": { "type": "string" }
+    },
+    "visitedRooms": {
+      "type": "object",
+      "description": "instanceId -> room ids the player has entered. What the blueprint overlay is allowed to draw.",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "won": { "type": "boolean" }
+  },
+  "required": ["contractVersion", "entered", "cleared", "visitedRooms", "won"],
+  "additionalProperties": false
+}

@@ -1,0 +1,74 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/map-state/world-map.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WorldMap",
+  "description": "The run's map, derived from an Adventure: which instances exist, which doors join them, where the exit gate is, and which instances the exit counts. Authored nowhere; produced by map-state.buildWorldMap.",
+  "type": "object",
+  "properties": {
+    "entry": { "type": "string", "description": "Instance the run starts in." },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "instanceId": { "type": "string" },
+          "label": { "type": "string", "description": "Human name for the map overlay." },
+          "kind": {
+            "type": "string",
+            "description": "What this instance is on the map: street, building floor, house, or a plain instance."
+          }
+        },
+        "required": ["instanceId", "label", "kind"],
+        "additionalProperties": false
+      }
+    },
+    "doors": {
+      "type": "array",
+      "description": "Cross-instance portals, one entry per portal (each side declares its own).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "portalId": { "type": "string" },
+          "from": { "type": "string", "description": "Instance the door stands in." },
+          "to": { "type": "string", "description": "Instance it leads to." },
+          "kind": { "type": "string", "enum": ["enter", "leave", "stairs_up", "stairs_down"] },
+          "lock": {
+            "oneOf": [
+              { "type": "null" },
+              { "$ref": "https://doplexity-3d.dev/schema/persistence/portal.json#/$defs/lock" }
+            ]
+          }
+        },
+        "required": ["portalId", "from", "to", "kind", "lock"],
+        "additionalProperties": false
+      }
+    },
+    "exits": {
+      "type": "array",
+      "description": "Portals that leave the map entirely. Walking into an open one wins the run.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "portalId": { "type": "string" },
+          "instanceId": { "type": "string" },
+          "lock": {
+            "oneOf": [
+              { "type": "null" },
+              { "$ref": "https://doplexity-3d.dev/schema/persistence/portal.json#/$defs/lock" }
+            ]
+          }
+        },
+        "required": ["portalId", "instanceId", "lock"],
+        "additionalProperties": false
+      }
+    },
+    "required": {
+      "type": "array",
+      "description": "Instances an `all_cleared` lock counts. Never includes an instance that holds such a gate.",
+      "items": { "type": "string" }
+    }
+  },
+  "required": ["entry", "nodes", "doors", "exits", "required"],
+  "additionalProperties": false
+}

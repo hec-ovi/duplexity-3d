@@ -207,6 +207,9 @@ export function buildSceneModel(instance) {
 
   // Portals as routable data (nav.js walks NPCs through the doorway centres). The wall builder above
   // already consumed them to cut the openings; here they are exposed for pathfinding and exits.
+  // `link` is the far side when it is another INSTANCE (a street door, a stairwell); `lock` is the
+  // rule map-state weighs before the door opens. Both are carried as data: the runtime plays one
+  // instance and only reports that the player walked into the door.
   const portalsOut = portals.map((p) => ({
     id: p.id,
     roomA: p.roomA,
@@ -214,6 +217,8 @@ export function buildSceneModel(instance) {
     axis: p.axis,
     center: vec3(p.position),
     size: p.size,
+    link: p.link ?? null,
+    lock: p.lock ?? null,
   }));
 
   const bounds = rooms.reduce(
@@ -229,6 +234,7 @@ export function buildSceneModel(instance) {
   return {
     instanceId: instance.id,
     theme: instance.theme,
+    rules: instance.rules ?? {}, // freeform authored flags; the blueprint reads `label` / `mapKind`
     rooms,
     walls,
     colliders: walls.filter((w) => w.collides).map((w) => w.collider),

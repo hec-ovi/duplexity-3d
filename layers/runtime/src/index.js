@@ -37,8 +37,9 @@ const DEFAULTS = {
   npcRadius: NPC_DEFAULTS.radius,
 };
 
-// How close (m) to an EXIT portal's opening counts as reaching it (reach_exit).
-const EXIT_REACH = 1.5;
+// How close (m) to a portal's opening counts as walking into it: reaching an EXIT (reach_exit) or
+// stepping through a door that leads to another instance.
+const PORTAL_REACH = 1.5;
 
 export function createRuntime(deps = {}) {
   const cfg = {
@@ -69,6 +70,18 @@ export function createRuntime(deps = {}) {
       speed: cfg.npcSpeed,
       radius: cfg.npcRadius,
     };
+  }
+
+  // Is this portal passable right now? Locks live in map-state (which knows what the run has
+  // cleared), so the runtime asks rather than deciding. No injected answer means no locks: every
+  // portal is open, which is every pre-city adventure.
+  function portalOpen(portalId) {
+    if (!deps.isPortalOpen) return true;
+    try {
+      return deps.isPortalOpen(portalId) !== false;
+    } catch {
+      return false; // an unanswerable lock fails closed
+    }
   }
 
   // Record a mode an NPC has been in (for goal evaluation: unlock_dialog needs "reached mode X",
@@ -172,7 +185,9 @@ export function createRuntime(deps = {}) {
   }
 
   const api = {
-    load(adventure, instanceId) {
+    // `opts.spawnRoomId` drops the player in the centre of that room instead of the instance's own
+    // spawn: the far side of a door they just walked through (a street, a stair landing).
+    load(adventure, instanceId, opts = {}) {
       const instance = adventure.instances?.find((i) => i.id === instanceId);
       if (!instance || !instance.rooms?.length || !instance.spawn || !Array.isArray(instance.npcs)) {
         throw new InstanceInvalidError(instanceId);
@@ -205,19 +220,28 @@ export function createRuntime(deps = {}) {
         goal: instance.goal,
         discovered: new Set(),
         reachedExits: new Set(), // EXIT portals the player has walked up to (reach_exit)
-        exitArmed: new Set(), // exits the player has been clear of, so a spawn-adjacent exit does not auto-fire
+        exitArmed: new Set(), // portals the player has been clear of, so one next to the spawn does not auto-fire
+        usedDoors: new Set(), // cross-instance doors already reported through onTransit
+        visitedRooms: new Set(), // rooms the player has stood in; what the blueprint may reveal
         modeHistory: new Map([...npcStates.values()].map((s) => [s.id, new Set()])), // modes an INTERACTION has driven each NPC into (unlock_dialog); seeded empty so a startMode is not counted
         flags: new Set(), // named story flags an interaction result sets (unlock_dialog.flag)
         elapsed: 0, // accumulated sim seconds (survive)
         seqProgress: new Map(), // per-sequence-goal step index (ordered composites)
         goalMet: false,
       };
+      const arrival = opts.spawnRoomId
+        ? model.rooms.find((r) => r.id === opts.spawnRoomId)
+        : null;
       const spawn = model.spawn;
+      const at = arrival
+        ? { x: arrival.center.x, z: arrival.center.z }
+        : { x: spawn.position.x, z: spawn.position.z };
       player = {
-        position: { x: spawn.position.x, y: model.groundY, z: spawn.position.z },
+        position: { x: at.x, y: model.groundY, z: at.z },
         yaw: spawn.facing,
-        currentRoom: roomAt(model, spawn.position.x, spawn.position.z),
+        currentRoom: roomAt(model, at.x, at.z),
       };
+      if (player.currentRoom) scene.visitedRooms.add(player.currentRoom);
       return scene;
     },
 
@@ -247,6 +271,47 @@ export function createRuntime(deps = {}) {
     },
     getSpeech() {
       return speech;
+    },
+
+    // The floor plan for the map overlay: this instance seen from above, holding ONLY what the
+    // player has walked into. Rooms appear once entered and stay; a door appears once a room it
+    // stands on is known, with `open` reflecting its lock right now.
+    blueprint() {
+      if (!model) return null;
+      const seen = scene.visitedRooms;
+      const rooms = model.rooms
+        .filter((r) => seen.has(r.id))
+        .map((r) => ({
+          id: r.id,
+          min: { ...r.min },
+          max: { ...r.max },
+          center: { x: r.center.x, z: r.center.z },
+          here: r.id === player.currentRoom,
+        }));
+      const doors = model.portals
+        .filter((p) => seen.has(p.roomA) || seen.has(p.roomB))
+        .map((p) => ({
+          id: p.id,
+          center: { x: p.center.x, z: p.center.z },
+          axis: p.axis,
+          width: p.size[0],
+          kind: p.link?.kind ?? (p.roomA === "EXIT" || p.roomB === "EXIT" ? "exit" : "room"),
+          to: p.link?.instanceId ?? null,
+          open: portalOpen(p.id),
+        }));
+      return {
+        instanceId: scene.instanceId,
+        label: model.rules.label ?? scene.instanceId,
+        mapKind: model.rules.mapKind ?? "instance",
+        floor: model.rules.floor ?? null,
+        player: { x: player.position.x, z: player.position.z, yaw: player.yaw },
+        rooms,
+        doors,
+      };
+    },
+
+    getVisitedRooms() {
+      return [...scene.visitedRooms];
     },
     setYaw(yaw) {
       if (player) player.yaw = yaw;
@@ -281,18 +346,37 @@ export function createRuntime(deps = {}) {
       if (room !== player.currentRoom) {
         const prev = player.currentRoom;
         player.currentRoom = room;
+        if (room) scene.visitedRooms.add(room); // the blueprint may now draw it
         deps.onRoomChange?.(prev, room);
       }
 
-      // reach_exit: an EXIT portal's opening has no collider, so the player can walk through it.
-      // Coming within EXIT_REACH of its centre counts as reaching it (latched), but an exit only counts
-      // once it has been "armed" by the player standing clear of it first, so an exit right next to the
-      // spawn does not fire on frame 1 before the player has moved.
+      // A portal opening has no collider, so the player walks through it. Coming within PORTAL_REACH
+      // of its centre counts as walking into it, but only once the portal has been "armed" by the
+      // player standing clear of it first, so the door you just arrived through does not fire on
+      // frame 1 and bounce you straight back.
       for (const p of model.portals) {
-        if (p.roomA !== "EXIT" && p.roomB !== "EXIT") continue;
+        const isExit = p.roomA === "EXIT" || p.roomB === "EXIT";
+        if (!isExit && !p.link) continue;
         const d = Math.hypot(p.center.x - pos.x, p.center.z - pos.z);
-        if (d > EXIT_REACH) scene.exitArmed.add(p.id);
-        else if (scene.exitArmed.has(p.id)) scene.reachedExits.add(p.id);
+        if (d > PORTAL_REACH) {
+          scene.exitArmed.add(p.id);
+          continue;
+        }
+        if (!scene.exitArmed.has(p.id)) continue;
+        if (!portalOpen(p.id)) continue; // a locked gate is scenery until map-state opens it
+        if (isExit) {
+          scene.reachedExits.add(p.id);
+        } else if (!scene.usedDoors.has(p.id)) {
+          // One report per door: the host loads the linked instance (which resets this scene), and a
+          // host that ignores the event must not be told again every frame.
+          scene.usedDoors.add(p.id);
+          deps.onTransit?.({
+            portalId: p.id,
+            from: scene.instanceId,
+            fromRoom: player.currentRoom,
+            link: p.link,
+          });
+        }
       }
 
       // Advance NPCs against the freshly moved player, then age bubbles.

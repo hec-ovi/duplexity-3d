@@ -1,0 +1,213 @@
+{
+  "meta": {
+    "id": "adv-city-001",
+    "title": "Ashgate Street",
+    "createdAt": "2026-08-04T09:00:00.000Z",
+    "contractVersion": "1.0.0",
+    "seed": 4242
+  },
+  "creativeBrief": {
+    "universes": ["rain-soaked noir city"],
+    "likedNpcs": ["a bored doorman"],
+    "tone": "tense",
+    "difficulty": "normal",
+    "themes": ["city"],
+    "freeText": "one street, two buildings, a gate that opens when both are done",
+    "seed": 4242
+  },
+  "progression": {
+    "nodes": ["street-main", "bldg-a-f1", "bldg-a-f2", "bldg-b-f1"],
+    "edges": [],
+    "start": "street-main"
+  },
+  "instances": [
+    {
+      "id": "street-main",
+      "theme": "city",
+      "rules": { "mapKind": "street", "label": "Ashgate Street" },
+      "rooms": [
+        {
+          "id": "street-w",
+          "position": [0, 0, 0],
+          "size": [12, 4, 8],
+          "floorKit": "kit.city.asphalt",
+          "wallKit": "kit.city.facade",
+          "objects": [],
+          "inventory": []
+        },
+        {
+          "id": "street-e",
+          "position": [12, 0, 0],
+          "size": [12, 4, 8],
+          "floorKit": "kit.city.asphalt",
+          "wallKit": "kit.city.facade",
+          "objects": [],
+          "inventory": []
+        }
+      ],
+      "portals": [
+        {
+          "id": "street-join",
+          "roomA": "street-w",
+          "roomB": "street-e",
+          "position": [6, 0, 0],
+          "axis": "x",
+          "size": [4, 3]
+        },
+        {
+          "id": "door-a",
+          "roomA": "street-w",
+          "roomB": "LINK",
+          "position": [-3, 0, 4],
+          "axis": "z",
+          "size": [1.6, 2.4],
+          "link": { "instanceId": "bldg-a-f1", "spawnRoomId": "a1-lobby", "kind": "enter" }
+        },
+        {
+          "id": "door-b",
+          "roomA": "street-e",
+          "roomB": "LINK",
+          "position": [15, 0, 4],
+          "axis": "z",
+          "size": [1.6, 2.4],
+          "link": { "instanceId": "bldg-b-f1", "spawnRoomId": "b1-hall", "kind": "enter" }
+        },
+        {
+          "id": "gate-out",
+          "roomA": "street-e",
+          "roomB": "EXIT",
+          "position": [18, 0, 0],
+          "axis": "x",
+          "size": [3, 3],
+          "lock": { "rule": "all_cleared" }
+        }
+      ],
+      "npcs": [],
+      "goal": { "type": "reach_exit", "portalId": "gate-out" },
+      "spawn": { "position": [-3, 0, -2], "facing": 0 }
+    },
+    {
+      "id": "bldg-a-f1",
+      "theme": "city",
+      "rules": { "mapKind": "floor", "label": "Ashgate 12, ground floor", "floor": 1 },
+      "rooms": [
+        {
+          "id": "a1-lobby",
+          "position": [0, 0, 0],
+          "size": [8, 3, 6],
+          "floorKit": "kit.city.tile",
+          "wallKit": "kit.city.plaster",
+          "objects": [],
+          "inventory": []
+        },
+        {
+          "id": "a1-back",
+          "position": [0, 0, -6],
+          "size": [8, 3, 6],
+          "floorKit": "kit.city.tile",
+          "wallKit": "kit.city.plaster",
+          "objects": [],
+          "inventory": [
+            { "itemId": "ledger-a", "assetRef": "kit.city.ledger", "position": [-2, 0.5, -6] }
+          ]
+        }
+      ],
+      "portals": [
+        {
+          "id": "a1-join",
+          "roomA": "a1-lobby",
+          "roomB": "a1-back",
+          "position": [0, 0, -3],
+          "axis": "z",
+          "size": [1.5, 2.4]
+        },
+        {
+          "id": "door-a-out",
+          "roomA": "a1-lobby",
+          "roomB": "LINK",
+          "position": [0, 0, 3],
+          "axis": "z",
+          "size": [1.6, 2.4],
+          "link": { "instanceId": "street-main", "spawnRoomId": "street-w", "kind": "leave" }
+        },
+        {
+          "id": "stairs-a-up",
+          "roomA": "a1-back",
+          "roomB": "LINK",
+          "position": [-4, 0, -6],
+          "axis": "x",
+          "size": [1.2, 2.4],
+          "link": { "instanceId": "bldg-a-f2", "spawnRoomId": "a2-landing", "kind": "stairs_up" }
+        }
+      ],
+      "npcs": [],
+      "goal": { "type": "discover_item", "itemId": "ledger-a" },
+      "spawn": { "position": [0, 0, 1], "facing": 3.1416 }
+    },
+    {
+      "id": "bldg-a-f2",
+      "theme": "city",
+      "rules": { "mapKind": "floor", "label": "Ashgate 12, first floor", "floor": 2 },
+      "rooms": [
+        {
+          "id": "a2-landing",
+          "position": [0, 0, -6],
+          "size": [8, 3, 6],
+          "floorKit": "kit.city.tile",
+          "wallKit": "kit.city.plaster",
+          "objects": [],
+          "inventory": [
+            { "itemId": "key-a", "assetRef": "kit.city.key", "position": [2, 0.5, -7] }
+          ]
+        }
+      ],
+      "portals": [
+        {
+          "id": "stairs-a-down",
+          "roomA": "a2-landing",
+          "roomB": "LINK",
+          "position": [-4, 0, -6],
+          "axis": "x",
+          "size": [1.2, 2.4],
+          "link": { "instanceId": "bldg-a-f1", "spawnRoomId": "a1-back", "kind": "stairs_down" }
+        }
+      ],
+      "npcs": [],
+      "goal": { "type": "discover_item", "itemId": "key-a" },
+      "spawn": { "position": [-2, 0, -6], "facing": 0 }
+    },
+    {
+      "id": "bldg-b-f1",
+      "theme": "city",
+      "rules": { "mapKind": "house", "label": "The corner house", "floor": 1 },
+      "rooms": [
+        {
+          "id": "b1-hall",
+          "position": [30, 0, 0],
+          "size": [7, 3, 7],
+          "floorKit": "kit.city.board",
+          "wallKit": "kit.city.plaster",
+          "objects": [],
+          "inventory": [
+            { "itemId": "ledger-b", "assetRef": "kit.city.ledger", "position": [31, 0.5, -1] }
+          ]
+        }
+      ],
+      "portals": [
+        {
+          "id": "door-b-out",
+          "roomA": "b1-hall",
+          "roomB": "LINK",
+          "position": [30, 0, 3.5],
+          "axis": "z",
+          "size": [1.6, 2.4],
+          "link": { "instanceId": "street-main", "spawnRoomId": "street-e", "kind": "leave" }
+        }
+      ],
+      "npcs": [],
+      "goal": { "type": "discover_item", "itemId": "ledger-b" },
+      "spawn": { "position": [30, 0, 2], "facing": 3.1416 }
+    }
+  ],
+  "history": []
+}

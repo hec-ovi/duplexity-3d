@@ -78,6 +78,10 @@ export const SCHEMA_ID = {
   runtime: {
     loadInput: `${BASE}/runtime/load-input.json`,
   },
+  mapState: {
+    worldMap: `${BASE}/map-state/world-map.json`,
+    mapProgress: `${BASE}/map-state/map-progress.json`,
+  },
 };
 
 function collectSchemaFiles() {

@@ -203,6 +203,39 @@ Legend: [x] done, [~] in progress, [ ] not started.
 - Remaining polish (spatial audio, more NPC modes, more kits/themes, instancing/LOD, accessibility) is
   open-ended and additive; pick items as needed.
 
+## Phase 10 - Connected levels + the rogue's ledger [x]
+
+- [x] A portal can lead to ANOTHER instance: `roomB: "LINK"` plus `link { instanceId, spawnRoomId,
+  kind }` (additive on `persistence/schema/portal.json`), and can be locked with `lock { rule }`. The
+  street door, the stairwell and the exit gate are all the same shape.
+- [x] `layers/map-state/`: derives the WorldMap from the Adventure (nodes = instances, doors = linked
+  portals, exits = EXIT portals, entry = `progression.start`), so no second document can drift from
+  the geometry. Tracks entered / cleared / visited rooms as pure monotonic writes and answers
+  `doorState`, `exitState`, `unlockedInstances`. The `all_cleared` gate never counts the instance it
+  stands in, so a level can never require clearing itself to be left.
+- [x] `runtime`: walking into an open linked door reports `onTransit` once; `load(..., { spawnRoomId })`
+  arrives on the far side; a locked gate is scenery (fails closed on an unanswerable lock); visited
+  rooms are recorded and `blueprint()` serves a floor plan holding ONLY rooms walked into.
+- [x] DoD met: `npm test` = 225 local tests (no CI), 48 schemas compile, isolation clean. The city
+  fixture (one street, two buildings, three floors, a gate) is a schema-valid Adventure driven by both
+  layers' tests.
+
+## Phase 11 - Street, building and house generators (the level creator) [ ]
+
+- `layers/city-planner/` (outdoor: road network, lots, entry point, exit gate) and
+  `layers/building-planner/` (floors, stairwells, room programs; a house is a one-floor building),
+  each emitting Instances that link to each other through Phase 10 portals.
+
+## Phase 12 - The skill + toolkit [ ]
+
+- Root `SKILL.md` (duplicated where an installer looks for it) plus per-tool skills and CLI tools, so
+  an agent can generate a street, a building, a house, and a whole city without reading the code.
+
+## Phase 13 - Voice on a real provider [ ]
+
+- Fish Audio TTS behind `voice.deps.tts`, keyed from the environment and proxied by `server/` (the
+  browser never holds the key). Player types, NPC speaks.
+
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1

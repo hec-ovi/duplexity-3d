@@ -28,6 +28,7 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | Turning an NPC line into speech, or a spoken player turn into text (TTS/STT, emotion tags) | `layers/voice/` |
 | How rooms/doors/positions are laid out and validated | `layers/scenario-creator/` |
 | How many instances, goals, progression graph, adventure planning | `layers/narrator/` |
+| What the run has unlocked/cleared, whether the exit gate opens, what the map overlay may reveal | `layers/map-state/` |
 | The onboarding interview / creative brief / skip flow | `layers/interviewer/` |
 | Saving, loading, export, import of an adventure | `layers/persistence/` |
 | The Adventure document schema (the wire format between phases) | `layers/persistence/schema/` |
