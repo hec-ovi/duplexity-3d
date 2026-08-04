@@ -2,6 +2,35 @@
 
 What the project does now, newest first.
 
+## 0.12 - Something to look at
+
+- Holo adverts: big lit panels bolted up the walls, portrait running up a tower or a banner across
+  it, each with a word on it and a rule round it, all of it burning. This is what a street of
+  concrete was missing after dark.
+- Neon along the top of every tier, in the colour that building burns.
+- A skyline beyond the walkable ground: a ring of towers standing past the last block, taller the
+  further out they go, so the city carries on instead of ending at a line. They are `room.skyline[]`,
+  their own field, so nothing collides with one and no door is ever put on one.
+- Flying traffic: lanes of lights crossing above the rooftops, a bright head with a streak behind it,
+  two draws for the lot.
+- Fixed: windows stood PROUD of the wall, so from an angle they read as boxes glued on. A window sits
+  in the wall with its face a centimetre clear of it.
+
+## 0.11 - A city with a skyline
+
+- A building is a stack of masses, not one extruded box: five shapes (slab, setback, stepped,
+  shoulder, tower) drawn from the seed, with a ledge where each step lands and a parapet on top. This
+  is the technique SynthCity uses, and it is what a street of boxes was missing.
+- Buildings stand tall. How tall a building IS and how much of it you can walk into are now two
+  different numbers: a mass carries its storeys (up to twenty-odd), a lot carries the floor or three
+  behind its door. The city has a skyline; a run through it is still a few conversations.
+- `blocks: 4` builds exactly four city blocks, and naming places in `buildings[]` makes those the
+  places and everything else scenery. "Four blocks, and these two places in it" is the whole spec.
+- A door on a building's face hangs on the wall rather than in it. Recessed, the mass swallowed the
+  leaf and all you saw was a frame with dark wall inside it.
+- Fixed: the awning and the shop sign sat at the height of the door head and grew through it; and the
+  play prompt never went away, because the click that starts play lands on the canvas.
+
 ## 0.10 - Windows are windows
 
 - Every window is its own object standing in the wall, with its own light on or off, its own colour
