@@ -12,6 +12,7 @@ import { createRng, hashString } from "./rng.js";
 import { BLOCK, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize } from "./lattice.js";
 import { planPremises } from "./premises.js";
 import { placeLights } from "./lighting.js";
+import { placeProps, transitLine } from "./street.js";
 import { skylineFor } from "./skyline.js";
 import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from "./errors.js";
 
@@ -130,6 +131,10 @@ export function createStreets(spec, assetQuery, opts = {}) {
   // Beyond the streets you can walk: a ring of towers standing out of reach, so the city carries on
   // past the last block instead of ending at a line on the ground.
   const distant = skylineFor(extent, createRng(hashString(`${spec.id}-skyline`)));
+  const onBlocks = new Set(premises.map((p) => p.block));
+  // A city big enough that walking from one end to the other is a chore gets a shuttle down its
+  // middle street.
+  const line = transitLine(n);
 
   // The way out of the city: a gate in the eastern limit, shut until the map is cleared.
   const gateId = `${spec.id}-gate`;
@@ -166,7 +171,14 @@ export function createStreets(spec, assetQuery, opts = {}) {
         zones,
         blocks,
         skyline: distant,
-        lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors, createRng(hashString(`${spec.id}-lamps`))),
+        lights: placeLights(grid, onBlocks, doors, createRng(hashString(`${spec.id}-lamps`))),
+        props: placeProps(
+          grid,
+          onBlocks,
+          doors.map((d) => [d.position[0], d.position[2]]),
+          createRng(hashString(`${spec.id}-street`))
+        ),
+        ...(line ? { transit: line } : {}),
       },
     ],
     portals,

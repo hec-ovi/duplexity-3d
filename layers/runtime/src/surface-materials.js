@@ -50,8 +50,8 @@ export function createSurfaceMaterials({
   const blank = doc.createElement("canvas");
   blank.width = 1;
   blank.height = 1;
-  const ink = blank.getContext("2d");
-  if (ink) {
+  const ink = blank.getContext?.("2d");
+  if (typeof ink?.fillRect === "function") {
     ink.fillStyle = "#ffffff";
     ink.fillRect(0, 0, 1, 1);
   }

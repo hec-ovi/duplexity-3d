@@ -19,6 +19,8 @@ import { createLabelsOverlay } from "./labels-overlay.js";
 import { createSurfaceMaterials } from "./surface-materials.js";
 import { createLightRig } from "./lights.js";
 import { createTraffic } from "./traffic.js";
+import { createSkyRail } from "./skyrail.js";
+import { createShuttle } from "./shuttle.js";
 import { seededRng, hashString } from "./rng.js";
 
 const KEY_MAP = {
@@ -105,6 +107,10 @@ export function createApp(options = {}) {
   let rig = null;
   // What is moving in the sky over it. Outdoors only: there is no sky in a room.
   let traffic = null;
+  let rails = null;
+  // The shuttle down the middle street, and whether the player is on it.
+  let shuttle = null;
+  let riding = false;
   let elapsed = 0;
 
   function build(id, opts) {
@@ -115,11 +121,15 @@ export function createApp(options = {}) {
       disposeObject3D(instanceGroup);
       materials?.dispose();
       rig?.dispose();
-      if (traffic) {
-        scene.remove(traffic.group);
-        traffic.dispose();
-        traffic = null;
+      for (const moving of [traffic, rails, shuttle]) {
+        if (!moving) continue;
+        scene.remove(moving.group);
+        moving.dispose();
       }
+      traffic = null;
+      rails = null;
+      shuttle = null;
+      riding = false;
     }
     const model = runtime.getSceneModel();
     const open = model.rooms.some((r) => r.open);
@@ -143,6 +153,10 @@ export function createApp(options = {}) {
     if (open) {
       traffic = createTraffic(model.bounds, seededRng(hashString(model.instanceId), "traffic"));
       scene.add(traffic.group);
+      rails = createSkyRail(model.bounds, seededRng(hashString(model.instanceId), "rails"));
+      scene.add(rails.group);
+      shuttle = createShuttle(model.transit);
+      if (shuttle) scene.add(shuttle.group);
     }
   }
 
@@ -278,13 +292,18 @@ export function createApp(options = {}) {
 
   function tick(dt) {
     const clamped = Math.min(dt, DEFAULTS.maxDt);
-    const result = runtime.step(clamped, currentInput());
+    // Riding, the shuttle does the moving: the player is carried, so walking input is ignored.
+    const result = runtime.step(clamped, riding ? {} : currentInput());
+    shuttle?.update(clamped);
+    if (riding) runtime.placePlayer(shuttle.seat());
     syncCamera(clamped);
     actors.sync(runtime.getNpcs(), camera, clamped);
     syncLabels();
     elapsed += clamped;
     rig?.update(camera.position, clamped);
     traffic?.update(elapsed);
+    rails?.update(elapsed);
+    instanceGroup?.userData.animate?.(elapsed);
     // Nothing is drawn until the backend is up: on WebGPU the device comes back a frame or two after
     // the page does, and drawing into it before then throws.
     if (!ready) return result;
@@ -300,7 +319,24 @@ export function createApp(options = {}) {
       pressed.add(e.code);
       if (e.code === "Space") e.preventDefault?.(); // or the page scrolls under the canvas
     } else if (e.code === "KeyE" && !e.repeat) interact(); // talk to the nearest NPC
+    else if (e.code === "KeyF" && !e.repeat) ride();
   };
+
+  // Step on or off the shuttle. You can only do either while it is standing at a stop, so a ride is
+  // always stop to stop and you never step off into the middle of a street.
+  function ride() {
+    if (!shuttle) return riding;
+    if (riding) {
+      if (!shuttle.stopped()) return true;
+      riding = false;
+      runtime.placePlayer(shuttle.kerbside());
+      return false;
+    }
+    if (!shuttle.boardable(runtime.getPlayer().position)) return false;
+    riding = true;
+    runtime.setYaw(shuttle.heading());
+    return true;
+  }
   const onKeyUp = (e) => {
     if (KEY_MAP[e.code]) pressed.delete(e.code);
   };
@@ -368,6 +404,13 @@ export function createApp(options = {}) {
       syncLabels();
       return runtime.getScene();
     },
+    // Step on or off the shuttle, the same as pressing F. Returns whether the player is aboard.
+    ride,
+    // What the host can tell the player about the shuttle: whether it is worth pressing F right now.
+    shuttleState: () =>
+      shuttle
+        ? { riding, boardable: !riding && shuttle.boardable(runtime.getPlayer().position), stopped: shuttle.stopped() }
+        : null,
     blueprint: () => runtime.blueprint(),
     getPlayer: () => runtime.getPlayer(),
     getNpcs: () => runtime.getNpcs(),

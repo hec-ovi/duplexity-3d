@@ -95,6 +95,10 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       continue;
     }
 
+    // A projected panel is not built here: it stands in the air in front of the wall, and
+    // `holograms.js` puts it there.
+    if (part.kind === "advert" && part.holo) continue;
+
     // A sign and an advert each say something of their own, so each gets its own material and mesh.
     const one = new THREE.Mesh(
       new THREE.BoxGeometry(...part.size),

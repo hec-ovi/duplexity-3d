@@ -26,6 +26,7 @@ const placeEl = document.getElementById("place");
 const roomEl = document.getElementById("room");
 const gateEl = document.getElementById("gate");
 const nextEl = document.getElementById("next");
+const rideEl = document.getElementById("ride");
 const statusEl = document.getElementById("status");
 const promptEl = document.getElementById("prompt");
 const blueprintEl = document.getElementById("blueprint");
@@ -139,6 +140,18 @@ const app = createApp({
     nextEl.textContent = next
       ? `${arrowFor(next.bearing)} ${next.label} - ${Math.round(next.distance)} m`
       : "";
+
+    // The shuttle down the middle street: it only says anything when pressing F would do something.
+    const shuttle = app.shuttleState();
+    rideEl.textContent = !shuttle
+      ? ""
+      : shuttle.riding
+        ? shuttle.stopped
+          ? "F to step off"
+          : "riding"
+        : shuttle.boardable
+          ? "F to ride"
+          : "";
   },
   onGoalMet: (instanceId) => {
     // Reaching the open gate wins the run; finishing anywhere else ticks one place off the list.

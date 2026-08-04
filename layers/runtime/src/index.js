@@ -375,6 +375,22 @@ export function createRuntime(deps = {}) {
     setYaw(yaw) {
       if (player) player.yaw = yaw;
     },
+    /**
+     * Put the player somewhere, without walking them there and without asking the collider. This is
+     * for being CARRIED: a lift, a shuttle, anything that moves you rather than you moving. Room
+     * tracking still follows, so arriving somewhere by vehicle counts as having been there.
+     */
+    placePlayer({ x, y, z }) {
+      if (!player) return;
+      player.position.x = x;
+      player.position.z = z;
+      if (y !== undefined) player.position.y = y;
+      player.velocityY = 0;
+      player.onGround = true;
+      const room = roomAt(model, x, z);
+      if (room && room !== player.currentRoom) scene.visitedRooms.add(room);
+      player.currentRoom = room;
+    },
     config() {
       return { ...cfg };
     },

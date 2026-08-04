@@ -206,6 +206,74 @@
         ],
         "additionalProperties": false
       }
+    },
+    "props": {
+      "type": "array",
+      "description": "Things standing on the street that you walk around: parked vehicles, bins, bollards, traffic lights. Each says where it stands and how much room it takes; what it looks like is the renderer's.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "car",
+              "van",
+              "bike",
+              "bin",
+              "bollard",
+              "traffic_light"
+            ]
+          },
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "size": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "minItems": 3,
+            "maxItems": 3,
+            "description": "[across, up, along] in metres, before it is turned."
+          },
+          "facing": {
+            "type": "number",
+            "description": "Radians. 0 points down +z."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "position",
+          "size"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "transit": {
+      "type": "object",
+      "description": "A line a shuttle runs along, west to east, stopping at each point in turn. A city small enough to walk has none.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "stops": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "stops"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

@@ -115,27 +115,34 @@ describe("a generated city is a valid, connected, winnable level", () => {
     });
     rt.load(adventure, "ashgate");
 
-    // Head for the first front door, keeping to the streets: the margin lane the spawn stands in,
-    // then the lane the door faces onto. Each leg is a straight walk down open ground.
+    // Head for the first front door, keeping to the MIDDLE of the streets: things are parked along
+    // the kerbs, so a straight line down one is a line through a van. Each leg is a straight walk
+    // down the middle of open ground, and the last step in to the door is left clear of anything.
     const street = adventure.instances[0];
     const ground = street.rooms[0];
     const door = street.portals.find((p) => p.roomB === "LINK");
     const mass = ground.blocks.find((b) => b.id === door.blockId);
     const margin = street.spawn.position[0]; // the lane running up the western edge
-    const southLane = -ground.size[2] / 2 + 5;
 
     const [dx, , dz] = door.position;
     const stand =
       door.axis === "x"
-        ? { x: dx + Math.sign(dx - mass.position[0]) * 3, z: dz } // a north-south lane
-        : { x: dx, z: dz + Math.sign(dz - mass.position[2]) * 3 }; // an east-west lane
+        ? { x: dx + Math.sign(dx - mass.position[0]) * 3, z: dz }
+        : { x: dx, z: dz + Math.sign(dz - mass.position[2]) * 3 };
+
+    // The middle of every street, in one axis, and the one nearest a given point.
+    const half = ground.size[0] / 2;
+    const lanes = Array.from({ length: 4 }, (_, k) => -half + 6 + k * 52);
+    const laneNear = (v) => lanes.reduce((best, l) => (Math.abs(l - v) < Math.abs(best - v) ? l : best), lanes[0]);
 
     if (door.axis === "x") {
-      expect(walkTo(rt, margin, southLane)).toBe(true);
-      expect(walkTo(rt, stand.x, southLane)).toBe(true);
+      expect(walkTo(rt, margin, laneNear(stand.z))).toBe(true);
+      expect(walkTo(rt, laneNear(stand.x), laneNear(stand.z))).toBe(true);
+      expect(walkTo(rt, laneNear(stand.x), stand.z)).toBe(true);
       expect(walkTo(rt, stand.x, stand.z)).toBe(true);
     } else {
-      expect(walkTo(rt, margin, stand.z)).toBe(true);
+      expect(walkTo(rt, margin, laneNear(stand.z))).toBe(true);
+      expect(walkTo(rt, stand.x, laneNear(stand.z))).toBe(true);
       expect(walkTo(rt, stand.x, stand.z)).toBe(true);
     }
     walkTo(rt, dx, dz, 3); // the last step up to the door itself, until the building stops us

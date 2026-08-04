@@ -12,6 +12,8 @@ import { Reflector } from "three/addons/objects/Reflector.js";
 import { buildDoorway } from "./doorways.js";
 import { buildFacadeParts } from "./facade-parts.js";
 import { buildLamp, buildLampShafts, lampMaterials } from "./lamps.js";
+import { buildStreetProps } from "./props.js";
+import { buildHolograms } from "./holograms.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -303,14 +305,19 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     counts.skyline++;
   }
 
+  let holograms = null;
   if (cityParts.length) {
+    const advertMaterial = materials ? (part) => materials.advert(part) : undefined;
     group.add(
       buildFacadeParts(cityParts, {
         signMaterial: materials ? (part) => materials.sign(part) : undefined,
         windowMaterial: materials ? (part) => materials.window(part) : undefined,
-        advertMaterial: materials ? (part) => materials.advert(part) : undefined,
+        advertMaterial,
       })
     );
+    // The panels that are projections rather than panels: a figure standing in the air off the wall.
+    holograms = buildHolograms(cityParts, { advertMaterial });
+    if (holograms) group.add(holograms.group);
   }
 
   // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is
@@ -341,6 +348,10 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // The haze each lamp burns in, all of them in one draw.
   const shafts = buildLampShafts(model.lights);
   if (shafts) group.add(shafts);
+
+  // What is parked and standing on the street. Solid: the model already gave them colliders.
+  const street = buildStreetProps(model.props);
+  if (street) group.add(street);
 
   for (const obj of model.objects) {
     const { size, placeholder } = sizeFor(registry, obj.assetRef, DEFAULT_OBJECT_SIZE, warn);
@@ -399,6 +410,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     node.castShadow = node.userData.kind !== "zone" && node.userData.kind !== "floor";
     node.receiveShadow = true;
   });
-  group.userData = { instanceId: model.instanceId, counts };
+  // What has to be moved on: the projections waver and their scan drifts.
+  group.userData = { instanceId: model.instanceId, counts, animate: holograms ? (t) => holograms.update(t) : null };
   return group;
 }
