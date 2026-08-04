@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "schemas": "node harness/check-schemas.js"
+    "schemas": "node harness/check-schemas.js",
+    "level": "node tools/level.js",
+    "skill:sync": "node tools/sync-skill.js"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

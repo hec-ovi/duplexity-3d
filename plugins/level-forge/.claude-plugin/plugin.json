@@ -1,0 +1,5 @@
+{
+  "name": "level-forge",
+  "description": "Build and check 3D levels for duplexity-3d: streets with front doors, buildings with floors and stairwells, houses, NPCs, and a roguelike map whose exit gate opens once every instance is cleared.",
+  "version": "0.2.0"
+}

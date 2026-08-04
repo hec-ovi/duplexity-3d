@@ -220,21 +220,35 @@ Legend: [x] done, [~] in progress, [ ] not started.
   fixture (one street, two buildings, three floors, a gate) is a schema-valid Adventure driven by both
   layers' tests.
 
-## Phase 11 - Street, building and house generators (the level creator) [ ]
+## Phase 11 - Street, building and house generators (the level creator) [x]
 
-- `layers/city-planner/` (outdoor: road network, lots, entry point, exit gate) and
-  `layers/building-planner/` (floors, stairwells, room programs; a house is a one-floor building),
-  each emitting Instances that link to each other through Phase 10 portals.
+- [x] `layers/city-planner/`: roads packed on an integer grid (so every join is a shared full wall),
+  a front door per lot, one spawn, one `all_cleared` exit gate, and a `LotPlan` per building. One
+  portal per wall face, so a door, a road join and the gate can never overlap.
+- [x] `layers/building-planner/`: each brief becomes floors joined by a stairwell, with a way back out;
+  a house is a one-floor building whose front door is the exit. Floors are separate coordinate spaces,
+  so the street and the building agree on ids alone.
+- [x] `scenario-creator.validateLayout` is a public contract entry: ONE definition of a correct map,
+  injected into both generators. It learned one-sided doors (`EXIT` / `LINK`) and now rejects one on an
+  interior wall, where the runtime cuts the opening on one side only.
+- [x] DoD met: `tools/compose-city.test.js` generates a city, proves every instance against the real
+  validator, derives the map, walks the street into a building with the real runtime, and shows the
+  gate opening only after the last building is cleared.
 
-## Phase 12 - The skill + toolkit [ ]
+## Phase 12 - The skill, the toolkit, and voice on a real provider [x]
 
-- Root `SKILL.md` (duplicated where an installer looks for it) plus per-tool skills and CLI tools, so
-  an agent can generate a street, a building, a house, and a whole city without reading the code.
-
-## Phase 13 - Voice on a real provider [ ]
-
-- Fish Audio TTS behind `voice.deps.tts`, keyed from the environment and proxied by `server/` (the
-  browser never holds the key). Player types, NPC speaks.
+- [x] `tools/` is the third composition root: `node tools/level.js city|street|building|house|validate|map`,
+  deterministic, JSON in and out. Generated levels come populated with NPCs (public roles outdoors,
+  private ones behind the doors).
+- [x] `SKILL.md` at the root, mirrored into `skills/` and `plugins/` (with `.claude-plugin/`
+  marketplace + plugin manifests) so any installer finds it; `npm run skill:sync` writes the copies and
+  a test fails if they drift.
+- [x] `layers/voice/providers/fish.js`: Fish Audio TTS split into a key-free, I/O-free request handle
+  and a fetch that performs it, so only `server/` (behind `POST /speech`) ever holds the key. Emotion
+  cues return as `[warm]` directions Fish performs; pacing becomes a prosody speed. No key, a refusal
+  or an outage all degrade to text.
+- [x] DoD met: `npm test` = 265 local tests (no CI), 50 schemas compile, isolation clean. Verified
+  against the live API: a real key returns real mp3 through the project's own code path.
 
 ## Compaction points
 

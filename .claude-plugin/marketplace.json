@@ -1,0 +1,36 @@
+{
+  "name": "duplexity-3d",
+  "owner": {
+    "name": "Hector Oviedo"
+  },
+  "metadata": {
+    "description": "Generate playable 3D roguelike levels: streets, buildings, houses, NPCs, and a map that unlocks",
+    "version": "0.2.0"
+  },
+  "plugins": [
+    {
+      "name": "level-forge",
+      "source": "./plugins/level-forge",
+      "description": "Build and check 3D levels for duplexity-3d: a street with front doors, buildings with floors and stairwells, houses, NPCs who live in them, and a roguelike map whose exit gate opens once every instance is cleared. Deterministic generators, one command line, geometry proved on every build.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Hector Oviedo"
+      },
+      "homepage": "https://github.com/hec-ovi/duplexity-3d",
+      "repository": "https://github.com/hec-ovi/duplexity-3d",
+      "license": "MIT",
+      "keywords": [
+        "threejs",
+        "procedural-generation",
+        "level-design",
+        "roguelike",
+        "game-dev",
+        "npc",
+        "agent-skills",
+        "3d",
+        "city-generation",
+        "text-to-speech"
+      ]
+    }
+  ]
+}
