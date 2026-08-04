@@ -7,6 +7,9 @@
 // from the bottom.
 
 import * as THREE from "three";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+
+export { mergeGeometries };
 
 // The six faces in three.js's own order, so material[0] is +x and material[4] is +z exactly as a
 // BoxGeometry would give. Each is [corner indices, normal], corners wound anticlockwise seen from
@@ -67,5 +70,16 @@ export function taperedBox(w, h, d, taperX = 1, taperZ = taperX) {
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
   geometry.setIndex(index);
   geometry.computeVertexNormals(); // the sloped sides need their own, not the box's
+  return geometry;
+}
+
+/**
+ * Bake a texture repeat into a geometry's own UVs, so many pieces at many scales can share ONE
+ * material. A repeat lives on the texture, and a texture is shared; a UV lives on the mesh.
+ */
+export function scaleUv(geometry, x, y) {
+  const uv = geometry.getAttribute("uv");
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * x, uv.getY(i) * y);
+  uv.needsUpdate = true;
   return geometry;
 }

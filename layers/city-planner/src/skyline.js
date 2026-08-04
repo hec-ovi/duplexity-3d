@@ -8,10 +8,10 @@
 // climb, standing over the whole city from wherever you are in it. A skyline of same-sized boxes
 // reads as a fence; one or two things that dwarf everything else is what gives a city its scale.
 
-const RING = 4; // how many rows deep the ring stands
+const RING = 3; // how many rows deep the ring stands
 const GAP = 26; // metres between one tower and the next
 const MARGIN = 30; // how far past the boundary the first row starts
-const MEGA = { count: 4, height: [300, 620], width: [110, 210], taper: [0.28, 0.62] };
+const MEGA = { count: 3, height: [260, 460], width: [100, 180], taper: [0.28, 0.62] };
 
 /**
  * @param {number} extent  the width of the walkable ground

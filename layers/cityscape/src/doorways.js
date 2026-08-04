@@ -74,17 +74,22 @@ function signOver(portal, rooms) {
   ];
 }
 
-const matte = (color, extra = {}) =>
-  new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.08, ...extra });
+// Every door in a city is painted from the same short list, so the materials are made once and
+// shared. One per door was sixty-odd pipeline switches a frame for the doors alone.
+const made = new Map();
+const matte = (color, extra = {}) => {
+  const key = `${color}:${JSON.stringify(extra)}`;
+  if (!made.has(key)) {
+    const material = new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.08, ...extra });
+    material.userData.shared = true; // outlives any one scene, so nothing may dispose it
+    made.set(key, material);
+  }
+  return made.get(key);
+};
 
 // A lit plate, for when there is no painter to letter it: still visible, just wordless.
 const glowing = (colour) =>
-  new THREE.MeshStandardMaterial({
-    color: 0x14171c,
-    emissive: new THREE.Color(colour),
-    emissiveIntensity: 1.1,
-    roughness: 0.6,
-  });
+  matte(0x14171c, { emissive: new THREE.Color(colour), emissiveIntensity: 1.1, roughness: 0.6 });
 
 // Which way the door faces: away from the middle of the mass it is on. Sign only, never zero.
 function outward(portal, block) {
@@ -188,12 +193,7 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names, 
   // door from the other side of the street.
   const porch = new THREE.Mesh(
     new THREE.BoxGeometry(...(axis === "x" ? [PORCH.size[2], PORCH.size[1], PORCH.size[0]] : PORCH.size)),
-    new THREE.MeshStandardMaterial({
-      color: 0x14171c,
-      emissive: new THREE.Color(PORCH.colour),
-      emissiveIntensity: PORCH.glow,
-      roughness: 0.5,
-    })
+    matte(0x14171c, { emissive: new THREE.Color(PORCH.colour), emissiveIntensity: PORCH.glow, roughness: 0.5 })
   );
   porch.userData = { kind: "light" };
   porch.name = `doorway:${portal.id}:porch`;
@@ -234,19 +234,11 @@ function handle(ctx, along) {
 }
 
 /** Glass with a light behind it: what tells you this is a way in and not a dark patch on a wall. */
+const GLAZED = () =>
+  matte(COLOURS.glass, { emissive: new THREE.Color(0xffe0b0), emissiveIntensity: 1.15, roughness: 0.25, metalness: 0.1 });
+
 function glazing(ctx, { across, up, y, along = 0, deep = FACE + 0.01 }) {
-  const pane = ctx.box(
-    across,
-    up,
-    0.04,
-    new THREE.MeshStandardMaterial({
-      color: COLOURS.glass,
-      emissive: new THREE.Color(0xffe0b0),
-      emissiveIntensity: 1.15,
-      roughness: 0.25,
-      metalness: 0.1,
-    })
-  );
+  const pane = ctx.box(across, up, 0.04, GLAZED());
   pane.userData = { kind: "light" }; // a source: it neither casts a shadow nor takes one
   ctx.put(pane, { along, deep, y });
 }

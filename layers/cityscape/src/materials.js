@@ -22,6 +22,7 @@ function hash(str) {
 }
 const ANISOTROPY = 4;
 const VARIANTS = 6; // how many cladding sheets a whole city is painted from
+const TOWER_SHEETS = 4; // and how many the skyline behind it wears
 
 /**
  * @param {object} deps
@@ -129,6 +130,16 @@ export function createSurfaceMaterials({
     return plans.get(key);
   }
 
+  // A material is a pipeline and a set of bindings the renderer has to switch to. Two surfaces
+  // painted from the same sheet at the same scale are the SAME material, and handing out a fresh
+  // one each time is how a skyline of a hundred and fifty towers became a hundred and fifty
+  // switches a frame. Everything goes through here.
+  const shared = new Map();
+  function cached(key, make) {
+    if (!shared.has(key)) shared.set(key, make());
+    return shared.get(key);
+  }
+
   function textureOf(ctx, repeatX, repeatY) {
     const texture = new THREE.CanvasTexture(ctx.canvas);
     texture.colorSpace = THREE.SRGBColorSpace; // colour data, both the albedo and the glow
@@ -141,17 +152,28 @@ export function createSurfaceMaterials({
   }
 
   // One material for a surface covering `spanX` by `spanY` metres, repeating at its own scale.
-  function materialFor(plan, spanX, spanY, tint, over) {
+  function materialFor(plan, spanX, spanY, tint, over, key) {
     const [mx, my] = over ?? plan.metres;
+    if (key) {
+      return cached(`${key}:${round(spanX / mx)}:${round(spanY / my)}:${tint ?? ""}`, () =>
+        build(plan, spanX / mx, spanY / my, tint)
+      );
+    }
+    return build(plan, spanX / mx, spanY / my, tint);
+  }
+
+  const round = (n) => Math.round(n * 1000) / 1000;
+
+  function build(plan, repeatX, repeatY, tint) {
     const material = new THREE.MeshStandardMaterial({
       color: tint ?? 0xffffff,
-      map: textureOf(plan.maps.albedo, spanX / mx, spanY / my),
+      map: textureOf(plan.maps.albedo, repeatX, repeatY),
       roughness: plan.material.roughness,
       metalness: plan.material.metalness,
     });
     if (plan.maps.emissive) {
       material.emissive = new THREE.Color(0xffffff);
-      material.emissiveMap = textureOf(plan.maps.emissive, spanX / mx, spanY / my);
+      material.emissiveMap = textureOf(plan.maps.emissive, repeatX, repeatY);
       material.emissiveIntensity = plan.material.emissiveIntensity ?? 1;
     }
     return material;
@@ -164,14 +186,14 @@ export function createSurfaceMaterials({
       // Wet asphalt is painted, not photographed: the standing water is what the parameter changes.
       const photo = surface === "road" && wet > 0 ? null : photoFor(surface);
       if (photo) return photoMaterial(photo, spanX, spanZ, tint);
-      return materialFor(planFor(surface, surface, { seed: surface, wet }), spanX, spanZ, tint);
+      return materialFor(planFor(surface, surface, { seed: surface, wet }), spanX, spanZ, tint, null, surface);
     },
 
     /** An interior wall, scaled to the wall rather than to the floor. */
     wall(spanX, spanY, tint) {
       const photo = photoFor("wall");
       if (photo) return photoMaterial(photo, spanX, spanY, tint);
-      return materialFor(planFor("wall", "wall", { seed: "wall" }), spanX, spanY, tint);
+      return materialFor(planFor("wall", "wall", { seed: "wall" }), spanX, spanY, tint, null, "wall");
     },
 
     /**
@@ -192,20 +214,21 @@ export function createSurfaceMaterials({
         const bucket = Math.max(1, Math.min(6, Math.round(metresWide / 6)));
         const id = `facade:v${variant}:f${floors}:w${bucket}${key}`;
         if (!key) wornBy.set(block.id, id);
-        return planFor(id, "facade", {
+        const plan = planFor(id, "facade", {
           seed: id,
           metresWide: bucket * 6,
           floors,
           storeyHeight: height / floors,
           program: block.program,
         });
+        // Painted at its own size and stretched onto the wall, so the bays land on the wall's edges,
+        // and shared by every building wearing that sheet.
+        return materialFor(plan, plan.metres[0], plan.metres[1], undefined, undefined, id);
       };
-      // Painted at its own size and stretched onto the wall, so the bays land on the wall's edges.
-      const fitted = (plan) => materialFor(plan, plan.metres[0], plan.metres[1]);
       const front = sheet("", width);
       const side = sheet(":side", depth);
-      const roof = new THREE.MeshStandardMaterial({ color: 0x24272d, roughness: 0.95, metalness: 0.05 });
-      return [fitted(side), fitted(side), roof, roof, fitted(front), fitted(front)];
+      const roof = cached("roof", () => new THREE.MeshStandardMaterial({ color: 0x24272d, roughness: 0.95, metalness: 0.05 }));
+      return [side, side, roof, roof, front, front];
     },
 
     /**
@@ -259,10 +282,16 @@ export function createSurfaceMaterials({
      * its own object; at three hundred metres that is thousands of objects nobody can see.
      */
     tower(far) {
-      const variant = Math.abs(hash(far.id)) % 4;
+      const variant = Math.abs(hash(far.id)) % TOWER_SHEETS;
       const plan = planFor(`tower:${variant}`, "tower", { seed: `tower-${variant}`, litRatio: 0.42 });
-      const [mx, my] = plan.metres;
-      return materialFor(plan, Math.max(far.size.x, far.size.z), far.size.y, undefined, [mx, my]);
+      // One material per SHEET, not per tower: a skyline is a hundred and fifty of them, and each
+      // one of its own was a hundred and fifty pipeline switches a frame. The scale a tower wants is
+      // baked into its own UVs instead, so they can all share this and be drawn together.
+      return {
+        variant,
+        material: cached(`tower:${variant}`, () => build(plan, 1, 1)),
+        metres: plan.metres,
+      };
     },
 
     /** A holo advert: a lit panel, read off its front. */
@@ -293,7 +322,10 @@ export function createSurfaceMaterials({
 
     dispose() {
       for (const texture of textures) texture.dispose();
+      for (const material of shared.values()) material.dispose();
       for (const material of windowMats.values()) material.dispose();
+      shared.clear();
+      wornBy.clear();
       waiting.clear();
       textures.length = 0;
       windowMats.clear();

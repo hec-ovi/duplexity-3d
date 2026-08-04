@@ -9,15 +9,28 @@ import * as THREE from "three";
 const COLOUR = { steel: 0x2b3038, warn: "#ff4d4d", lit: "#8fd6ff" };
 const GUY = 0.06; // a guy wire or a girder, in metres
 
-const matte = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.5 });
+// Every roof in a city wears the same steel and the same warning light, so both are made once.
+const made = new Map();
+const once = (key, make) => {
+  if (!made.has(key)) {
+    const material = make();
+    material.userData.shared = true; // outlives any one scene, so nothing may dispose it
+    made.set(key, material);
+  }
+  return made.get(key);
+};
+
+const matte = (color) => once(`m${color}`, () => new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.5 }));
 
 const burning = (colour, intensity) =>
-  new THREE.MeshStandardMaterial({
-    color: 0x111111,
-    emissive: new THREE.Color(colour),
-    emissiveIntensity: intensity,
-    roughness: 0.5,
-  });
+  once(`b${colour}${intensity}`, () =>
+    new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      emissive: new THREE.Color(colour),
+      emissiveIntensity: intensity,
+      roughness: 0.5,
+    })
+  );
 
 /**
  * @param {{kind,position,width,height}} topper  in the building's own frame

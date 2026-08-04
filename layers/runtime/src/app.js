@@ -32,6 +32,17 @@ const KEY_MAP = {
 const FOV = { normal: 75, zoomed: 38, rate: 6 }; // right button pulls the view in
 
 const DEFAULTS = { eyeHeight: 1.6, lookSensitivity: 0.0022, maxDt: 0.05 };
+// How many pixels we are willing to draw a frame. The scene is drawn to two targets, blurred for the
+// bloom and graded, so every pixel is paid for several times over; on a big monitor that is four
+// million of them and the whole thing crawls. Past this the buffer is rendered smaller and stretched
+// to fit, which costs a little sharpness and multiplies the frame rate.
+const PIXEL_BUDGET = 1_300_000;
+
+// The size to actually draw at, for a canvas that has to fill `width` by `height`.
+function drawingSize(width, height) {
+  const scale = Math.min(1, Math.sqrt(PIXEL_BUDGET / Math.max(1, width * height)));
+  return [Math.round(width * scale), Math.round(height * scale)];
+}
 
 export function createApp(options = {}) {
   const {
@@ -162,7 +173,13 @@ export function createApp(options = {}) {
   const renderer = injectedRenderer ?? new WebGPURenderer({ antialias: true });
   let ready = Boolean(injectedRenderer); // a real renderer has to come up before it can draw
   const pmrem = injectedRenderer ? null : new PMREMGenerator(renderer);
-  renderer.setSize?.(width, height);
+  // `false` leaves the canvas's CSS size alone, so a smaller buffer is stretched over the same area.
+  renderer.setSize?.(...drawingSize(width, height), false);
+  if (renderer.domElement?.style) {
+    renderer.domElement.style.width = "100%";
+    renderer.domElement.style.height = "100%";
+    renderer.domElement.style.display = "block";
+  }
   if (renderer.toneMapping !== undefined) {
     // Film response, so a lit window can be brighter than white without the whole street clipping.
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -352,7 +369,7 @@ export function createApp(options = {}) {
     const h = container.clientHeight || 1;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize?.(w, h);
+    renderer.setSize?.(...drawingSize(w, h), false);
   };
   win.addEventListener?.("resize", onResize);
 

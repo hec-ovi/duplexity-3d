@@ -49,6 +49,13 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
 
   const slabMat = matte(COLOURS.slab);
   const railMat = matte(COLOURS.rail, { roughness: 0.5, metalness: 0.4 });
+  // A material is a pipeline switch; a geometry is not. Two neon lines of different lengths are the
+  // same material, so they are made once per colour and shared however many sizes they come in.
+  const shared = new Map();
+  const once = (key, make) => {
+    if (!shared.has(key)) shared.set(key, make());
+    return shared.get(key);
+  };
 
   for (const part of parts ?? []) {
     const [w, h, d] = part.size;
@@ -60,7 +67,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       continue;
     }
     if (part.kind === "neon" || part.kind === "strip") {
-      batch(`${part.kind}:${part.colour}:${shape}`, part.size, () => burning(part.colour, 1.6), part);
+      batch(`${part.kind}:${part.colour}:${shape}`, part.size, () => once(`burn:${part.colour}`, () => burning(part.colour, 1.6)), part);
       continue;
     }
     if (part.kind === "balcony") {
@@ -91,7 +98,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       continue;
     }
     if (part.kind === "awning") {
-      batch(`awning:${part.colour}:${shape}`, part.size, () => matte(new THREE.Color(part.colour)), part);
+      batch(`awning:${part.colour}:${shape}`, part.size, () => once(`awning:${part.colour}`, () => matte(new THREE.Color(part.colour))), part);
       continue;
     }
 

@@ -86,50 +86,6 @@ export function buildLamp(light, { poleMaterial, headMaterial } = {}) {
   return group;
 }
 
-// The cone of light under a lamp head: what makes a lamp read as a lamp burning in haze rather than
-// as a bright box on a pole. One shared cone, laid over every lamp in the street in one draw.
-const SHAFT = { radius: 2.2, drop: 1.2, opacity: 0.018 };
-
-/**
- * The shafts under a street's worth of lamps, as one instanced mesh. Additive and unlit, so they
- * brighten what is behind them and take no light of their own.
- *
- * @param {Array} lights  scene-model lights
- * @returns {THREE.InstancedMesh|null}
- */
-export function buildLampShafts(lights) {
-  const standing = (lights ?? []).filter((l) => l.kind === "street_lamp" || l.kind === "wall_lamp");
-  if (standing.length === 0) return null;
-
-  const cone = new THREE.ConeGeometry(SHAFT.radius, 1, 10, 1, true);
-  const mesh = new THREE.InstancedMesh(
-    cone,
-    new THREE.MeshBasicMaterial({
-      color: COLOUR.head,
-      transparent: true,
-      opacity: SHAFT.opacity,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-    standing.length
-  );
-  mesh.name = "lamp-shafts";
-  mesh.userData = { kind: "light" };
-  const at = new THREE.Object3D();
-  standing.forEach((light, i) => {
-    const height = lampHeight(light) + SHAFT.drop;
-    at.position.set(light.position[0], light.position[1] + height / 2 - SHAFT.drop / 2, light.position[2]);
-    at.scale.set(1, height, 1);
-    at.rotation.set(0, 0, 0);
-    at.updateMatrix();
-    mesh.setMatrixAt(i, at.matrix);
-  });
-  mesh.instanceMatrix.needsUpdate = true;
-  mesh.computeBoundingSphere?.();
-  if (!mesh.boundingSphere) mesh.frustumCulled = false;
-  return mesh;
-}
-
 /** The two materials a whole street of lamps shares. */
 export function lampMaterials() {
   return { poleMaterial: matte(COLOUR.pole), headMaterial: glowing(COLOUR.head) };

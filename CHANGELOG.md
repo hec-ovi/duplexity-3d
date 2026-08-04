@@ -2,6 +2,28 @@
 
 What the project does now, newest first.
 
+## 0.19 - Fast again
+
+The city had become an offline renderer. Four things, measured rather than guessed:
+
+- **Point light shadows are gone.** A point light's shadow is a CUBE: six renders of the whole scene,
+  every frame, per light. Two of them plus the moon was fourteen passes over eight thousand objects.
+  The city lights itself with emissive geometry, which costs nothing.
+- **Only what you would miss casts a shadow**: masses, walls, props and people. A balcony and a window
+  frame cost a pass each in the moon's map and read the same either way.
+- **The cones of haze under the lamps are gone.** Forty of them, transparent and additive over the
+  street, were the single biggest cost: at 1280x720 they alone were most of the frame.
+- **The drawing buffer is capped.** The scene is drawn to two targets, blurred for the bloom and
+  graded, so every pixel is paid for several times; on a big monitor that is four million of them.
+  Past 1.3 megapixels the buffer is rendered smaller and stretched to fit.
+
+Measured in the same software renderer, at 1280x720: 123ms a frame down to 21ms. At 1920x1080 it
+stays at 21ms instead of scaling with the window.
+
+- Materials shared rather than made per object: a skyline of a hundred and fifty towers is now four
+  merged meshes wearing four materials, and doors, roof gear, neon and awnings are made once for the
+  city rather than once each. 466 materials down to about 200.
+
 ## 0.18 - Buildings with shapes, and something to look at while it loads
 
 - The massing library is the shape vocabulary the reference city actually has, not five stacks of
