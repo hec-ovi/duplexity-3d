@@ -9,12 +9,13 @@ ids, never on coordinates.
 
 ## Inputs (params in)
 - `createStreets(CitySpec, assetQuery, opts?) -> { instance, lots, report }`
-  - `CitySpec`: `{ id, theme, label?, blocks?, sizeHint?, lots?, floorsPerLot?, accessibleRatio?,
-    buildings?, npcs?, exit?, seed? }`. `blocks` is exactly how many city blocks to build on, and
-    `sizeHint` is the shorthand for it. `floorsPerLot` sets how tall each building STANDS, in order,
-    repeating its last value. `accessibleRatio` is the share of buildings with a front door: 1 by
-    default, and 0 as soon as `buildings` names any, so naming the places you want makes everything
-    else scenery.
+  - `CitySpec`: `{ id, theme, label?, blocks?, sizeHint?, lots?, places?, floorsPerLot?,
+    accessibleRatio?, buildings?, npcs?, exit?, seed? }`. `blocks` is exactly how many city blocks to
+    build on, and `sizeHint` is the shorthand for it. `lots` is how many buildings STAND; `places` is
+    how many of those you can walk into, 6 by default, spread as far apart as the city allows and one
+    per block until the blocks run out. `accessibleRatio` picks places as a share of the buildings at
+    random instead, and naming `buildings[]` makes exactly those the places. `floorsPerLot` sets how
+    tall each building STANDS, in order, repeating its last value.
     `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
     quest); the block is split into enough premises to hold the slot, and everything unpinned is
     generated around it. `wet` (0 to 1) says how wet the streets are, which the renderer reads off

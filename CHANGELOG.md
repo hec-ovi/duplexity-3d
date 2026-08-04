@@ -2,6 +2,17 @@
 
 What the project does now, newest first.
 
+## 0.14 - Six or seven places, and the way to them
+
+- `places` in a CitySpec: how many buildings you can walk into, 6 by default, chosen as far apart as
+  the city allows and one per block until the blocks run out. A city can stand hundreds of buildings;
+  a run is a walk between a handful of landmarks. Everything else is scenery with no door.
+- The map marks each place still to finish, names the nearest one with the metres to it, and draws a
+  line from where you stand to it. A place off the edge of the map is pinned to the edge so it still
+  points the way, and the HUD carries an arrow for the direction.
+- `--places <n>` on the level toolkit, and the CitySpec written up in `SKILL.md` as the one thing an
+  LLM authors.
+
 ## 0.13 - Modernised: WebGPU, node post, height haze
 
 - The renderer is `WebGPURenderer`, which falls back to WebGL2 on its own where WebGPU is missing.

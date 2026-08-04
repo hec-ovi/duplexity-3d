@@ -20,6 +20,8 @@ const STYLE = {
   block: "rgba(159, 180, 194, 0.5)",
   player: "#ffffff",
   label: "#9fb4c2",
+  place: "#ffc98a",
+  next: "#8fd0ff",
 };
 
 const DOOR_COLOR = {
@@ -54,13 +56,50 @@ function centredOn(plan, width, height, metresPerPixel) {
 }
 
 /**
+ * The places still to go, nearest first: a door on this map that leads somewhere unfinished.
+ *
+ * @param {object|null} plan   what `runtime.blueprint()` returned
+ * @param {Iterable<string>} [left]  instance ids not finished yet; absent means every place counts
+ * @returns {Array<{id,label,x,z,distance,bearing}>} `bearing` is radians off where the player looks
+ */
+export function placesLeft(plan, left) {
+  if (!plan) return [];
+  const wanted = left ? new Set(left) : null;
+  const out = [];
+  for (const door of plan.doors) {
+    if (!door.to || door.kind !== "enter") continue;
+    if (wanted && !wanted.has(door.to)) continue;
+    const dx = door.center.x - plan.player.x;
+    const dz = door.center.z - plan.player.z;
+    out.push({
+      id: door.to,
+      label: door.label ?? door.to,
+      x: door.center.x,
+      z: door.center.z,
+      distance: Math.hypot(dx, dz),
+      // Yaw 0 looks down -Z, so straight ahead is a bearing of 0 and a positive one is to the right.
+      bearing: wrap(Math.atan2(dx, -dz) - plan.player.yaw),
+    });
+  }
+  return out.sort((a, b) => a.distance - b.distance);
+}
+
+const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/**
  * Draw one blueprint. Safe to call every frame.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {object|null} plan  what `runtime.blueprint()` returned
- * @param {{width:number,height:number,margin?:number,metresPerPixel?:number}} size
+ * @param {object} size
+ * @param {number} size.width
+ * @param {number} size.height
+ * @param {number} [size.margin]
+ * @param {number} [size.metresPerPixel]
+ * @param {Iterable<string>} [size.left]  instance ids still to finish: those places get a marker,
+ *   and the nearest of them the arrow that says which way to walk
  */
-export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPerPixel }) {
+export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPerPixel, left }) {
   ctx.clearRect(0, 0, width, height);
   if (!plan || plan.rooms.length === 0) return;
 
@@ -119,6 +158,38 @@ export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPer
 
   const px = at.x(plan.player.x);
   const py = at.z(plan.player.z);
+
+  // Where you still have to go. A place off the edge of the map is pinned to the edge, so it points
+  // the way rather than disappearing: the marker nearest you is the one to walk to.
+  const places = placesLeft(plan, left);
+  places.forEach((place, i) => {
+    const near = i === 0;
+    const mx = clamp(at.x(place.x), margin, width - margin);
+    const my = clamp(at.z(place.z), margin, height - margin);
+    ctx.fillStyle = near ? STYLE.next : STYLE.place;
+    ctx.beginPath();
+    ctx.moveTo(mx, my - 6);
+    ctx.lineTo(mx + 5, my);
+    ctx.lineTo(mx, my + 6);
+    ctx.lineTo(mx - 5, my);
+    ctx.closePath();
+    ctx.fill();
+    if (!near) return;
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(`${place.label} ${Math.round(place.distance)}m`, mx, my - 10, width - margin);
+    ctx.textAlign = "left";
+    // and a line from where you stand to it, so the direction reads at a glance
+    ctx.strokeStyle = STYLE.next;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(mx, my);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
   ctx.fillStyle = STYLE.player;
   ctx.beginPath();
   ctx.arc(px, py, 3.5, 0, Math.PI * 2);
@@ -135,3 +206,5 @@ export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPer
   ctx.font = "11px ui-monospace, monospace";
   ctx.fillText(plan.floor ? `${plan.label} (floor ${plan.floor})` : plan.label, margin / 2, height - 6);
 }
+
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));

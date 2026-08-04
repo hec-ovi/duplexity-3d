@@ -6,7 +6,7 @@
 // blueprint overlay. Names and speech are HTML the runtime lays over the canvas.
 
 import { createApp } from "../layers/runtime/src/app.js";
-import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
+import { drawBlueprint, placesLeft } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { paintSurface, photoSurface } from "../layers/surfaces/src/index.js";
 import { dressFacade } from "../layers/facade/src/index.js";
@@ -25,6 +25,7 @@ const container = document.getElementById("app");
 const placeEl = document.getElementById("place");
 const roomEl = document.getElementById("room");
 const gateEl = document.getElementById("gate");
+const nextEl = document.getElementById("next");
 const statusEl = document.getElementById("status");
 const promptEl = document.getElementById("prompt");
 const blueprintEl = document.getElementById("blueprint");
@@ -86,12 +87,21 @@ function showPlace() {
   roomEl.textContent = app.getPlayer().currentRoom ?? "doorway";
 }
 
+// The places still to finish, kept as the run changes rather than worked out every frame. The map
+// marks them, and the line under the controls names the nearest and points at it.
+let left = [];
+
 function showGate() {
   const gate = exitState(worldMap, run);
+  left = gate.remaining;
   gateEl.textContent = gate.open
     ? "The gate is open. Head for it."
     : `Gate sealed: ${gate.remaining.length} place(s) left to finish.`;
 }
+
+// Eight ways to point, from a bearing in radians off where the player is looking.
+const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+const arrowFor = (bearing) => ARROWS[Math.round((bearing / (Math.PI / 4) + 8) % 8)];
 
 const app = createApp({
   container,
@@ -119,10 +129,16 @@ const app = createApp({
   // Redrawn each frame, so the overlay follows the player and reveals each room as it is walked into.
   // It draws only what blueprint() hands over, which is only what has been seen.
   onFrame: () => {
-    drawBlueprint(blueprintCtx, app.blueprint(), {
+    const plan = app.blueprint();
+    drawBlueprint(blueprintCtx, plan, {
       width: blueprintEl.width,
       height: blueprintEl.height,
+      left,
     });
+    const [next] = placesLeft(plan, left);
+    nextEl.textContent = next
+      ? `${arrowFor(next.bearing)} ${next.label} - ${Math.round(next.distance)} m`
+      : "";
   },
   onGoalMet: (instanceId) => {
     // Reaching the open gate wins the run; finishing anywhere else ticks one place off the list.

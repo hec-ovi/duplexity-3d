@@ -50,15 +50,31 @@ node tools/level.js city --id ashgate --theme city --label Ashgate \
 | Flag | Default | Change it when |
 | --- | --- | --- |
 | `--size small\|medium\|large` | medium | You want 2x2, 3x3 or 4x4 city blocks. |
-| `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings. |
+| `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings standing. |
+| `--places <n>` | 6 | The run should visit more or fewer of them. |
 | `--floors 2,1,3` | drawn from a mix | Buildings should differ in height. A short list repeats its last value. |
-| `--accessible <0..1>` | 1 | Some buildings should have no way in. |
+| `--accessible <0..1>` | - | Places should be a share of the buildings, drawn at random rather than spread out. |
 | `--wet <0..1>` | 0 | The streets should be wet, so the lamps reflect down them. It never rains. |
 | `--npcs <n>` | 2 | Per instance. `0` builds an empty level. |
 | `--seed <n>` | from the id | You want a different level from the same flags. |
 
 Then always [check it](#check). The output is an Adventure document: the same file the runtime plays,
 `server/` serves and `persistence` exports.
+
+### The spec is the whole authoring surface
+
+A city can stand hundreds of buildings; a run visits six or seven of them, far apart, and the rest is
+scenery with no door and nothing behind it. So one `CitySpec` says everything there is to say:
+
+| Field | Means |
+| --- | --- |
+| `blocks` / `sizeHint` | how big the city is |
+| `lots` | how many buildings stand in it |
+| `places` | how many you can walk into (6 by default), spread one per block until the blocks run out |
+| `buildings[]` | the ones you name: where each stands, what it is called, what it is for, its quest |
+| `wet`, `npcs`, `seed`, `exit` | how wet the streets are, the cast per instance, the level, the gate |
+
+Name nothing and the generator picks the places for you. Name some and those ARE the places.
 
 ### Pinning what matters
 

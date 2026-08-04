@@ -47,8 +47,9 @@ city / street
   --spec <file>                a CitySpec in JSON; flags below override what it says
   --size small|medium|large    how many blocks (2x2, 3x3, 4x4). Default medium
   --lots <n>                   how many buildings across the city
+  --places <n>                 how many of them you can walk into, spread out. Default 6
   --floors 2,1,3               floors per building, in order. A short list repeats its last value
-  --accessible <0..1>          share of buildings with a front door. Default 1
+  --accessible <0..1>          places as a share of the buildings, drawn at random instead
   --wet <0..1>                 how wet the streets are. Default 0 (dry). It never rains
   --npcs <n>                   NPCs per instance (city only). Default 2, 0 for an empty level
 
@@ -106,6 +107,7 @@ function citySpec(args) {
   if (flag(args, "label")) spec.label = args.label;
   if (flag(args, "size")) spec.sizeHint = args.size;
   if (args.lots) spec.lots = asInt(args.lots, 1);
+  if (args.places) spec.places = asInt(args.places, 1);
   if (args.accessible !== undefined) spec.accessibleRatio = Number(args.accessible);
   if (args.wet !== undefined) spec.wet = Number(args.wet);
   if (args.npcs !== undefined) spec.npcs = asInt(args.npcs, 2);

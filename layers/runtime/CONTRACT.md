@@ -50,9 +50,13 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   a time and never loads the next one itself.
 - `blueprint()` - the floor plan for the map overlay: `{ instanceId, label, mapKind, floor, player,
   rooms[], blocks[], doors[] }`, in world XZ metres. Each door carries its `kind`, its `to` instance,
-  and whether it is `open` right now; `blocks[]` are the buildings standing on open ground. The
-  overlay it feeds (`src/blueprint-hud.js`) keeps the player centred at a scale taken from the room
-  they are IN, so discovering a room slides the map instead of rescaling it.
+  what that place is called (`label`) and whether it is `open` right now; `blocks[]` are the buildings
+  standing on open ground. The overlay it feeds (`src/blueprint-hud.js`) keeps the player centred at a
+  scale taken from the room they are IN, so discovering a room slides the map instead of rescaling it.
+  That overlay also exports `placesLeft(plan, left?)`: the places still to go, nearest first, each
+  with the metres to it and the bearing off where the player is looking. `drawBlueprint` takes the
+  same `left` list and marks them, pinning one that is off the map to its edge so it still points
+  the way.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
 
 ## What it builds that the level does not describe
