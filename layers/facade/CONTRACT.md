@@ -15,10 +15,15 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 
 ## Outputs (params out)
 - `name` - what the place is called, and what its cartel says. Null for a house, which has no sign.
-- `shape` / `tiers` / `bands` - what shape it stands in. A building is a STACK of masses, not one
-  extruded box: the ground tier fills its plot (that is what you walk up to) and the ones above step
-  back, narrow or shoulder to one side, with a ledge where each step lands and a parapet on top. Five
-  shapes, drawn from the seed.
+- `shape` / `tiers` / `bands` / `topper` - what shape it stands in. A building is a STACK of masses,
+  not one extruded box, and a mass is a TAPERED box: its `taper` is the top's [width, depth] as a
+  share of its bottom's, so a wall can batter inward as it rises or flare out into a crown. Ten
+  shapes drawn from the seed and weighted so most of a street leans: slab, setback, stepped,
+  shoulder, tower, battered, waisted, slotted (two shafts with sky between them, joined at the top),
+  crowned (a cap wider than what holds it up) and void (open sky carried on `legs`, cut through the
+  building). `bands` are the ledge where each step lands and the parapet on top, trimmed at the size
+  a leaning tier actually ends up. `topper` is what stands on the roof of anything tall enough to be
+  seen over: a mast, a girder frame, a dish, a spire or a run of plant.
 - `style` - the look this one wears, drawn once from its seed so everything on it agrees:
   `{ window, balcony, mount, door }`. Windows are square, tall, ribbon, bay or grid; balconies slab,
   cage, French or corner; a sign hangs on the fascia, out on a blade, clear of the wall on a frame or
@@ -26,7 +31,8 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
   where every part is the same part reads as one building repeated.
 - `door` - `{ style, colour }` for whoever builds the front door, or null on a building with no way
   in. The facade chooses it, because a door is part of a building's look.
-- `parts[]` - `window`, `balcony`, `awning`, `neon`, `advert` and `sign`, each a box in the BUILDING'S
+- `parts[]` - `window`, `balcony`, `awning`, `neon`, `strip` (light running the full height of a
+  wall), `advert` and `sign`, each a box in the BUILDING'S
   OWN frame: origin in the middle of its footprint, on the ground. `size` is `[across the wall, up,
   out from the wall]` and `facing` is the turn that points it out of the wall it is on. A renderer
   adds the building's position, turns each part, and is done. An `advert` carries either a trade
@@ -41,6 +47,8 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 - Deterministic: no `Math.random`, no clock.
 - Nothing is hung over a shopfront: balconies and windows start at the first storey above the street,
   except on a house, which is glazed all the way down.
+- A tier that LEANS is dressed at the width its wall actually has at that height, so nothing floats
+  off a sloping face; a tier that is open sky on legs is dressed with nothing at all.
 - Every window is its OWN part, with its own light on or off, its own colour and its own blind. A wall
   of windows is a wall of separate things, never one sheet with rectangles painted on it.
 - A part always stands clear of the wall it is on, on the outside, and faces away from the building.
