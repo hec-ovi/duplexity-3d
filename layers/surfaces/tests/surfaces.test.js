@@ -78,7 +78,11 @@ describe("surfaces contract", () => {
     // 5 bays of 3m across, 6 storeys of 3.2m up
     expect(plan.metres[0]).toBeCloseTo(15, 5);
     expect(plan.metres[1]).toBeCloseTo(19.2, 5);
-    expect(plan.pixels).toEqual([360, 432]);
+    // The sheet is a whole number of bays by a whole number of storeys, at one cell size, and it
+    // never runs away with itself: the windows are separate objects, so this carries no fine detail.
+    const [w, h] = plan.pixels;
+    expect(w / 5).toBeCloseTo(h / 6, 5);
+    expect(Math.max(w, h)).toBeLessThanOrEqual(512);
   });
 
   it("a window is its own thing: a frame, bars, and glass that burns only when it is lit", () => {

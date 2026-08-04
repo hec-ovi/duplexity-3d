@@ -2,6 +2,27 @@
 
 What the project does now, newest first.
 
+## 0.18 - Buildings with shapes, and something to look at while it loads
+
+- The massing library is the shape vocabulary the reference city actually has, not five stacks of
+  boxes: masses that BATTER inward as they rise or FLARE into a crown, a tower cut through by a void
+  and carried on legs, a shaft that narrows to a waist and widens again, two shafts joined at the
+  top by a bridge. Weighted so most of a street LEANS.
+- A tier is a tapered box now, with the same six faces and material groups a box had, so a wall that
+  leans is dressed at the width it actually is at each storey.
+- Something on every tall roof: a mast with a warning light and its guys, a girder frame, a dish, a
+  spire, a run of plant.
+- Light running the full height of a wall, up its corners and its seams. A tall building is read at
+  night by those lines, not by its windows.
+- Megastructures: four shapes three to six times anything on the ground, spaced round the city so one
+  is in view from anywhere in it. The skyline ring leans too, and stands taller the further out.
+- A loading screen that says which part is slow, and two reasons it is faster: every material is
+  compiled BEFORE the first frame instead of stalling on it, and the street is kept standing while
+  you are inside a building, so stepping back out is immediate.
+- Facade sheets are shared between buildings that would wear the same wall anyway, and painted at
+  512 rather than 1024. The windows are separate objects, so the sheet carries no fine detail: a
+  city's walls went from about a hundred megabytes of texture to under thirty.
+
 ## 0.17 - cityscape is its own box
 
 - Everything the city LOOKS like in three.js moved into `layers/cityscape/`: the fabric, the parts

@@ -71,7 +71,7 @@ describe("surface materials", () => {
     expect(faces).toHaveLength(6);
     // one sheet for the wide walls, one for the narrow ones, each painted to that wall's frontage
     expect(painter.asked.map((a) => a.opts.metresWide)).toEqual([12, 6]);
-    expect(painter.asked[0].opts).toMatchObject({ seed: "mass-ashgate-b1", floors: 6, program: "office" });
+    expect(painter.asked[0].opts).toMatchObject({ floors: 6, program: "office" });
 
     const [px, , roof] = faces;
     // nothing tiles: a wall wears one whole sheet, so no window is ever cut in half
@@ -82,6 +82,20 @@ describe("surface materials", () => {
     expect(px.emissiveMap).toBeTruthy();
     expect(px.emissiveIntensity).toBeCloseTo(1.4, 6);
     expect(roof.map).toBeFalsy();
+  });
+
+  // Painting a sheet per building meant a hundred megabytes of texture before the first frame, for
+  // walls nobody can tell apart. What makes two buildings look different is their shape, their
+  // windows and what is bolted to them, not the concrete between.
+  it("shares one wall between the buildings that would wear the same wall anyway", () => {
+    const { painter, materials } = make();
+    const like = (id) => ({ id, size: { x: 12, y: 19.2, z: 6 }, floors: 6, program: "office" });
+    materials.block(like("mass-a"));
+    const painted = painter.asked.length;
+
+    // a hundred more of the same building paint nothing new beyond their own cladding variant
+    for (let i = 0; i < 100; i++) materials.block(like(`mass-${i}`));
+    expect(painter.asked.length).toBeLessThan(painted + 14);
   });
 
   it("works out the storeys when the level does not say", () => {

@@ -21,6 +21,7 @@ function hash(str) {
   return h | 0;
 }
 const ANISOTROPY = 4;
+const VARIANTS = 6; // how many cladding sheets a whole city is painted from
 
 /**
  * @param {object} deps
@@ -39,6 +40,7 @@ export function createSurfaceMaterials({
   if (typeof paintSurface !== "function" || typeof doc?.createElement !== "function") return null;
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
+  const wornBy = new Map(); // blockId -> the key of the sheet it wears, for its sign colour
   const windowMats = new Map(); // one material per kind of window, shared by every one of them
   const waiting = new Map(); // file -> the textures still showing a blank while it loads
   const textures = [];
@@ -181,14 +183,23 @@ export function createSurfaceMaterials({
     block(block) {
       const { x: width, y: height, z: depth } = block.size;
       const floors = block.floors ?? Math.max(1, Math.round((height - 1) / 3.2));
-      const sheet = (key, metresWide) =>
-        planFor(`facade:${block.id}${key}`, "facade", {
-          seed: `${block.id}${key}`,
-          metresWide,
+      // A sheet is SHARED between buildings that would wear the same one anyway: same cladding, same
+      // number of storeys, roughly the same frontage. Painting one per building meant a hundred
+      // megabytes of texture before the first frame, for walls nobody can tell apart. What makes two
+      // buildings look different is their shape, their windows and what is bolted to them.
+      const variant = Math.abs(hash(block.id)) % VARIANTS;
+      const sheet = (key, metresWide) => {
+        const bucket = Math.max(1, Math.min(6, Math.round(metresWide / 6)));
+        const id = `facade:v${variant}:f${floors}:w${bucket}${key}`;
+        if (!key) wornBy.set(block.id, id);
+        return planFor(id, "facade", {
+          seed: id,
+          metresWide: bucket * 6,
           floors,
           storeyHeight: height / floors,
           program: block.program,
         });
+      };
       // Painted at its own size and stretched onto the wall, so the bays land on the wall's edges.
       const fitted = (plan) => materialFor(plan, plan.metres[0], plan.metres[1]);
       const front = sheet("", width);
@@ -277,7 +288,7 @@ export function createSurfaceMaterials({
 
     /** What colour a building burns over its door, once its facade has been painted. */
     signColour(blockId) {
-      return plans.get(`facade:${blockId}`)?.signColour ?? null;
+      return plans.get(wornBy.get(blockId))?.signColour ?? null;
     },
 
     dispose() {

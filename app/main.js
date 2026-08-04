@@ -32,6 +32,32 @@ const statusEl = document.getElementById("status");
 const promptEl = document.getElementById("prompt");
 const blueprintEl = document.getElementById("blueprint");
 const blueprintCtx = blueprintEl.getContext("2d");
+const loaderEl = document.getElementById("loader");
+const barEl = document.querySelector("#bar i");
+const stepEl = document.getElementById("step");
+
+// The loading screen. Building a city takes a moment and compiling its shaders takes longer, so it
+// says which of the two it is doing rather than showing nothing. Each step yields a frame first, or
+// the browser would run the lot before painting any of it and the screen would never appear.
+const paint = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+
+async function step(label, share, work) {
+  stepEl.textContent = label;
+  barEl.style.width = `${Math.round(share * 100)}%`;
+  await paint();
+  return work?.();
+}
+
+function showLoader(busy, label = "entering") {
+  if (busy) {
+    loaderEl.classList.remove("gone");
+    stepEl.textContent = label;
+    barEl.style.width = "70%";
+    return;
+  }
+  barEl.style.width = "100%";
+  loaderEl.classList.add("gone");
+}
 
 // The seed IS the level, so `?seed=1234` plays the same city again and is worth sharing. Without one,
 // every visit is a new city.
@@ -41,20 +67,24 @@ const seed = Number.isFinite(asked) ? asked : Math.floor(Math.random() * 1e6);
 // `?wet=0.8` soaks the streets, so the lamps come back off them. It never rains.
 const wet = Number.parseFloat(query.get("wet") ?? "");
 
-const { adventure } = composeCity({
-  id: "ashgate",
-  theme: "city",
-  label: "Ashgate",
-  sizeHint: "medium",
-  seed,
-  ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
-});
+const { adventure } = await step("laying out the city", 0.15, () =>
+  composeCity({
+    id: "ashgate",
+    theme: "city",
+    label: "Ashgate",
+    sizeHint: "medium",
+    seed,
+    ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
+  })
+);
 
 // The photographed CC0 materials are fetched, not committed (`npm run textures`). Ask once whether
 // they are here; without them the surfaces layer paints its own and the city looks after itself.
-const textureBase = await fetch("textures/manifest.json", { method: "HEAD" })
-  .then((r) => (r.ok ? "textures" : null))
-  .catch(() => null);
+const textureBase = await step("looking for materials", 0.25, () =>
+  fetch("textures/manifest.json", { method: "HEAD" })
+    .then((r) => (r.ok ? "textures" : null))
+    .catch(() => null)
+);
 
 const worldMap = buildWorldMap(adventure);
 let run = createProgress(worldMap);
@@ -105,6 +135,8 @@ function showGate() {
 const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
 const arrowFor = (bearing) => ARROWS[Math.round(bearing / (Math.PI / 4) + 8) % 8];
 
+await step("building it", 0.4);
+
 const app = createApp({
   container,
   adventure,
@@ -121,6 +153,9 @@ const app = createApp({
       dressFacade, // balconies, awnings, windows and the cartel over each door
     }),
   onInteraction: cannedBrain,
+  // Building a place and compiling its shaders is the slow part, and it happens again on the way
+  // through a door. The screen says so instead of freezing.
+  onLoading: (busy) => showLoader(busy, "compiling the city"),
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   // The hint is only a hint: it goes while you are playing and comes back when the cursor does.
   onPointerLock: (locked) => {
@@ -183,4 +218,5 @@ if (import.meta.env?.DEV) globalThis.duplexity = { app, adventure, worldMap };
 
 promptEl.addEventListener("click", () => app.requestPointerLock());
 
+await step("warming up", 0.7);
 app.start();
