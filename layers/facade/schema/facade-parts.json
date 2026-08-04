@@ -26,6 +26,28 @@
     "parts": {
       "type": "array",
       "items": { "$ref": "#/$defs/part" }
+    },
+    "style": {
+      "type": "object",
+      "description": "The look this building wears, drawn once from its seed so everything on it agrees.",
+      "properties": {
+        "window": { "type": "string", "enum": ["square", "tall", "ribbon", "bay", "grid"] },
+        "balcony": { "type": "string", "enum": ["slab", "cage", "french", "corner"] },
+        "mount": { "type": "string", "enum": ["flat", "blade", "roof", "frame"] },
+        "door": { "type": "string", "enum": ["shopfront", "flush", "recessed", "double", "shutter"] }
+      },
+      "required": ["window", "balcony", "mount", "door"],
+      "additionalProperties": false
+    },
+    "door": {
+      "type": ["object", "null"],
+      "description": "What the front door is, for whoever builds it. Null on a building with no way in.",
+      "properties": {
+        "style": { "type": "string", "enum": ["shopfront", "flush", "recessed", "double", "shutter"] },
+        "colour": { "type": "string", "description": "A CSS colour: what this place burns over its door." }
+      },
+      "required": ["style"],
+      "additionalProperties": false
     }
   },
   "required": ["name", "parts"],
@@ -62,16 +84,32 @@
           "type": "number",
           "description": "Radians. Turn the part by this and its front points out of the wall it is on."
         },
+        "style": {
+          "type": "string",
+          "description": "window: square, tall, ribbon, bay or grid. balcony: slab, cage, french or corner."
+        },
         "rail": { "type": "number", "description": "balcony: how high the rail round it stands." },
+        "floor": { "type": "boolean", "description": "balcony: false is a rail on the wall with nothing to stand on." },
+        "bars": { "type": "boolean", "description": "balcony: a cage, with bars over the parapet." },
         "lit": { "type": "boolean", "description": "window: whether the light behind it is on." },
         "blind": { "type": "boolean", "description": "window: whether a blind is pulled down over it." },
-        "colour": { "type": "string", "description": "awning, sign: a CSS colour." },
-        "text": { "type": "string", "description": "sign, advert: what it says." },
+        "colour": { "type": ["string", "null"], "description": "awning, sign, window, advert: a CSS colour." },
+        "text": { "type": ["string", "null"], "description": "sign, advert: what it says, or null on a panel with no words." },
+        "graphic": {
+          "type": ["string", "null"],
+          "description": "advert: a lit composition instead of words - bars, rings, wave, grid or figure."
+        },
+        "holo": { "type": "boolean", "description": "advert: projected into the air in front of the panel." },
         "portrait": { "type": "boolean", "description": "advert: running up the building rather than across it." },
         "orientation": {
           "type": "string",
           "enum": ["flat", "blade"],
           "description": "sign: flat against the wall, or out at right angles so it reads down the street."
+        },
+        "mount": {
+          "type": "string",
+          "enum": ["flat", "blade", "roof", "frame"],
+          "description": "sign: how it is hung - on the fascia, out at right angles, on the parapet, or clear of the wall on arms."
         }
       },
       "required": ["kind", "position", "size", "facing"],

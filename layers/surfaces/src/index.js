@@ -143,7 +143,12 @@ export function paintSurface(kind, ctxFor, opts = {}) {
   }
 
   if (kind === "advert") {
-    const plan = planAdvert({ text: opts.text ?? "NEO", colour: opts.colour ?? "#ff5f9e", portrait: opts.portrait });
+    const plan = planAdvert({
+      text: opts.text ?? null,
+      graphic: opts.text ? null : (opts.graphic ?? "bars"),
+      colour: opts.colour ?? "#ff5f9e",
+      portrait: opts.portrait,
+    });
     const albedo = contextFor(ctxFor, "albedo", plan.width, plan.height);
     paintAdvertAlbedo(albedo, plan);
     const emissive = contextFor(ctxFor, "emissive", plan.width, plan.height);
@@ -159,7 +164,7 @@ export function paintSurface(kind, ctxFor, opts = {}) {
   }
 
   if (kind === "window") {
-    const plan = planWindow(opts);
+    const plan = planWindow(opts); // style says how it is divided: square, tall, ribbon, bay, grid
     const albedo = contextFor(ctxFor, "albedo", plan.width, plan.height);
     paintWindowAlbedo(albedo, plan);
     const emissive = contextFor(ctxFor, "emissive", plan.width, plan.height);

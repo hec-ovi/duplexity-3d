@@ -1,22 +1,40 @@
 // One window: a frame, the bars across it, and what is behind the glass.
 //
-// A window is its own thing now, not a rectangle painted into a wall, so this tile is small and is
-// worn by one window at a time. Lit or unlit, blind up or down, each is painted separately, which is
-// what keeps a wall of them from reading as a grid.
+// A window is its own thing, not a rectangle painted into a wall, so this tile is small and is worn
+// by one window at a time. Lit or unlit, blind up or down, and in whichever style its building wears,
+// each is painted separately, which is what keeps a wall of them from reading as a grid.
 
 import { PALETTE } from "./palette.js";
 
-const BARS = { cols: 2, rows: 3 };
+// How each style of window is divided up, and how much of it is frame. A ribbon runs the width of a
+// wall, so it carries many mullions and a thin one; a bay is one pane in a deep surround.
+const STYLE = {
+  square: { cols: 2, rows: 3, edge: 0.09 },
+  tall: { cols: 1, rows: 4, edge: 0.08 },
+  bay: { cols: 3, rows: 2, edge: 0.13 },
+  grid: { cols: 2, rows: 2, edge: 0.05 }, // a curtain wall: almost all glass
+  ribbon: { cols: 9, rows: 1, edge: 0.06 },
+};
 
-export function planWindow({ lit, colour, blind }) {
-  return { width: 128, height: 128, lit: Boolean(lit), colour: colour ?? PALETTE.windows[0], blind: Boolean(blind) };
+export function planWindow({ lit, colour, blind, style }) {
+  const shape = STYLE[style] ?? STYLE.square;
+  return {
+    width: 128,
+    height: 128,
+    style: style ?? "square",
+    bars: shape,
+    edge: shape.edge,
+    lit: Boolean(lit),
+    colour: colour ?? PALETTE.windows[0],
+    blind: Boolean(blind),
+  };
 }
 
 /** What it looks like by day: a painted frame, dark glass, and a blind where one is down. */
 export function paintWindowAlbedo(ctx, plan) {
   const p = PALETTE.facade;
   const { width, height } = plan;
-  const edge = Math.round(width * 0.09);
+  const edge = Math.round(width * plan.edge);
 
   ctx.fillStyle = p.frame;
   ctx.fillRect(0, 0, width, height);
@@ -37,7 +55,7 @@ export function paintWindowEmissive(ctx, plan) {
   ctx.fillRect(0, 0, width, height);
   if (!plan.lit) return;
 
-  const edge = Math.round(width * 0.09);
+  const edge = Math.round(width * plan.edge);
   ctx.globalAlpha = plan.blind ? 0.45 : 1;
   ctx.fillStyle = plan.colour;
   ctx.fillRect(edge, edge, width - edge * 2, height - edge * 2);
@@ -46,14 +64,14 @@ export function paintWindowEmissive(ctx, plan) {
 }
 
 function bars(ctx, plan, edge, colour) {
-  const { width, height } = plan;
-  const bar = Math.max(2, Math.round(width * 0.035));
+  const { width, height, bars: grid } = plan;
+  const bar = Math.max(2, Math.round(width * (plan.style === "ribbon" ? 0.02 : 0.035)));
   const inner = { w: width - edge * 2, h: height - edge * 2 };
   ctx.fillStyle = colour;
-  for (let i = 1; i < BARS.cols; i++) {
-    ctx.fillRect(edge + (inner.w * i) / BARS.cols - bar / 2, edge, bar, inner.h);
+  for (let i = 1; i < grid.cols; i++) {
+    ctx.fillRect(edge + (inner.w * i) / grid.cols - bar / 2, edge, bar, inner.h);
   }
-  for (let i = 1; i < BARS.rows; i++) {
-    ctx.fillRect(edge, edge + (inner.h * i) / BARS.rows - bar / 2, inner.w, bar);
+  for (let i = 1; i < grid.rows; i++) {
+    ctx.fillRect(edge, edge + (inner.h * i) / grid.rows - bar / 2, inner.w, bar);
   }
 }

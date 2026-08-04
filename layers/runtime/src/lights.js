@@ -7,6 +7,7 @@
 // scene builder draws, which costs nothing.
 
 import * as THREE from "three";
+import { lampHeight } from "./lamps.js";
 
 const POOL = 10; // real point lights alive at once
 const CASTERS = 2; // of those, how many throw shadows: the nearest, because they are what you see
@@ -15,7 +16,8 @@ const REACH = 24; // metres a pooled light carries
 const FADE = 55; // how fast a light comes up or goes out, in intensity per second
 
 const LOOK = {
-  street_lamp: { colour: 0xffd9a8, intensity: 28, height: 4.6 },
+  street_lamp: { colour: 0xffd9a8, intensity: 28 },
+  wall_lamp: { colour: 0xffd9a8, intensity: 14 },
   sign: { colour: 0xffc98a, intensity: 12, height: 3.6 },
   ceiling: { colour: 0xffeed6, intensity: 3.2, height: 2.8 },
 };
@@ -68,9 +70,11 @@ export function createLightRig(scene, { lights = [], open = false, tintFor, exte
     .filter((light) => LOOK[light.kind])
     .map((light) => {
       const look = LOOK[light.kind];
+      // A lamp burns in its head, and where that is depends on which lamp stands there.
+      const height = look.height ?? lampHeight(light);
       return {
         id: light.id,
-        position: new THREE.Vector3(light.position[0], light.position[1] + look.height, light.position[2]),
+        position: new THREE.Vector3(light.position[0], light.position[1] + height, light.position[2]),
         colour: tintFor?.(light) ?? look.colour,
         intensity: look.intensity,
       };

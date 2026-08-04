@@ -35,7 +35,8 @@ ids, never on coordinates.
 - `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
   roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a
   block, each carrying its `floors` and `program` so its outside can be dressed to suit), its
-  `lights[]` (a lamp on each side of every block, a sign over every front door), one `LINK`
+  `lights[]` (four lamps round every block, all of one kind so a street reads as a street, a bracket
+  on some building faces, and a sign over every front door), one `LINK`
   portal per building you can enter carrying `blockId` (the door is on that mass's face), and one
   `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
   `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.

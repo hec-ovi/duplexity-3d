@@ -6,7 +6,7 @@ on the storeys above the street, an awning over a shopfront, and the cartel that
 It knows nothing about three.js, textures or the city around it: it takes a shape and returns boxes.
 
 ## Inputs (params in)
-- `dressFacade(building) -> { name, parts }`
+- `dressFacade(building) -> { name, shape, tiers, bands, parts, style, door }`
   - `building`: `{ id, size: { w, h, d }, floors?, storeyHeight?, program?, door?, seed? }`.
     `door` is `{ face: south|north|west|east, along }` - which wall the front door is on and how far
     it sits from the middle of it, which is where the sign and the awning go. A building with no
@@ -19,10 +19,19 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
   extruded box: the ground tier fills its plot (that is what you walk up to) and the ones above step
   back, narrow or shoulder to one side, with a ledge where each step lands and a parapet on top. Five
   shapes, drawn from the seed.
-- `parts[]` - `window`, `balcony`, `awning` and `sign`, each a box in the BUILDING'S OWN frame: origin in the
-  middle of its footprint, on the ground. `size` is `[across the wall, up, out from the wall]` and
-  `facing` is the turn that points it out of the wall it is on. A renderer adds the building's
-  position, turns each part, and is done.
+- `style` - the look this one wears, drawn once from its seed so everything on it agrees:
+  `{ window, balcony, mount, door }`. Windows are square, tall, ribbon, bay or grid; balconies slab,
+  cage, French or corner; a sign hangs on the fascia, out on a blade, clear of the wall on a frame or
+  on the parapet; a front door is a shopfront, flush, recessed, double or a roller shutter. A street
+  where every part is the same part reads as one building repeated.
+- `door` - `{ style, colour }` for whoever builds the front door, or null on a building with no way
+  in. The facade chooses it, because a door is part of a building's look.
+- `parts[]` - `window`, `balcony`, `awning`, `neon`, `advert` and `sign`, each a box in the BUILDING'S
+  OWN frame: origin in the middle of its footprint, on the ground. `size` is `[across the wall, up,
+  out from the wall]` and `facing` is the turn that points it out of the wall it is on. A renderer
+  adds the building's position, turns each part, and is done. An `advert` carries either a trade
+  written across it or a `graphic` and no words at all, since a made-up name five storeys tall reads
+  as nonsense; a `figure` graphic is `holo`, projected into the air in front of its panel.
   schema: [schema/facade-parts.json](schema/facade-parts.json)
 
 ## Errors
@@ -43,8 +52,9 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 None. It is a leaf: give it a shape and it dresses it.
 
 ## How to modify this blackbox safely
-One file per thing. `src/parts.js` is the geometry of a balcony, an awning and a cartel, one function
-each; `src/naming.js` is what places are called; `src/index.js` decides which building gets what.
+One file per thing. `src/parts.js` is the geometry of a window, a balcony, an awning and a cartel,
+one function each; `src/styles.js` is which of them a building wears; `src/naming.js` is what places
+are called; `src/adverts.js` is what the panels say; `src/index.js` decides which building gets what.
 The shapes a building can stand in are `src/massing.js`. Add a part by adding a function to
 `src/parts.js`, a `kind` to the schema, and a branch in the renderer that builds it
 (`layers/runtime/src/facade-parts.js`). Keep `tests/` green: parts stand outside the wall

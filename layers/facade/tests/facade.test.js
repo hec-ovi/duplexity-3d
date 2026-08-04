@@ -69,6 +69,34 @@ describe("facade contract", () => {
     expect(blade.text).toBe(dressFacade(tall).name.split(" ")[0]);
   });
 
+  // A street where every window, balcony and door is the same one reads as a single building
+  // repeated, however well it is textured.
+  it("each building draws its own look, and wears it consistently", () => {
+    const looks = new Set();
+    const windows = new Set();
+    for (let i = 0; i < 24; i++) {
+      const dressed = dressFacade({ ...block, id: `mass-${i}`, seed: `mass-${i}` });
+      looks.add(JSON.stringify(dressed.style));
+      windows.add(dressed.style.window);
+      // every window on one building is that building's window
+      const worn = new Set(dressed.parts.filter((p) => p.kind === "window").map((p) => p.style));
+      expect([...worn]).toEqual([dressed.style.window]);
+      expect(dressed.door.style).toBe(dressed.style.door);
+    }
+    expect(looks.size).toBeGreaterThan(4);
+    expect(windows.size).toBeGreaterThan(1);
+  });
+
+  it("a panel says something a city would say, or says nothing and is a graphic", () => {
+    for (let i = 0; i < 30; i++) {
+      for (const ad of dressFacade({ ...block, id: `ad-${i}`, seed: `ad-${i}`, floors: 14, size: { w: 18, h: 46, d: 16 } })
+        .parts.filter((p) => p.kind === "advert")) {
+        expect(Boolean(ad.text) !== Boolean(ad.graphic)).toBe(true); // words or a graphic, never both
+        if (ad.text) expect(ad.text).toMatch(/^[A-Z0-9 ]+$/);
+      }
+    }
+  });
+
   it("a house has no sign and a building with no door has nothing on it", () => {
     expect(dressFacade({ ...shop, program: "house" }).name).toBeNull();
     const sealed = dressFacade({ ...shop, door: undefined });

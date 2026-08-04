@@ -215,9 +215,11 @@ export function createSurfaceMaterials({
      * a few colours, blind up or down), so they are painted once each and shared.
      */
     window(part) {
-      const key = `window:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
+      const style = part.style ?? "square";
+      const key = `window:${style}:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
       const [w, h] = part.size;
       const plan = planFor(key, "window", {
+        style,
         lit: part.lit,
         colour: part.colour,
         blind: part.blind,
@@ -242,8 +244,9 @@ export function createSurfaceMaterials({
     /** A holo advert: a lit panel, read off its front. */
     advert(part) {
       const [across, up] = part.size;
-      const plan = planFor(`advert:${part.text}:${part.colour}:${part.portrait}`, "advert", {
+      const plan = planFor(`advert:${part.text ?? part.graphic}:${part.colour}:${part.portrait}`, "advert", {
         text: part.text,
+        graphic: part.graphic,
         colour: part.colour,
         portrait: part.portrait,
         metresWide: across,

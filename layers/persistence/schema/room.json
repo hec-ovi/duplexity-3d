@@ -104,12 +104,25 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
-          "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
-          "floors": { "type": "integer", "minimum": 1 }
+          "id": {
+            "type": "string"
+          },
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "size": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "floors": {
+            "type": "integer",
+            "minimum": 1
+          }
         },
-        "required": ["id", "position", "size"],
+        "required": [
+          "id",
+          "position",
+          "size"
+        ],
         "additionalProperties": false
       }
     },
@@ -119,17 +132,40 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
+          "id": {
+            "type": "string"
+          },
           "kind": {
             "type": "string",
-            "enum": ["street_lamp", "sign", "ceiling"],
-            "description": "street_lamp: a pole with a head on it. sign: the glow off a building's front, fixed to `blockId`. ceiling: what lights a room from above."
+            "enum": [
+              "street_lamp",
+              "wall_lamp",
+              "sign",
+              "ceiling"
+            ],
+            "description": "street_lamp: something standing on the pavement. wall_lamp: a bracket on a building's face, fixed to `blockId`. sign: the glow off a building's front, fixed to `blockId`. ceiling: what lights a room from above."
           },
-          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
-          "blockId": { "type": "string", "description": "sign: the mass it is fixed to." },
-          "facing": { "type": "number", "description": "sign: which way it looks, in radians." }
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "blockId": {
+            "type": "string",
+            "description": "wall_lamp, sign: the mass it is fixed to."
+          },
+          "facing": {
+            "type": "number",
+            "description": "wall_lamp, sign: which way it looks, in radians."
+          },
+          "style": {
+            "type": "string",
+            "description": "street_lamp: post, twin, bollard or reach. Which one changes what stands there, not how it burns."
+          }
         },
-        "required": ["id", "kind", "position"],
+        "required": [
+          "id",
+          "kind",
+          "position"
+        ],
         "additionalProperties": false
       }
     },

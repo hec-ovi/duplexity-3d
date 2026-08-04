@@ -11,6 +11,7 @@ import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { buildDoorway } from "./doorways.js";
 import { buildFacadeParts } from "./facade-parts.js";
+import { buildLamp, lampMaterials } from "./lamps.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -47,9 +48,6 @@ function floorSurface(room) {
 const DEFAULT_OBJECT_SIZE = [0.8, 0.8, 0.8];
 const DEFAULT_NPC_SIZE = [0.6, 1.8, 0.6];
 
-// A lamp, in metres: a pole with a head on it. The light itself is the rig's business (lights.js);
-// this is only the thing you can see standing there.
-const LAMP = { height: 4.6, pole: 0.14, head: [0.5, 0.22, 0.5], colour: 0xffd9a8, glow: 1.1 };
 const SIGN = { height: 3.6, size: [1.8, 0.5, 0.12], colour: 0xffc98a, glow: 1.5 };
 const CEILING = { height: 2.7, size: [0.9, 0.08, 0.9], colour: 0xffeed6, glow: 0.9 };
 
@@ -223,6 +221,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
 
   // Buildings on a street: one mass each, drawn from the ground up, then dressed with the small
   // things bolted to it (balconies, an awning, the cartel that says what the place is).
+  const doorStyles = new Map(); // blockId -> which kind of front door its facade asked for
   for (const b of model.blocks ?? []) {
     const dressed = dressFacade?.({
       id: b.id,
@@ -257,6 +256,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     }
     counts.blocks++;
     if (!dressed) continue;
+    if (dressed.door) doorStyles.set(b.id, dressed.door.style);
     for (const part of dressed.parts) {
       cityParts.push({
         ...part,
@@ -281,6 +281,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY, {
       signMaterial: materials ? (part) => materials.sign(part) : undefined,
       names: roomNames,
+      style: doorStyles.get(portal.blockId) ?? "flush",
     });
     group.add(door);
     counts.doors++;
@@ -314,23 +315,11 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
 
   // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is
   // decided by the rig, which follows the player.
-  const poleMat = standard(0x1b1e23);
+  const lampMats = lampMaterials();
   for (const light of model.lights ?? []) {
     const [lx, ly, lz] = light.position;
-    if (light.kind === "street_lamp") {
-      const pole = new THREE.Mesh(
-        new THREE.BoxGeometry(LAMP.pole, LAMP.height, LAMP.pole),
-        poleMat
-      );
-      pole.position.set(lx, ly + LAMP.height / 2, lz);
-      pole.name = `lamp:${light.id}`;
-      pole.userData = { kind: "light", lightId: light.id };
-      group.add(pole);
-
-      const head = new THREE.Mesh(new THREE.BoxGeometry(...LAMP.head), glowing(LAMP.colour, LAMP.glow));
-      head.position.set(lx, ly + LAMP.height, lz);
-      head.name = `lamp:${light.id}:head`;
-      group.add(head);
+    if (light.kind === "street_lamp" || light.kind === "wall_lamp") {
+      group.add(buildLamp(light, lampMats));
     } else if (light.kind === "sign") {
       const colour = (light.blockId && materials?.signColour(light.blockId)) || SIGN.colour;
       const plate = new THREE.Mesh(new THREE.BoxGeometry(...SIGN.size), glowing(colour, SIGN.glow));

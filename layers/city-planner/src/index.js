@@ -166,7 +166,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         zones,
         blocks,
         skyline: distant,
-        lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors),
+        lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors, createRng(hashString(`${spec.id}-lamps`))),
       },
     ],
     portals,

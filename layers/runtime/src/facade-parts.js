@@ -11,6 +11,8 @@
 import * as THREE from "three";
 
 const PARAPET = 0.08; // a solid balcony front rather than a railing: three boxes, not forty
+const BAR = 0.06; // the bar over a cage balcony's parapet
+const ARM = { out: 0.5, thickness: 0.09 }; // what holds a framed sign clear of the wall
 const COLOURS = { slab: 0x3a3f47, rail: 0x2a2e35 };
 
 const matte = (color, extra = {}) =>
@@ -53,7 +55,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
     const shape = `${round(w)}x${round(h)}x${round(d)}`;
 
     if (part.kind === "window") {
-      const look = `${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
+      const look = `${part.style ?? "square"}:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
       batch(`window:${look}:${shape}`, part.size, () => windowMaterial?.(part) ?? matte(0x2a3138), part);
       continue;
     }
@@ -63,17 +65,27 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
     }
     if (part.kind === "balcony") {
       const rail = part.rail ?? 0.95;
-      batch(`balcony:${shape}`, part.size, () => slabMat, part);
+      const raised = { ...part, position: [part.position[0], part.position[1] + rail / 2, part.position[2]] };
+      // A French balcony is a rail across a door: no floor, and nothing at its ends to hold up.
+      if (part.floor !== false) {
+        batch(`balcony:${shape}`, part.size, () => slabMat, part);
+        for (const side of [-1, 1]) {
+          batch(`balcony-end:${round(rail)}:${round(d)}`, [PARAPET, rail, d], () => railMat, {
+            ...raised,
+            offset: [(side * w) / 2, 0, 0],
+          });
+        }
+      }
       batch(`balcony-front:${round(w)}:${round(rail)}`, [w, rail, PARAPET], () => railMat, {
-        ...part,
-        position: [part.position[0], part.position[1] + rail / 2, part.position[2]],
+        ...raised,
         offset: [0, 0, d / 2],
       });
-      for (const side of [-1, 1]) {
-        batch(`balcony-end:${round(rail)}:${round(d)}`, [PARAPET, rail, d], () => railMat, {
+      // A cage carries a bar over its parapet, which is what tells it apart from a solid front.
+      if (part.bars) {
+        batch(`balcony-bar:${round(w)}`, [w, BAR, BAR], () => railMat, {
           ...part,
-          position: [part.position[0], part.position[1] + rail / 2, part.position[2]],
-          offset: [(side * w) / 2, 0, 0],
+          position: [part.position[0], part.position[1] + rail + BAR, part.position[2]],
+          offset: [0, 0, d / 2],
         });
       }
       continue;
@@ -92,9 +104,26 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
     );
     one.position.set(part.position[0], part.position[1], part.position[2]);
     one.rotation.y = part.facing;
-    one.name = `${part.kind}:${part.text ?? ""}`;
+    one.name = `${part.kind}:${part.text ?? part.graphic ?? ""}`;
     one.userData = { kind: "light" };
     group.add(one);
+
+    // What holds a sign up, where the mounting shows: two arms behind a framed board, a plinth under
+    // a roof one. A fascia sign is against the wall and needs neither.
+    if (part.mount === "frame") {
+      for (const side of [-1, 1]) {
+        batch(`sign-arm:${round(w)}`, [ARM.thickness, ARM.thickness, ARM.out], () => railMat, {
+          ...part,
+          position: [part.position[0], part.position[1], part.position[2]],
+          offset: [(side * w) / 3, 0, -(d + ARM.out) / 2],
+        });
+      }
+    } else if (part.mount === "roof") {
+      batch(`sign-plinth:${round(w)}`, [w * 1.1, 0.3, d + 0.2], () => slabMat, {
+        ...part,
+        position: [part.position[0], part.position[1] - h / 2 - 0.15, part.position[2]],
+      });
+    }
   }
 
   const dummy = new THREE.Object3D();

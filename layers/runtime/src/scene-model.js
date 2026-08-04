@@ -212,6 +212,7 @@ export function buildSceneModel(instance) {
       lights.push({
         id: light.id,
         kind: light.kind,
+        style: light.style ?? null, // which lamp stands there: post, twin, bollard, reach
         room: room.id,
         blockId: light.blockId ?? null,
         facing: light.facing ?? 0,
