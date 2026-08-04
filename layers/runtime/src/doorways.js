@@ -7,8 +7,11 @@
 
 import * as THREE from "three";
 
-const FRAME = { proud: 0.12, margin: 0.22, thickness: 0.16 };
-const LEAF = { recess: 0.1, thickness: 0.08 };
+const FRAME = { proud: 0.16, margin: 0.22, thickness: 0.22 }; // stands further out than the leaf it holds
+// A door on a building's face has NO hole behind it: the mass is solid and what is inside is another
+// instance. So the leaf hangs on the face, not in it. Recessed, the wall simply swallows it and all
+// you see is a frame with a dark wall inside.
+const LEAF = { stand: 0.03, thickness: 0.09 };
 const STEP = { rise: 0.1, tread: 0.55, margin: 0.3 };
 const HANDLE = { size: 0.07, height: 1.05, inset: 0.28 };
 
@@ -16,6 +19,7 @@ const COLOURS = {
   frame: 0x8c7f6a, // painted timber, light enough to read against a dark wall
   leaf: 0x6b5a45,
   glass: 0x2a3138,
+  panel: 0x53442f,
   handle: 0xd8c08a,
   step: 0x5b6068,
 };
@@ -158,9 +162,17 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names }
   if (!solid) return group;
 
   const leaf = new THREE.Mesh(slab(width, height, LEAF.thickness, axis), matte(COLOURS.leaf, { roughness: 0.5 }));
-  place(leaf, portal, out, -LEAF.recess, groundY + height / 2);
+  place(leaf, portal, out, LEAF.stand + LEAF.thickness / 2, groundY + height / 2);
   leaf.name = `doorway:${portal.id}:leaf`;
   group.add(leaf);
+
+  // A panel below the glass, so the leaf reads as a door and not as a slab of colour.
+  const panel = new THREE.Mesh(
+    slab(width * 0.72, height * 0.34, 0.02, axis),
+    matte(COLOURS.panel, { roughness: 0.6 })
+  );
+  place(panel, portal, out, LEAF.stand + LEAF.thickness + 0.01, groundY + height * 0.22);
+  group.add(panel);
 
   // A glazed panel in the top half, lit from inside: what tells you at a glance that this is a door
   // into somewhere rather than a dark patch on a wall.
@@ -174,7 +186,7 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names }
       metalness: 0.1,
     })
   );
-  place(pane, portal, out, -LEAF.recess + LEAF.thickness * 0.6, groundY + height * 0.66);
+  place(pane, portal, out, LEAF.stand + LEAF.thickness + 0.01, groundY + height * 0.66);
   pane.userData = { kind: "light" }; // it is a source, so it neither casts nor takes a shadow
   group.add(pane);
 
@@ -198,7 +210,7 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial, names }
     new THREE.BoxGeometry(HANDLE.size, HANDLE.size, HANDLE.size),
     matte(COLOURS.handle, { roughness: 0.3, metalness: 0.7 })
   );
-  place(handle, portal, out, -LEAF.recess + LEAF.thickness, groundY + HANDLE.height);
+  place(handle, portal, out, LEAF.stand + LEAF.thickness + HANDLE.size / 2, groundY + HANDLE.height);
   if (axis === "x") handle.position.z += width / 2 - HANDLE.inset;
   else handle.position.x += width / 2 - HANDLE.inset;
   group.add(handle);
