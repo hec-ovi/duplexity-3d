@@ -8,7 +8,9 @@ on coordinates.
 
 ## Inputs (params in)
 - `createStreets(CitySpec, assetQuery, opts?) -> { instance, lots, report }`
-  - `CitySpec`: `{ id, theme, sizeHint?, lots?, label?, seed?, exit? }`.
+  - `CitySpec`: `{ id, theme, label?, sizeHint?, lots?, floorsPerLot?, npcs?, exit?, seed? }`.
+    `floorsPerLot` sets how tall each building is, in order, repeating its last value. `npcs` is read
+    by the toolkit that populates the level, not by the street layout.
     schema: [schema/city-spec.json](schema/city-spec.json)
   - `assetQuery`: a handle to `asset-registry.query` (injected, never imported), used for the road and
     facade kits.

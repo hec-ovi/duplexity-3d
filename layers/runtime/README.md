@@ -65,5 +65,6 @@ behind the same builder + `animation` field.
 
 - `npm test` runs the contract + simulation + jsdom interaction tests (no browser needed).
 - `npm run dev` (from the repo root) serves the playable slice from `app/`: WASD to move, mouse to
-  look, walk onto the amulet to meet the goal. `app/` is the composition root that wires this runtime
-  to `asset-registry` and the shared fixture (the one place allowed to import several layers).
+  look, `E` to talk, and walk into a door to go through it. `app/` is the composition root that wires
+  this runtime to `asset-registry`, a generated city and `map-state` (the one place allowed to import
+  several layers).

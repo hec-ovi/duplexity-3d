@@ -13,7 +13,10 @@ a code import.
 | `runtime` | frontend | no | Load and PLAY one instance in three.js: render, move, pathfind, animate, speech bubbles, goal checks, progression transitions. |
 | `interviewer` | backend | yes (skippable) | Turn player preferences (or nothing) into a **creative brief**. |
 | `narrator` | backend | yes + graph | Plan the **Adventure** from the brief (instances, goals, progression graph, NPC rosters). Own play-time instance init + interaction history. |
-| `scenario-creator` | backend | yes, structured, per-instance | Turn one instance spec into a geometrically valid 3D **layout** (rooms, portals, objects, spawns). |
+| `scenario-creator` | backend | yes, structured, per-instance | Turn one instance spec into a geometrically valid 3D **layout** (rooms, portals, objects, spawns). Owns the geometry validator every generator is held to. |
+| `city-planner` | backend | no | Lay one outdoor street level: road network, a front door per lot, the entry point, the locked exit gate, and a `LotPlan` per building. |
+| `building-planner` | backend | no | Turn one `LotPlan` into the floors behind its door: rooms, interior doors, a stairwell, and a way back out. A house is a one-floor building. |
+| `map-state` | shared | no | The run's ledger: derive the world map from the Adventure, track what has been entered, cleared and seen, and decide what is open (including the exit gate). |
 | `npc` | backend | yes, sparse | Author NPC definitions at author-time; resolve one player interaction into `{mode, target, utterance, emote}` at play-time. |
 | `asset-registry` | shared | no | The manifest of usable 3D pieces (kit parts + generated assets): id, kind, size, snap points, glTF URL, license. |
 | `asset-gen` | backend | yes (async, optional) | Generate/enrich 3D assets (ComfyUI on the AMD box or an API) and register them in `asset-registry`. |

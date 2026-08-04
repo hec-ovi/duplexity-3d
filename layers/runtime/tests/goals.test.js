@@ -41,7 +41,7 @@ function load(goal, opts) {
 // step in close. The spawn is 4m away, well clear of the 1.5m reach radius.
 function reachExit(rt) {
   rt.step(0.016); // at spawn, clear of the exit: arms it
-  rt.getPlayer().position.x = 3; // within EXIT_REACH (1.5m) of the exit centre at x=4
+  rt.getPlayer().position.x = 3; // within PORTAL_REACH (1.5m) of the exit centre at x=4
   rt.step(0.016);
 }
 

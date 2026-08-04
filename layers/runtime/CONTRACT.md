@@ -34,6 +34,11 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   whether it is `open` right now.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
 
+The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, { spawnRoomId })`
+rebuilds the scene in another instance (disposing the one it leaves), and `onFrame(dt)` fires after
+every tick so a host can draw a HUD outside the 3D scene. `src/blueprint-hud.js` is that HUD: it draws
+a `blueprint()` onto a 2D canvas context.
+
 ## Responsibilities (all local, no backend)
 Rendering, camera, controls, collision, portal traversal between rooms, NPC deterministic mode
 behavior (idle/wander/patrol/move_to/follow/guard/flee/attack/talk), navmesh pathfinding, animation
