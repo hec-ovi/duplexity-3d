@@ -7,10 +7,9 @@
 // runtime's own siblings only; asset-registry arrives as an injected dependency.
 
 import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { WebGPURenderer, PostProcessing, PMREMGenerator } from "three/webgpu";
+import { pass, mrt, output, emissive, fog, color, exponentialHeightFogFactor } from "three/tsl";
+import { bloom } from "three/addons/tsl/display/BloomNode.js";
 import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
 import { createNpcActors } from "./npc-actor.js";
@@ -88,7 +87,10 @@ export function createApp(options = {}) {
   // end of the street fades into it rather than stopping at a hard edge.
   const sky = new THREE.Color(0x151d2b);
   const indoors = new THREE.Color(0x07090c);
-  const HAZE = { open: 0.013, indoors: 0.03 };
+  // The haze the city stands in: violet, thick at street level, thinning by the rooftops.
+  // The haze the city stands in. The factor is 1 - exp(-(density * (top - y) * viewZ)^2), so `top` is
+  // the height it thins out at: towers rise clear of it, the street does not.
+  const HAZE = { colour: 0x2a2246, open: 0.00035, top: 60, indoors: 0.0012, ceiling: 8 };
 
   // The scene is rebuilt whenever play moves to another instance (through a street door, up a
   // stairwell). `instanceGroup` and `actors` are therefore let, not const: goTo swaps them.
@@ -120,7 +122,11 @@ export function createApp(options = {}) {
     const model = runtime.getSceneModel();
     const open = model.rooms.some((r) => r.open);
     scene.background = open ? sky : indoors;
-    scene.fog = new THREE.FogExp2(scene.background.getHex(), open ? HAZE.open : HAZE.indoors);
+    // Haze that lies on the streets and thins as it climbs, so towers rise out of it instead of
+    // being painted over by it. Flat fog is what makes a night city look like a dark room.
+    scene.fogNode = open
+      ? fog(color(HAZE.colour), exponentialHeightFogFactor(HAZE.open, HAZE.top))
+      : fog(color(indoors.getHex()), exponentialHeightFogFactor(HAZE.indoors, HAZE.ceiling));
     materials = createSurfaceMaterials({ paintSurface, photoSurface, textureBase, wet: model.rules?.wet });
     instanceGroup = buildInstanceObject3D(model, { registry, materials, dressFacade, warn });
     scene.add(instanceGroup);
@@ -141,7 +147,7 @@ export function createApp(options = {}) {
   // Something for a shiny surface to reflect. Built from the scene itself once it is standing, so a
   // wet road and a tiled floor come back with the sky and the signs in them rather than with nothing.
   function lightEnvironment() {
-    if (!pmrem) return;
+    if (!pmrem || !ready) return; // the device has to be up before the scene can be captured off it
     scene.environment?.dispose?.();
     scene.environment = null;
     scene.environment = pmrem.fromScene(scene, 0.04).texture;
@@ -154,8 +160,11 @@ export function createApp(options = {}) {
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
   camera.rotation.order = "YXZ";
 
-  const renderer = injectedRenderer ?? new THREE.WebGLRenderer({ antialias: true });
-  const pmrem = injectedRenderer ? null : new THREE.PMREMGenerator(renderer);
+  // WebGPU where the browser has it, WebGL2 where it does not: three picks, and the node pipeline
+  // below compiles to either. Nothing else in this file has to know which.
+  const renderer = injectedRenderer ?? new WebGPURenderer({ antialias: true });
+  let ready = Boolean(injectedRenderer); // a real renderer has to come up before it can draw
+  const pmrem = injectedRenderer ? null : new PMREMGenerator(renderer);
   renderer.setSize?.(width, height);
   if (renderer.toneMapping !== undefined) {
     // Film response, so a lit window can be brighter than white without the whole street clipping.
@@ -168,10 +177,11 @@ export function createApp(options = {}) {
   }
   if (renderer.domElement && container.appendChild) container.appendChild(renderer.domElement);
 
-  // Bloom, so a sign glows into the air around it rather than being a bright rectangle. It needs a
-  // real renderer; a head-less test gets a stub and draws straight through.
-  const composer = injectedRenderer ? null : buildComposer(renderer, scene, camera, width, height);
-  lightEnvironment();
+  // Bloom over what BURNS and nothing else: the scene keeps its emissive output on a second target
+  // and only that is blurred. A lit sign glows into the air; a pale wall under a lamp does not, which
+  // is the difference between a night city and a washed-out one. A head-less test draws straight
+  // through instead.
+  const post = injectedRenderer ? null : buildPost(renderer, scene, camera);
 
   // Look state. Yaw lives on the runtime (movement needs it); pitch is view-only.
   let pitch = 0;
@@ -273,7 +283,10 @@ export function createApp(options = {}) {
     elapsed += clamped;
     rig?.update(camera.position, clamped);
     traffic?.update(elapsed);
-    if (composer) composer.render();
+    // Nothing is drawn until the backend is up: on WebGPU the device comes back a frame or two after
+    // the page does, and drawing into it before then throws.
+    if (!ready) return result;
+    if (post) post.render();
     else renderer.render?.(scene, camera);
     onFrame?.(clamped);
     return result;
@@ -324,7 +337,6 @@ export function createApp(options = {}) {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize?.(w, h);
-    composer?.setSize(w, h);
   };
   win.addEventListener?.("resize", onResize);
 
@@ -366,6 +378,13 @@ export function createApp(options = {}) {
     requestPointerLock: () => renderer.domElement?.requestPointerLock?.(),
     start() {
       if (frameId != null) return;
+      if (!ready) {
+        // `init` resolves once the device is there. Without one (a stub renderer) we are ready now.
+        Promise.resolve(renderer.init?.()).then(() => {
+          ready = true;
+          lightEnvironment(); // something for a shiny surface to reflect, once there is a device
+        });
+      }
       last = 0;
       frameId = requestFrame(loop);
     },
@@ -379,7 +398,7 @@ export function createApp(options = {}) {
       materials?.dispose();
       rig?.dispose();
       traffic?.dispose();
-      composer?.dispose();
+      post?.dispose?.();
       pmrem?.dispose();
       labels?.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
@@ -396,14 +415,16 @@ export function createApp(options = {}) {
   };
 }
 
-// Scene, then bloom over whatever is brighter than the threshold (the signs, the lit windows, the
-// lamp heads), then the pass that applies tone mapping and gets the colours back to sRGB.
-function buildComposer(renderer, scene, camera, width, height) {
-  const composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height), 0.7, 0.55, 0.82));
-  composer.addPass(new OutputPass());
-  return composer;
+// The scene, rendered with its emissive output kept on a second target, and the bloom taken from
+// THAT rather than from everything bright.
+function buildPost(renderer, scene, camera) {
+  const scenePass = pass(scene, camera);
+  scenePass.setMRT(mrt({ output, emissive }));
+  const post = new PostProcessing(renderer);
+  post.outputNode = scenePass
+    .getTextureNode("output")
+    .add(bloom(scenePass.getTextureNode("emissive"), 0.45, 0.85, 0));
+  return post;
 }
 
 function clamp(v, lo, hi) {

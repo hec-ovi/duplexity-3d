@@ -40,9 +40,15 @@ export function createSurfaceMaterials({
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
   const windowMats = new Map(); // one material per kind of window, shared by every one of them
-  const loaded = new Map(); // one loaded image per file, however many surfaces are cut from it
+  const waiting = new Map(); // file -> the textures still showing a blank while it loads
   const textures = [];
-  const loader = textureBase ? new THREE.TextureLoader() : null;
+  const loader = textureBase ? new THREE.ImageLoader() : null;
+  // Every texture starts on one blank pixel, so it can be uploaded the moment it is used and the
+  // real image can arrive whenever it arrives. A texture with no image at all is fine on WebGL and
+  // throws on WebGPU.
+  const blank = doc.createElement("canvas");
+  blank.width = 1;
+  blank.height = 1;
 
   // A photographed material, if one is catalogued for this surface and the files are there. The
   // images are loaded once and cloned per surface, so each keeps its own repeat.
@@ -51,14 +57,21 @@ export function createSurfaceMaterials({
     return photoSurface(kind);
   }
 
-  function imageFor(file) {
-    if (!loaded.has(file)) loaded.set(file, loader.load(`${textureBase}/${file}`));
-    return loaded.get(file);
-  }
-
+  // Hand back a texture now and fill in its image when the file lands. Every texture cut from one
+  // file is remembered, so they all get the picture at the same moment.
   function mapped(file, repeatX, repeatY, colour) {
-    const texture = imageFor(file).clone();
+    const texture = new THREE.Texture(blank);
     texture.needsUpdate = true;
+    if (!waiting.has(file)) {
+      waiting.set(file, []);
+      loader.load(`${textureBase}/${file}`, (image) => {
+        for (const t of waiting.get(file) ?? []) {
+          t.image = image;
+          t.needsUpdate = true;
+        }
+      });
+    }
+    waiting.get(file).push(texture);
     if (colour) texture.colorSpace = THREE.SRGBColorSpace; // albedo is colour; the rest is data
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
@@ -254,6 +267,7 @@ export function createSurfaceMaterials({
     dispose() {
       for (const texture of textures) texture.dispose();
       for (const material of windowMats.values()) material.dispose();
+      waiting.clear();
       textures.length = 0;
       windowMats.clear();
       plans.clear();
