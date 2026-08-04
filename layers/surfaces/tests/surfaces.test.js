@@ -102,6 +102,22 @@ describe("surfaces contract", () => {
     expect(rects(shop.drawn.get("albedo"), PALETTE.facade.shopfront)[0].y).toBeCloseTo(bottom, 5);
   });
 
+  it("a wet road goes darker, smoother, and holds standing water", () => {
+    const dry = paint("road", { seed: "ashgate" });
+    const wet = paint("road", { seed: "ashgate", wet: 0.8 });
+
+    expect(wet.plan.material.roughness).toBeLessThan(dry.plan.material.roughness);
+    expect(wet.plan.material.metalness).toBeGreaterThan(dry.plan.material.metalness);
+    const puddles = (p) => rects(p.drawn.get("albedo"), PALETTE.road.puddle).length;
+    expect(puddles(wet)).toBeGreaterThan(0);
+    expect(puddles(dry)).toBe(0);
+    // and only the road gets wet: a pavement is a pavement
+    expect(paint("pavement", { seed: "x", wet: 1 }).plan.material.roughness).toBeCloseTo(
+      paint("pavement", { seed: "x" }).plan.material.roughness,
+      6
+    );
+  });
+
   it("refuses a surface it does not know, and a canvas it cannot draw on", () => {
     expect(() => paintSurface("marble", () => recorder(4, 4).ctx)).toThrowError(UnknownSurfaceError);
     expect(() => paintSurface("road", () => null)).toThrowError(NoCanvasError);

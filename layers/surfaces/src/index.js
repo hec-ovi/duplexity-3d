@@ -54,6 +54,7 @@ function contextFor(ctxFor, map, width, height) {
  * @param {number} [opts.storeyHeight]        facade: metres per storey (default 3.2)
  * @param {number} [opts.litRatio]            facade: share of windows with a light on (default 0.45)
  * @param {string} [opts.program]             facade: what the building is for
+ * @param {number} [opts.wet]                 road: 0 dry (default) to 1 soaked
  * @returns {object} SurfacePlan (schema: schema/surface-plan.json)
  */
 export function paintSurface(kind, ctxFor, opts = {}) {
@@ -82,14 +83,17 @@ export function paintSurface(kind, ctxFor, opts = {}) {
       maps: { albedo, emissive },
       material: { roughness: 0.78, metalness: 0.06, emissiveIntensity: 0.85 },
       lit: plan.windows.filter((w) => w.lit).length,
+      // What colour this place burns over its door, so a light put there can match it.
+      ...(plan.sign.lit ? { signColour: plan.sign.colour } : {}),
     };
   }
 
   const ground = GROUND[kind];
   if (!ground) throw new UnknownSurfaceError(kind);
+  const wet = kind === "road" ? Math.max(0, Math.min(1, opts.wet ?? 0)) : 0;
 
   const albedo = contextFor(ctxFor, "albedo", TILE, TILE);
-  if (kind === "road") paintRoad(albedo, rng, TILE);
+  if (kind === "road") paintRoad(albedo, rng, TILE, wet);
   else if (kind === "concrete") paintConcrete(albedo, rng, TILE);
   else paintSlabs(albedo, rng, TILE, kind);
 
@@ -98,6 +102,10 @@ export function paintSurface(kind, ctxFor, opts = {}) {
     pixels: [TILE, TILE],
     metres: [ground.metres, ground.metres],
     maps: { albedo },
-    material: { roughness: ground.roughness, metalness: ground.metalness },
+    material: {
+      // Water takes the tooth off asphalt, and what is left throws the lamps back down the street.
+      roughness: ground.roughness - wet * 0.55,
+      metalness: ground.metalness + wet * 0.25,
+    },
   };
 }

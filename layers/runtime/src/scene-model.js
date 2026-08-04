@@ -203,6 +203,22 @@ export function buildSceneModel(instance) {
     }
   }
 
+  // Where the light stands: a lamp on the pavement, a sign over a door. Placement is authored; how
+  // tall and what colour is the renderer's business.
+  const lights = [];
+  for (const room of instance.rooms) {
+    for (const light of room.lights ?? []) {
+      lights.push({
+        id: light.id,
+        kind: light.kind,
+        room: room.id,
+        blockId: light.blockId ?? null,
+        facing: light.facing ?? 0,
+        position: light.position.slice(),
+      });
+    }
+  }
+
   // Flat surfaces marked out on the floor (roadway, pavement, square). Walked over, never collided
   // with: they say what the ground is, so it can be surfaced differently and NPCs told where to walk.
   const zones = [];
@@ -292,6 +308,7 @@ export function buildSceneModel(instance) {
     walls,
     blocks,
     zones,
+    lights,
     colliders: [...walls.filter((w) => w.collides).map((w) => w.collider), ...blocks.map((b) => b.collider)],
     portals: portalsOut,
     objects,

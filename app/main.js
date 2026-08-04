@@ -31,8 +31,11 @@ const blueprintCtx = blueprintEl.getContext("2d");
 
 // The seed IS the level, so `?seed=1234` plays the same city again and is worth sharing. Without one,
 // every visit is a new city.
-const asked = Number.parseInt(new URLSearchParams(location.search).get("seed") ?? "", 10);
+const query = new URLSearchParams(location.search);
+const asked = Number.parseInt(query.get("seed") ?? "", 10);
 const seed = Number.isFinite(asked) ? asked : Math.floor(Math.random() * 1e6);
+// `?wet=0.8` soaks the streets, so the lamps come back off them. It never rains.
+const wet = Number.parseFloat(query.get("wet") ?? "");
 
 const { adventure } = composeCity({
   id: "ashgate",
@@ -40,6 +43,7 @@ const { adventure } = composeCity({
   label: "Ashgate",
   sizeHint: "medium",
   seed,
+  ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
 });
 
 const worldMap = buildWorldMap(adventure);
@@ -122,6 +126,10 @@ const app = createApp({
 
 showPlace();
 showGate();
+
+// In `npm run dev` only, hand the running app to the console so a place can be opened without
+// walking there: `duplexity.app.goTo("ashgate-b1-f1", { spawnRoomId: "entry" })`.
+if (import.meta.env?.DEV) globalThis.duplexity = { app, adventure, worldMap };
 
 promptEl.addEventListener("click", () => {
   promptEl.style.display = "none";

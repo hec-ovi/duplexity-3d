@@ -40,6 +40,15 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   they are IN, so discovering a room slides the map instead of rescaling it.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
 
+## How it lights a place
+The level says where light STANDS (`room.lights[]`: a lamp on the pavement, a sign over a door, a
+ceiling lamp in a room). This layer decides everything else: how tall each is, what colour it burns,
+and which of them are real lights at any moment. A street can hold forty and a forward renderer will
+not take forty, so a pool of six follows the player and lands on whichever are nearest; the rest are
+still there to look at, as glowing geometry that costs nothing. Outdoors is night with a haze the far
+end of the street fades into; indoors is the room's own lamps over a dim fill. The renderer tone maps
+(ACES) and blooms over what is brighter than the scene, so a sign glows into the air around it.
+
 The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, { spawnRoomId })`
 rebuilds the scene in another instance (disposing the one it leaves), and `onFrame(dt)` fires after
 every tick so a host can draw a HUD outside the 3D scene. `src/blueprint-hud.js` is that HUD: it draws

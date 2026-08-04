@@ -333,11 +333,26 @@ Ordered so each step is one box and lands green.
 - Ledges, shopfront and parapet are PAINTED here. Modelled relief (balconies, awnings, signs standing
   off the wall) is 16d.
 
-### 16c - Lighting (its own runtime module)
-- Fog, ACES tone mapping + exposure, a night key/fill, and **bloom** over emissive materials.
-- Per-block lights: street lamps on the pavement, sign glow spilling onto the ground. Placement is
-  DATA the generator emits (`zone`/`building` light points), so the renderer obeys rather than decides.
-- Wet ground as a spec parameter: reflective road, puddles as zones. Off by default.
+### 16c - Lighting (its own runtime module) [x]
+- [x] `runtime/src/lights.js` is the night rig: a hemisphere and a low moon for the sky, plus a pool of
+  six real point lights that follows the player and lands on whichever authored lights are nearest. A
+  street holds forty; a forward renderer will not. The rest are still there to look at, as glowing
+  geometry that costs nothing.
+- [x] Light is DATA (`room.lights[]`, additive on `persistence`): `street_lamp` on the pavement, `sign`
+  over a front door, `ceiling` in a room. `city-planner` puts a lamp on each side of every block and a
+  sign over every door; `building-planner` gives every room a lamp overhead. Placement is the
+  generator's; height, colour and how many burn at once are the renderer's.
+- [x] ACES tone mapping with exposure, exponential fog the far end of the street fades into (a darker,
+  denser one indoors), and **bloom** through `EffectComposer` -> `UnrealBloomPass` -> `OutputPass`. A
+  head-less test gets a stub renderer and draws straight through, so none of it needs a GPU to test.
+- [x] A sign burns the colour that building's own front is painted: `surfaces` returns the shopfront's
+  `signColour` and the rig tints the light and the plate with it.
+- [x] `CitySpec.wet` (0 to 1, default dry, and it never rains): wet asphalt goes darker, holds standing
+  water, and comes back smoother, so the lamps reflect down it. `--wet` on the toolkit, `?wet=0.8` in
+  `npm run dev`.
+- [x] DoD met: `npm test` = 311 local tests, `npm run build` clean, and the page verified in a real
+  headless browser, outdoors and in: a lamp-lit street with signs glowing into the haze, a lit interior
+  behind a door, console silent.
 
 ### 16d - Facade parts as tiny skills
 - Balconies, window rows, awnings, shopfront bands, `carteles` (signs, some emissive, a few video

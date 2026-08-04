@@ -46,6 +46,10 @@
       "type": "integer",
       "minimum": 0,
       "description": "Facade only: how many windows have a light on."
+    },
+    "signColour": {
+      "type": "string",
+      "description": "Facade only, and only where the place has a sign lit over its door: what colour it burns, so a light put there can match it."
     }
   },
   "required": ["kind", "pixels", "metres", "maps", "material"],

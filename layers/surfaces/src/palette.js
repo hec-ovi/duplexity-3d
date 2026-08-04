@@ -8,6 +8,8 @@ export const PALETTE = {
     grain: ["#1b1e22", "#282c32", "#191c20"],
     seam: "#16181c",
     patch: "#272b31",
+    wet: "#14171b",
+    puddle: "#0d1014",
   },
   pavement: {
     base: "#5f646d",
@@ -39,8 +41,9 @@ export const PALETTE = {
   },
   // What a lit window looks like from the street. Mostly warm, the odd cold office or a bar sign.
   windows: ["#ffd7a0", "#ffe9c4", "#f6c98a", "#bfe0ff", "#a8f0e0"],
-  // Shopfronts and signs glow harder than a window, and pick a colour.
-  signs: ["#ff7bb0", "#ffb347", "#6fe8ff", "#c08bff", "#ffe066"],
+  // Shopfronts and signs glow harder than a window and pick a colour, but they are paint and gas on
+  // a wet street, not a screen: kept short of full saturation so bloom does not turn them into neon.
+  signs: ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e"],
   spill: "#ffe6c0", // what a lit shop throws out through its glass, behind the sign
   off: "#000000",
 };

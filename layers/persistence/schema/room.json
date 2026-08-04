@@ -94,6 +94,26 @@
         "additionalProperties": false
       }
     },
+    "lights": {
+      "type": "array",
+      "description": "Where light comes from after dark: a lamp standing on the pavement, a sign over a door. Each says where it stands on the ground and what it is; how tall it is, what colour it burns and how many are lit at once are the renderer's business.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["street_lamp", "sign", "ceiling"],
+            "description": "street_lamp: a pole with a head on it. sign: the glow off a building's front, fixed to `blockId`. ceiling: what lights a room from above."
+          },
+          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+          "blockId": { "type": "string", "description": "sign: the mass it is fixed to." },
+          "facing": { "type": "number", "description": "sign: which way it looks, in radians." }
+        },
+        "required": ["id", "kind", "position"],
+        "additionalProperties": false
+      }
+    },
     "zones": {
       "type": "array",
       "description": "Flat surfaces marked out on the floor: the roadway, the pavement round a block, a square. They are walked over, never collided with; they say what the ground IS, so it can be surfaced differently and NPCs can be told where to walk.",

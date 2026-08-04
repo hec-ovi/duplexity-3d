@@ -14,7 +14,8 @@ ids, never on coordinates.
     last value. `accessibleRatio` is the share of buildings with a front door (default 1).
     `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
     quest); the block is split into enough premises to hold the slot, and everything unpinned is
-    generated around it. `npcs` is read by the toolkit that populates the level, not by the layout.
+    generated around it. `wet` (0 to 1) says how wet the streets are, which the renderer reads off
+    `rules`; it never rains. `npcs` is read by the toolkit that populates the level, not by the layout.
     schema: [schema/city-spec.json](schema/city-spec.json)
   - `assetQuery`: a handle to `asset-registry.query` (injected, never imported), used for the road and
     facade kits.
@@ -29,7 +30,8 @@ ids, never on coordinates.
 ## Outputs (params out)
 - `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
   roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a
-  block, each carrying its `floors` and `program` so its outside can be dressed to suit), one `LINK`
+  block, each carrying its `floors` and `program` so its outside can be dressed to suit), its
+  `lights[]` (a lamp on each side of every block, a sign over every front door), one `LINK`
   portal per building you can enter carrying `blockId` (the door is on that mass's face), and one
   `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
   `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
@@ -72,6 +74,8 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
   validator's flood fill of the open floor, not assumed.
 - A building without a door has nothing behind it: no `LotPlan`, so no instance, so no node on the
   map and nothing for the exit gate to wait on. At least one building always has a door.
+- Light is PLACED here, never designed here: a lamp says where it stands and what it is, and how tall
+  it is, what colour it burns and how many are lit at once are the renderer's decisions.
 - The spawn stands in a street, never inside a building.
 - Exactly one entry (the spawn) and exactly one exit gate, and the gate is locked `all_cleared`.
 - Every `LotPlan` names a door that exists in the returned instance, and no two lots share a door.

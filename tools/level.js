@@ -49,6 +49,7 @@ city / street
   --lots <n>                   how many buildings across the city
   --floors 2,1,3               floors per building, in order. A short list repeats its last value
   --accessible <0..1>          share of buildings with a front door. Default 1
+  --wet <0..1>                 how wet the streets are. Default 0 (dry). It never rains
   --npcs <n>                   NPCs per instance (city only). Default 2, 0 for an empty level
 
   Pinning one building (its name, program, height, whether it opens, where the quest sits) is a
@@ -106,6 +107,7 @@ function citySpec(args) {
   if (flag(args, "size")) spec.sizeHint = args.size;
   if (args.lots) spec.lots = asInt(args.lots, 1);
   if (args.accessible !== undefined) spec.accessibleRatio = Number(args.accessible);
+  if (args.wet !== undefined) spec.wet = Number(args.wet);
   if (args.npcs !== undefined) spec.npcs = asInt(args.npcs, 2);
   if (args.seed) spec.seed = asInt(args.seed, 0);
   const floors = asIntList(args.floors);

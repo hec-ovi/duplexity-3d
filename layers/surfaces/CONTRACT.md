@@ -16,11 +16,14 @@ what a building is for beyond how it should look.
   - Facade only: `opts.metresWide` (frontage to cover), `opts.floors`, `opts.storeyHeight` (3.2),
     `opts.litRatio` (0.45), `opts.program` (a `house` keeps windows on the ground floor; anything
     else gets a glazed shopfront).
+  - Road only: `opts.wet` (0 dry, the default, to 1 soaked). Wet asphalt goes darker, holds standing
+    water, and comes back smoother, so the lamps reflect down it.
 
 ## Outputs (params out)
-- `SurfacePlan` - `{ kind, pixels, metres, maps, material, lit? }`. `maps` holds whatever `ctxFor`
-  returned, by name. `metres` is how much world ONE TILE covers, so the repeat for a surface is its
-  size divided by that. schema: [schema/surface-plan.json](schema/surface-plan.json)
+- `SurfacePlan` - `{ kind, pixels, metres, maps, material, lit?, signColour? }`. `maps` holds whatever
+  `ctxFor` returned, by name. `metres` is how much world ONE TILE covers, so the repeat for a surface
+  is its size divided by that. `signColour` is what a shopfront burns over its door, so a light put
+  there can match it. schema: [schema/surface-plan.json](schema/surface-plan.json)
 
 ## Errors
 - `UNKNOWN_SURFACE` - no surface goes by that name.

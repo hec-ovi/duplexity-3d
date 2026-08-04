@@ -39,6 +39,12 @@
       "minimum": 0,
       "description": "How many NPCs to place in each instance. Default 2; 0 leaves the level empty. Read by the toolkit, not by the street layout itself."
     },
+    "wet": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "How wet the streets are, 0 dry (the default) to 1 soaked. Wet asphalt is darker and throws long reflections of the lamps down it. It never rains."
+    },
     "exit": {
       "type": "boolean",
       "description": "Place the locked exit gate. Default true. False builds a street with no way to win."

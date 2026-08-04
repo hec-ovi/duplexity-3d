@@ -134,6 +134,7 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, qu
   // floor above or below); it is named so the sign over it and the map icon can say so.
   const vertical = floors >= TALL ? "elevator" : "stairs";
 
+  // A room lights itself: there is no street outside it. One lamp overhead, in the middle.
   const rooms = cells.map((cell) => ({
     id: roomIdFor(cell, arrivalId),
     position: [cell.centre.x, 0, cell.centre.z],
@@ -142,6 +143,9 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, qu
     wallKit,
     objects: [],
     inventory: [],
+    lights: [
+      { id: `${id}-lamp-${cell.cx}-${cell.cz}`, kind: "ceiling", position: [cell.centre.x, 0, cell.centre.z] },
+    ],
   }));
 
   const portals = joins.map(({ a, b, face }) => ({

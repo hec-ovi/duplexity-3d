@@ -28,8 +28,25 @@ const COLORS = {
 const DEFAULT_OBJECT_SIZE = [0.8, 0.8, 0.8];
 const DEFAULT_NPC_SIZE = [0.6, 1.8, 0.6];
 
+// A lamp, in metres: a pole with a head on it. The light itself is the rig's business (lights.js);
+// this is only the thing you can see standing there.
+const LAMP = { height: 4.6, pole: 0.14, head: [0.5, 0.22, 0.5], colour: 0xffd9a8, glow: 1.1 };
+const SIGN = { height: 3.6, size: [1.8, 0.5, 0.12], colour: 0xffc98a, glow: 1.5 };
+const CEILING = { height: 2.7, size: [0.9, 0.08, 0.9], colour: 0xffeed6, glow: 0.9 };
+
 function standard(color, emissive = 0x000000) {
   return new THREE.MeshStandardMaterial({ color, emissive, roughness: 0.85, metalness: 0.05 });
+}
+
+// Something that reads as a source of light: bright, unlit by anything else, and what bloom catches.
+function glowing(color, emissiveIntensity) {
+  return new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    emissive: color,
+    emissiveIntensity,
+    roughness: 0.6,
+    metalness: 0,
+  });
 }
 
 // Look up an asset's [w,h,d] from the registry, degrading to `fallback` (and warning) when the
@@ -63,7 +80,7 @@ function sizeFor(registry, ref, fallback, warn) {
 export function buildInstanceObject3D(model, { registry, materials, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
-  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
+  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, lights: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
 
   const floorMat = standard(COLORS.floor);
   const floorAltMat = standard(COLORS.floorAlt);
@@ -124,6 +141,43 @@ export function buildInstanceObject3D(model, { registry, materials, warn = conso
     mesh.userData = { kind: "block", assetRef: b.assetRef };
     group.add(mesh);
     counts.blocks++;
+  }
+
+  // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is
+  // decided by the rig, which follows the player.
+  const poleMat = standard(0x1b1e23);
+  for (const light of model.lights ?? []) {
+    const [lx, ly, lz] = light.position;
+    if (light.kind === "street_lamp") {
+      const pole = new THREE.Mesh(
+        new THREE.BoxGeometry(LAMP.pole, LAMP.height, LAMP.pole),
+        poleMat
+      );
+      pole.position.set(lx, ly + LAMP.height / 2, lz);
+      pole.name = `lamp:${light.id}`;
+      pole.userData = { kind: "light", lightId: light.id };
+      group.add(pole);
+
+      const head = new THREE.Mesh(new THREE.BoxGeometry(...LAMP.head), glowing(LAMP.colour, LAMP.glow));
+      head.position.set(lx, ly + LAMP.height, lz);
+      head.name = `lamp:${light.id}:head`;
+      group.add(head);
+    } else if (light.kind === "sign") {
+      const colour = (light.blockId && materials?.signColour(light.blockId)) || SIGN.colour;
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(...SIGN.size), glowing(colour, SIGN.glow));
+      plate.position.set(lx, ly + SIGN.height, lz);
+      plate.rotation.y = light.facing ?? 0;
+      plate.name = `sign:${light.id}`;
+      plate.userData = { kind: "light", lightId: light.id, blockId: light.blockId };
+      group.add(plate);
+    } else if (light.kind === "ceiling") {
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(...CEILING.size), glowing(CEILING.colour, CEILING.glow));
+      panel.position.set(lx, ly + CEILING.height, lz);
+      panel.name = `ceiling:${light.id}`;
+      panel.userData = { kind: "light", lightId: light.id };
+      group.add(panel);
+    }
+    counts.lights++;
   }
 
   for (const obj of model.objects) {

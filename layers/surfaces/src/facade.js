@@ -48,6 +48,15 @@ export function planFacade({ metresWide, floors, storeyHeight, litRatio, program
     }
   }
 
+  // A sign is fixed to part of the fascia, not painted across the whole of it.
+  const signW = width * rng.range(0.3, 0.66);
+  const sign = {
+    lit: shopfront && rng.chance(0.72),
+    colour: rng.pick(PALETTE.signs),
+    x: rng.range(width * 0.05, width * 0.95 - signW),
+    w: signW,
+  };
+
   return {
     bays,
     rows,
@@ -56,8 +65,7 @@ export function planFacade({ metresWide, floors, storeyHeight, litRatio, program
     bayW,
     rowH,
     shopfront,
-    signColour: rng.pick(PALETTE.signs),
-    signLit: rng.chance(0.7),
+    sign,
     windows,
     metres: [bays * BAY, rows * storeyHeight],
   };
@@ -126,10 +134,10 @@ export function paintFacadeEmissive(ctx, plan) {
     ctx.fillRect(win.x, win.y, win.w, win.h);
   }
 
-  if (plan.shopfront && plan.signLit) {
+  if (plan.sign.lit) {
     const top = height - rowH;
-    ctx.fillStyle = plan.signColour;
-    ctx.fillRect(width * 0.08, top + rowH * 0.05, width * 0.84, rowH * 0.12);
+    ctx.fillStyle = plan.sign.colour;
+    ctx.fillRect(plan.sign.x, top + rowH * 0.05, plan.sign.w, rowH * 0.12);
     // light spilling out of the shop itself: a whole pane of it, so it stays well under the sign
     ctx.globalAlpha = 0.16;
     ctx.fillStyle = PALETTE.spill;

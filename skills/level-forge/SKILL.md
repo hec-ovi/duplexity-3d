@@ -52,6 +52,7 @@ node tools/level.js city --id ashgate --theme city --label Ashgate \
 | `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings. |
 | `--floors 2,1,3` | drawn from a mix | Buildings should differ in height. A short list repeats its last value. |
 | `--accessible <0..1>` | 1 | Some buildings should have no way in. |
+| `--wet <0..1>` | 0 | The streets should be wet, so the lamps reflect down them. It never rains. |
 | `--npcs <n>` | 2 | Per instance. `0` builds an empty level. |
 | `--seed <n>` | from the id | You want a different level from the same flags. |
 
@@ -188,9 +189,13 @@ npm test                         # every layer's contract tests
 ```
 
 `npm run dev` builds a new city each visit. `?seed=1234` plays the same one again, so a seed is a
-level you can pass to someone. A map overlay in the corner keeps you centred and slides the world
-under you: it draws only the rooms you have been in, the buildings on the ground you are standing on,
-and marks a door you cannot use yet in red.
+level you can pass to someone, and `?wet=0.8` soaks the streets. A map overlay in the corner keeps you
+centred and slides the world under you: it draws only the rooms you have been in, the buildings on the
+ground you are standing on, and marks a door you cannot use yet in red.
+
+It is night. Lamps stand on the pavement, signs burn over the doors, and a room lights itself from
+overhead. Where each light stands is in the level; how it looks is the renderer's, in
+`layers/runtime/src/lights.js`.
 
 The rogue rule: each instance has a goal. Clearing every required instance opens the exit gate, and
 walking into an open gate wins the run. The gate never counts the instance it stands in.

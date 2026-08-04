@@ -17,11 +17,20 @@ function speckle(ctx, rng, colours, size, count, alpha) {
   ctx.globalAlpha = 1;
 }
 
-/** Asphalt: aggregate, a few repair patches, and the tar seams between them. */
-export function paintRoad(ctx, rng, size) {
+/**
+ * Asphalt: aggregate, a few repair patches, and the tar seams between them. Wet, it goes darker and
+ * keeps standing water in its low spots, which is what the lamps come back off.
+ */
+export function paintRoad(ctx, rng, size, wet = 0) {
   const p = PALETTE.road;
   ctx.fillStyle = p.base;
   ctx.fillRect(0, 0, size, size);
+  if (wet > 0) {
+    ctx.globalAlpha = Math.min(0.8, wet);
+    ctx.fillStyle = p.wet;
+    ctx.fillRect(0, 0, size, size);
+    ctx.globalAlpha = 1;
+  }
 
   // patches laid at some point and never quite matching
   ctx.globalAlpha = 0.5;
@@ -44,6 +53,18 @@ export function paintRoad(ctx, rng, size) {
     ctx.moveTo(size * 0.08, y);
     ctx.lineTo(size * 0.92, y + rng.range(-3, 3));
     ctx.stroke();
+  }
+
+  // puddles: smoother and darker than what is round them, so they catch the lamps
+  if (wet > 0) {
+    ctx.globalAlpha = Math.min(0.65, 0.3 + wet * 0.4);
+    ctx.fillStyle = p.puddle;
+    for (let i = 0; i < Math.round(2 + wet * 4); i++) {
+      const w = rng.range(size * 0.12, size * 0.34);
+      const h = rng.range(size * 0.08, size * 0.2);
+      ctx.fillRect(rng.range(0, size - w), rng.range(0, size - h), w, h);
+    }
+    ctx.globalAlpha = 1;
   }
 }
 

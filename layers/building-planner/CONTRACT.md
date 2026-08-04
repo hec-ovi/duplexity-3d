@@ -24,7 +24,8 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 
 ## Outputs (params out)
 - `instances` - one persistence Instance per floor, ground floor first, ids exactly
-  `LotPlan.floorInstanceIds`. Each carries `rules { mapKind, label, floor }`.
+  `LotPlan.floorInstanceIds`. Each carries `rules { mapKind, label, floor }`, and every room carries
+  one `ceiling` light overhead: a room lights itself, since there is no street outside it.
   schema: owned by `persistence` (`instance.json`).
 - `report` - the `ValidationReport` for the whole building (the checks of every floor, merged).
   schema: owned by `scenario-creator`.

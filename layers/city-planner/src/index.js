@@ -11,6 +11,7 @@
 import { createRng, hashString } from "./rng.js";
 import { BLOCK, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize } from "./lattice.js";
 import { planPremises } from "./premises.js";
+import { placeLights } from "./lighting.js";
 import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from "./errors.js";
 
 export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
@@ -60,6 +61,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const zones = [];
   const portals = [];
   const lots = [];
+  const doors = [];
 
   // The whole ground is roadway; each block lays its pavement over it, and the buildings stand on
   // that. So the streets are simply what no block covers.
@@ -88,14 +90,16 @@ export function createStreets(spec, assetQuery, opts = {}) {
 
     const floorInstanceIds = Array.from({ length: p.floors }, (_, f) => `${p.id}-f${f + 1}`);
     const doorPortalId = `door-${p.id}`;
+    const opening = doorOnFace(p.plot.center, p.plot.size, p.face, DOOR);
     portals.push({
       id: doorPortalId,
       roomA: GROUND_ROOM,
       roomB: "LINK",
       blockId, // the door is on the building's face; nothing is cut out of the ground
-      ...doorOnFace(p.plot.center, p.plot.size, p.face, DOOR),
+      ...opening,
       link: { instanceId: floorInstanceIds[0], spawnRoomId: "entry", kind: "enter" },
     });
+    doors.push({ id: doorPortalId, blockId, position: opening.position, face: p.face });
 
     lots.push({
       lotId: p.id,
@@ -130,7 +134,11 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const instance = {
     id: spec.id,
     theme: spec.theme,
-    rules: { mapKind: "street", label: spec.label ?? spec.id },
+    rules: {
+      mapKind: "street",
+      label: spec.label ?? spec.id,
+      ...(spec.wet ? { wet: spec.wet } : {}), // how much standing water the renderer should show
+    },
     rooms: [
       {
         id: GROUND_ROOM,
@@ -143,6 +151,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         inventory: [],
         zones,
         blocks,
+        lights: placeLights(lattice, new Set(premises.map((p) => p.block)), doors),
       },
     ],
     portals,

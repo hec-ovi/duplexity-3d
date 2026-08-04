@@ -7,11 +7,16 @@
 // runtime's own siblings only; asset-registry arrives as an injected dependency.
 
 import * as THREE from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
 import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
 import { createSurfaceMaterials } from "./surface-materials.js";
+import { createLightRig } from "./lights.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -68,12 +73,11 @@ export function createApp(options = {}) {
   });
 
   const scene = new THREE.Scene();
-  const sky = new THREE.Color(0x2a3c52); // outdoors: the level ends in open air, so give it a sky
-  const indoors = new THREE.Color(0x0b0d10);
-  scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x202024, 1.1));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-  sun.position.set(4, 10, 6);
-  scene.add(sun);
+  // Night. Outdoors the level ends in open air, so it gets a sky and a haze thick enough that the far
+  // end of the street fades into it rather than stopping at a hard edge.
+  const sky = new THREE.Color(0x151d2b);
+  const indoors = new THREE.Color(0x07090c);
+  const HAZE = { open: 0.013, indoors: 0.03 };
 
   // The scene is rebuilt whenever play moves to another instance (through a street door, up a
   // stairwell). `instanceGroup` and `actors` are therefore let, not const: goTo swaps them.
@@ -82,6 +86,8 @@ export function createApp(options = {}) {
   let actors = null;
   // Surfaces are painted per scene and thrown away with it, so crossing a door leaks no textures.
   let materials = null;
+  // The lights of the place you are in now, and only those.
+  let rig = null;
 
   function build(id, opts) {
     runtime.load(adventure, id, opts);
@@ -90,12 +96,21 @@ export function createApp(options = {}) {
       scene.remove(instanceGroup);
       disposeObject3D(instanceGroup);
       materials?.dispose();
+      rig?.dispose();
     }
     const model = runtime.getSceneModel();
-    scene.background = model.rooms.some((r) => r.open) ? sky : indoors;
-    materials = createSurfaceMaterials({ paintSurface });
+    const open = model.rooms.some((r) => r.open);
+    scene.background = open ? sky : indoors;
+    scene.fog = new THREE.FogExp2(scene.background.getHex(), open ? HAZE.open : HAZE.indoors);
+    materials = createSurfaceMaterials({ paintSurface, wet: model.rules?.wet });
     instanceGroup = buildInstanceObject3D(model, { registry, materials, warn });
     scene.add(instanceGroup);
+    rig = createLightRig(scene, {
+      lights: model.lights,
+      open,
+      // A sign over a door burns the colour that building's own front is painted.
+      tintFor: (light) => (light.blockId ? materials?.signColour(light.blockId) : null),
+    });
     actors = createNpcActors(instanceGroup, runtime.getNpcs());
   }
   build(instanceId);
@@ -107,7 +122,16 @@ export function createApp(options = {}) {
 
   const renderer = injectedRenderer ?? new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize?.(width, height);
+  if (renderer.toneMapping !== undefined) {
+    // Film response, so a lit window can be brighter than white without the whole street clipping.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+  }
   if (renderer.domElement && container.appendChild) container.appendChild(renderer.domElement);
+
+  // Bloom, so a sign glows into the air around it rather than being a bright rectangle. It needs a
+  // real renderer; a head-less test gets a stub and draws straight through.
+  const composer = injectedRenderer ? null : buildComposer(renderer, scene, camera, width, height);
 
   // Look state. Yaw lives on the runtime (movement needs it); pitch is view-only.
   let pitch = 0;
@@ -198,7 +222,9 @@ export function createApp(options = {}) {
     syncCamera();
     actors.sync(runtime.getNpcs(), camera, clamped);
     syncLabels();
-    renderer.render?.(scene, camera);
+    rig?.update(camera.position);
+    if (composer) composer.render();
+    else renderer.render?.(scene, camera);
     onFrame?.(clamped);
     return result;
   }
@@ -234,6 +260,7 @@ export function createApp(options = {}) {
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize?.(w, h);
+    composer?.setSize(w, h);
   };
   win.addEventListener?.("resize", onResize);
 
@@ -285,6 +312,8 @@ export function createApp(options = {}) {
       this.stop();
       actors.dispose();
       materials?.dispose();
+      rig?.dispose();
+      composer?.dispose();
       labels?.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
       win.removeEventListener?.("keyup", onKeyUp);
@@ -295,6 +324,16 @@ export function createApp(options = {}) {
       renderer.dispose?.();
     },
   };
+}
+
+// Scene, then bloom over whatever is brighter than the threshold (the signs, the lit windows, the
+// lamp heads), then the pass that applies tone mapping and gets the colours back to sRGB.
+function buildComposer(renderer, scene, camera, width, height) {
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(width, height), 0.7, 0.55, 0.82));
+  composer.addPass(new OutputPass());
+  return composer;
 }
 
 function clamp(v, lo, hi) {

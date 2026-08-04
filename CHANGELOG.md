@@ -2,6 +2,22 @@
 
 What the project does now, newest first.
 
+## 0.6 - Night
+
+- The city is lit. A lamp stands on each side of every block, a sign burns over every front door, and
+  every room indoors has a lamp overhead. Where light stands is data the level carries
+  (`room.lights[]`); how tall it is, what colour it burns and how many are lit at once are the
+  renderer's business.
+- `runtime/src/lights.js` keeps a pool of six real lights that follows the player and lands on
+  whichever are nearest, so a street can hold forty without a forward renderer choking on them. The
+  rest are still there to look at, as glowing geometry.
+- ACES tone mapping, exponential fog the far end of the street fades into, and bloom over the signs,
+  lit windows and lamp heads. A head-less test gets a stub renderer and draws straight through.
+- A sign burns the colour that building's own front is painted.
+- `wet` (0 to 1, dry by default, and it never rains) darkens the asphalt, leaves standing water in it
+  and takes the tooth off it, so the lamps reflect down the street. `--wet` on the toolkit, `?wet=0.8`
+  in the browser.
+
 ## 0.5 - Made of something
 
 - `surfaces` is a new box: it paints asphalt, paving, plaza and concrete as tiling sheets, and a whole

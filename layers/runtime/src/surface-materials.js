@@ -15,10 +15,11 @@ const ANISOTROPY = 4;
 /**
  * @param {object} deps
  * @param {Function} deps.paintSurface  injected surfaces.paintSurface handle
+ * @param {number} [deps.wet]           how wet the streets are, 0 to 1
  * @param {Document} [deps.document]
  * @returns {object|null} the cache, or null when there is nothing to paint with
  */
-export function createSurfaceMaterials({ paintSurface, document: doc = globalThis.document } = {}) {
+export function createSurfaceMaterials({ paintSurface, wet = 0, document: doc = globalThis.document } = {}) {
   if (typeof paintSurface !== "function" || typeof doc?.createElement !== "function") return null;
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
@@ -68,7 +69,7 @@ export function createSurfaceMaterials({ paintSurface, document: doc = globalThi
     /** Ground you walk on: a floor, a roadway, a pavement. `kind` is a zone kind or "concrete". */
     ground(kind, spanX, spanZ, tint) {
       const surface = ZONE_SURFACE[kind] ?? kind;
-      return materialFor(planFor(surface, surface, { seed: surface }), spanX, spanZ, tint);
+      return materialFor(planFor(surface, surface, { seed: surface, wet }), spanX, spanZ, tint);
     },
 
     /** An interior wall: the same concrete, scaled to the wall rather than to the floor. */
@@ -99,6 +100,11 @@ export function createSurfaceMaterials({ paintSurface, document: doc = globalThi
         materialFor(plan, width, height), // +z
         materialFor(plan, width, height), // -z
       ];
+    },
+
+    /** What colour a building burns over its door, once its facade has been painted. */
+    signColour(blockId) {
+      return plans.get(`facade:${blockId}`)?.signColour ?? null;
     },
 
     dispose() {
