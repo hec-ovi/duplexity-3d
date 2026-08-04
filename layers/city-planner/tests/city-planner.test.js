@@ -31,10 +31,14 @@ describe("city-planner contract", () => {
     expect(instance.portals.every((p) => p.roomB === "LINK" || p.roomB === "EXIT")).toBe(true);
   });
 
-  it("buildings stand as separate masses with streets between them", () => {
-    const { instance } = build({ sizeHint: "large", lots: 16 });
-    const blocks = instance.rooms[0].blocks;
-    expect(blocks).toHaveLength(16);
+  it("a block carries several different premises on a pavement, with roads between blocks", () => {
+    const { instance } = build({ sizeHint: "large", lots: undefined });
+    const ground = instance.rooms[0];
+    const pavements = ground.zones.filter((z) => z.kind === "sidewalk");
+    expect(ground.zones.some((z) => z.kind === "road")).toBe(true);
+    expect(pavements.length).toBeGreaterThan(1);
+    // more premises than blocks: a block is not one slab
+    expect(ground.blocks.length).toBeGreaterThan(pavements.length);
 
     const boxOf = (b) => ({
       minX: b.position[0] - b.size[0] / 2,
@@ -42,22 +46,20 @@ describe("city-planner contract", () => {
       minZ: b.position[2] - b.size[2] / 2,
       maxZ: b.position[2] + b.size[2] / 2,
     });
-    for (let i = 0; i < blocks.length; i++) {
-      for (let j = i + 1; j < blocks.length; j++) {
-        const a = boxOf(blocks[i]);
-        const b = boxOf(blocks[j]);
-        const gapX = Math.max(a.minX - b.maxX, b.minX - a.maxX);
-        const gapZ = Math.max(a.minZ - b.maxZ, b.minZ - a.maxZ);
-        // never touching, and where they line up the gap is a full street wide
-        expect(Math.max(gapX, gapZ)).toBeGreaterThanOrEqual(STREET - 1e-9);
+    const inside = (a, o) => a.minX >= o.minX && a.maxX <= o.maxX && a.minZ >= o.minZ && a.maxZ <= o.maxZ;
+
+    for (let i = 0; i < ground.blocks.length; i++) {
+      const a = boxOf(ground.blocks[i]);
+      // every premises stands on some block's pavement, never in the road
+      expect(pavements.some((p) => inside(a, boxOf({ position: p.position, size: [p.size[0], 0, p.size[1]] })))).toBe(true);
+      for (let j = i + 1; j < ground.blocks.length; j++) {
+        const b = boxOf(ground.blocks[j]);
+        const apart = Math.max(a.minX - b.maxX, b.minX - a.maxX, a.minZ - b.maxZ, b.minZ - a.maxZ);
+        expect(apart).toBeGreaterThan(0); // never touching, on the same block or across the road
       }
     }
-    // and each one sits inside the ground
-    const ground = instance.rooms[0];
-    for (const b of blocks) {
-      expect(Math.abs(b.position[0]) + BLOCK / 2).toBeLessThanOrEqual(ground.size[0] / 2);
-      expect(Math.abs(b.position[2]) + BLOCK / 2).toBeLessThanOrEqual(ground.size[2] / 2);
-    }
+    // and the premises differ: a block of identical boxes is what this replaced
+    expect(new Set(ground.blocks.map((b) => `${b.size[0]}x${b.size[1]}x${b.size[2]}`)).size).toBeGreaterThan(1);
   });
 
   it("taller lots get taller masses, so a building's height shows from the street", () => {
@@ -116,7 +118,7 @@ describe("city-planner contract", () => {
   });
 
   it("refuses more buildings than the lattice has places, and a theme with no kit", () => {
-    expect(() => createStreets({ ...spec, sizeHint: "small", lots: 99 }, assetQuery)).toThrowError(
+    expect(() => createStreets({ ...spec, sizeHint: "small", lots: 999 }, assetQuery)).toThrowError(
       CitySpecInvalidError
     );
     expect(() => createStreets(spec, () => [])).toThrowError(NoAssetForKindError);

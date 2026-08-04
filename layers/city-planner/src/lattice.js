@@ -6,8 +6,8 @@
 //
 // Pure integers and metres. No assets, no ids beyond the cell index.
 
-export const BLOCK = 16; // building footprint, metres square
-export const STREET = 10; // gap between footprints, and the margin around the whole lattice
+export const BLOCK = 24; // a city block, metres square: its pavement plus the premises on it
+export const STREET = 12; // roadway between blocks, and the margin around the whole lattice
 export const LATTICE_BY_SIZE = { small: 2, medium: 3, large: 4 };
 
 /** Ground extent for a lattice of n x n blocks, with a street all the way round the outside. */
@@ -49,7 +49,7 @@ export function chooseCells(all, wanted, rng) {
   return Array.from({ length: wanted }, (_, k) => all[offset + k * stride]);
 }
 
-export const PAVEMENT = 2.2; // how much of a block is pavement before the buildings start
+export const PAVEMENT = 4.5; // pavement round a block, wide enough to walk and stand on
 
 /**
  * Split one city block into the plots its buildings stand on. The block keeps a pavement all the way

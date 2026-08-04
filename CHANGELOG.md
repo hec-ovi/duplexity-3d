@@ -7,9 +7,11 @@ What the project does now, newest first.
 - Names and speech are HTML laid over the canvas, not glyphs in the 3D scene. A line is always
   legible and never rendered at the size of a building, it wraps, and it needs no font atlas. The
   troika dependency is gone.
-- A street level is city blocks: each block is a pavement with one to four buildings on it, each with
-  its own footprint, height and front door, and the roadway is what no block covers. The pavement is a
-  walk zone, so NPCs are placed on it rather than in the road.
+- A street level is city blocks: each block is a 4.5m pavement carrying two to four premises, each
+  with its own footprint, height (houses and shops around the odd tower) and front door onto the
+  pavement, and the roadway is what no block covers. The pavement is a walk zone, so NPCs are placed
+  on it rather than in the road. A front door never faces the inside of its own block, where the gap
+  between two premises is not a street: the walkability proof rejects that outright.
 - A cast is scattered over its room (or over the walk zones where a room has them) instead of stacking
   on the room's centre, and never inside a building.
 

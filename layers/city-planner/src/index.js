@@ -58,6 +58,41 @@ function floorsFor(spec, index) {
 }
 
 const PROGRAMS = ["apartments", "office", "shop"];
+const HOUSE_PROGRAMS = ["house", "shop"];
+// A skyline needs a mix. Without floorsPerLot, heights are drawn from this: mostly low premises with
+// the odd tower, so a block reads as houses and shops around something taller.
+const FLOOR_MIX = [1, 1, 1, 2, 2, 3, 4, 6, 9];
+const MAX_PER_BLOCK = 4;
+
+// How many premises each block gets. Blocks differ, and the total is trimmed or topped up to match
+// what the spec asked for, so `lots` still means "this many buildings".
+// A front door faces the pavement, never the inside of its own block: the gap between two premises
+// is not a street, and a door onto it is a door nobody can reach.
+function outwardFace(blockCentre, plotCentre, rng) {
+  const out = FACES.filter(
+    (f) =>
+      (f.dx !== 0 && Math.sign(plotCentre.x - blockCentre.x) === f.dx) ||
+      (f.dz !== 0 && Math.sign(plotCentre.z - blockCentre.z) === f.dz)
+  );
+  return rng.pick(out.length ? out : FACES); // a premises alone on its block fronts every side
+}
+
+function premisesPerBlock(cellCount, wanted, rng) {
+  const counts = Array.from({ length: cellCount }, () => rng.int(2, MAX_PER_BLOCK));
+  if (wanted == null) return counts;
+  let total = counts.reduce((a, b) => a + b, 0);
+  for (let guard = 0; total !== wanted && guard < cellCount * MAX_PER_BLOCK * 2; guard++) {
+    const i = guard % cellCount;
+    if (total > wanted && counts[i] > 0) {
+      counts[i] -= 1;
+      total -= 1;
+    } else if (total < wanted && counts[i] < MAX_PER_BLOCK) {
+      counts[i] += 1;
+      total += 1;
+    }
+  }
+  return counts;
+}
 
 /**
  * Build one outdoor level and the briefs for the buildings on it.
@@ -76,11 +111,12 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const wantExit = spec.exit !== false;
 
   const all = cells(n);
-  const wanted = spec.lots ?? Math.max(1, all.length);
-  const maxBuildings = all.length * 4; // up to four premises to a block
-  if (wanted > maxBuildings) {
-    throw new CitySpecInvalidError(`${wanted} buildings asked for, room for ${maxBuildings}`);
+  const maxBuildings = all.length * MAX_PER_BLOCK;
+  if (spec.lots != null && spec.lots > maxBuildings) {
+    throw new CitySpecInvalidError(`${spec.lots} buildings asked for, room for ${maxBuildings}`);
   }
+  const perBlock = premisesPerBlock(all.length, spec.lots ?? null, rng);
+  const wanted = perBlock.reduce((a, b) => a + b, 0);
 
   const floorKit = pickKit(assetQuery, "room-floor", spec.theme);
   const wallKit = pickKit(assetQuery, "wall", spec.theme);
@@ -94,10 +130,6 @@ export function createStreets(spec, assetQuery, opts = {}) {
   // The whole ground is roadway; each block lays its pavement over it, and the buildings stand on
   // that. So the streets are simply what no block covers.
   zones.push({ id: "road", kind: "road", position: [0, 0, 0], size: [extent, extent] });
-
-  // Spread the buildings over the blocks: every block gets at least one before any gets a second.
-  const perBlock = new Array(all.length).fill(0);
-  for (let i = 0; i < wanted; i++) perBlock[i % all.length] += 1;
 
   let built = 0;
   for (let c = 0; c < all.length && built < wanted; c++) {
@@ -116,7 +148,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
     for (let k = 0; k < plots.length && built < wanted; k++) {
       const plot = plots[k];
       const lotId = `${spec.id}-b${built + 1}`;
-      const floors = floorsFor(spec, built);
+      const floors = spec.floorsPerLot?.length ? floorsFor(spec, built) : rng.pick(FLOOR_MIX);
       const height = Math.min(SKY - 2, floors * STOREY + 2);
       const blockId = `mass-${lotId}`;
       blocks.push({
@@ -134,7 +166,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         roomA: GROUND_ROOM,
         roomB: "LINK",
         blockId, // the door is on the building's face; nothing is cut out of the ground
-        ...doorOnFace(plot.center, plot.size, rng.pick(FACES), DOOR),
+        ...doorOnFace(plot.center, plot.size, outwardFace(cell.center, plot.center, rng), DOOR),
         link: { instanceId: floorInstanceIds[0], spawnRoomId: "entry", kind: "enter" },
       });
 
@@ -142,7 +174,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         lotId,
         label: `${spec.label ?? spec.id} ${built + 1}`,
         theme: spec.theme,
-        program: floors > 1 ? rng.pick(PROGRAMS) : "house",
+        program: floors > 1 ? rng.pick(PROGRAMS) : rng.pick(HOUSE_PROGRAMS),
         floors,
         floorInstanceIds,
         entryRoomId: "entry",
