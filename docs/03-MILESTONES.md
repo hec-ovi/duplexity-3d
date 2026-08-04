@@ -288,6 +288,33 @@ Legend: [x] done, [~] in progress, [ ] not started.
   browser: open streets between building masses under a sky, the overlay reading as a city map, the
   console silent.
 
+## Phase 16 - Look and feel: lighting, facades, signs, checkpoints [ ]
+
+Reference: `~/Pictures/Screenshots` (a three.js street: wet reflective road, emissive signs, bloom,
+fog, lit windows, balconies, video billboards). Take the technique, not the saturation: Hector wants
+the neon dialled back and realism up. No rain; standing water as an option.
+
+- **Lighting box.** Fog, ACES tone mapping + exposure, a night key/fill, per-block lights (street
+  lamps, sign glow spilling onto the pavement), and bloom over emissive materials. Belongs in
+  `layers/runtime/` as its own module, driven by data on the instance (`rules.timeOfDay`, per-zone
+  and per-building light placements) so the generator decides and the renderer obeys.
+- **Surfaces.** Procedurally generated canvas textures, no downloaded meshes for the city fabric:
+  asphalt with lane markings and kerbs, paving slabs, concrete, facade sheets with window rows lit in
+  a seeded mix. Public-domain texture sources are allowed where a photo beats a canvas.
+- **Wet ground / water** as a spec parameter: a reflective (or part-reflective) road, puddles as
+  zones. Off by default.
+- **Facade detail as tiny skills.** Balconies, window rows, awnings, shopfront bands, `carteles`
+  (signs, some emissive, a few video billboards). Each is a small generator with its own contract and
+  its own SKILL entry, so an agent can be asked for exactly one and buildings become the same handful
+  of features in endless small variations. That variation is the point: dynamism first, realism as
+  close as it gets.
+- **Inaccessible buildings**: a mass with no door and no instances behind it, so it is never a map
+  node and the gate never waits on it. A ratio or an explicit list in the spec.
+- **Per-lot overrides + quest placement**: pin a named building (program, floors, name, goal) into a
+  named block, and let the run's objective sit in a specific place rather than wherever it landed.
+- **Checkpoints**: `tools/level.js save` / `load` over the existing `persistence` export/import, so a
+  city you like is kept and reopened by name.
+
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1
