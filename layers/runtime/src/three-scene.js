@@ -9,6 +9,7 @@
 
 import * as THREE from "three";
 
+const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
 
 const COLORS = {
@@ -16,6 +17,9 @@ const COLORS = {
   floorAlt: 0x6e5a34,
   wall: 0x8a8f98,
   block: 0x6d7482,
+  road: 0x2f333a,
+  sidewalk: 0x8d9299,
+  plaza: 0x777d86,
   object: 0x8a6d3b,
   item: 0xffd479,
   npc: { friendly: 0x5fbf6a, neutral: 0xc9c9c9, wary: 0xe0b050, hostile: 0xcc4b4b },
@@ -57,12 +61,17 @@ function sizeFor(registry, ref, fallback, warn) {
 export function buildInstanceObject3D(model, { registry, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
-  const counts = { floors: 0, walls: 0, blocks: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
+  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
 
   const floorMat = standard(COLORS.floor);
   const floorAltMat = standard(COLORS.floorAlt);
   const wallMat = standard(COLORS.wall);
   const blockMat = standard(COLORS.block);
+  const zoneMat = {
+    road: standard(COLORS.road),
+    sidewalk: standard(COLORS.sidewalk),
+    plaza: standard(COLORS.plaza),
+  };
   const objectMat = standard(COLORS.object);
   const itemMat = standard(COLORS.item, 0x6b5410);
 
@@ -86,6 +95,18 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
     mesh.userData = { kind: "wall" };
     group.add(mesh);
     counts.walls++;
+  }
+
+  // What the ground IS, under your feet: roadway, pavement, square. A pavement stands a kerb proud of
+  // the road so the two read apart at a glance and from any angle.
+  for (const z of model.zones ?? []) {
+    const lift = z.kind === "sidewalk" ? KERB : 0.01;
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(z.size.x, lift, z.size.z), zoneMat[z.kind] ?? zoneMat.plaza);
+    mesh.position.set(z.center.x, z.center.y + lift / 2, z.center.z);
+    mesh.name = `zone:${z.id}`;
+    mesh.userData = { kind: "zone", zone: z.kind };
+    group.add(mesh);
+    counts.zones++;
   }
 
   // Buildings on a street: one mass each, drawn from the ground up.

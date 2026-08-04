@@ -2,13 +2,12 @@
 //
 // This file lives OUTSIDE layers/, so it is the one place allowed to import several layers and wire
 // them together (the isolation checker only scans layers/*/src and layers/*/tests). It generates a
-// city, hands the runtime an asset-registry instance and the browser text renderer (troika, injected
-// so the head-less tests never load it), keeps the run's map state, and draws the blueprint overlay.
+// city, hands the runtime an asset-registry instance, keeps the run's map state, and draws the
+// blueprint overlay. Names and speech are HTML the runtime lays over the canvas.
 
 import { createApp } from "../layers/runtime/src/app.js";
 import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
-import { createTroikaText } from "../layers/runtime/src/speech-rig.js";
 import {
   buildWorldMap,
   createProgress,
@@ -39,8 +38,8 @@ const { adventure } = composeCity({
   theme: "city",
   label: "Ashgate",
   sizeHint: "medium",
-  lots: 3,
-  floorsPerLot: [2, 1, 3],
+  lots: 9,
+  floorsPerLot: [3, 1, 6, 2, 4, 1, 8, 2, 5],
   seed,
 });
 
@@ -89,7 +88,6 @@ const app = createApp({
   adventure,
   instanceId: worldMap.entry,
   registry: createRegistry(),
-  createText: createTroikaText,
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   onRoomChange: (_prev, next) => {

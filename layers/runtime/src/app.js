@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
 import { createNpcActors } from "./npc-actor.js";
+import { createLabelsOverlay } from "./labels-overlay.js";
 
 const KEY_MAP = {
   KeyW: "forward",
@@ -41,7 +42,6 @@ export function createApp(options = {}) {
     onTransit, // the player walked into a door leading to another instance
     isPortalOpen, // lock oracle (map-state); absent means every portal is open
     onFrame, // called after every tick, for a HUD drawn outside the 3D scene
-    createText, // text factory for labels/bubbles (browser injects troika; default is head-less)
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
@@ -76,8 +76,7 @@ export function createApp(options = {}) {
   // The scene is rebuilt whenever play moves to another instance (through a street door, up a
   // stairwell). `instanceGroup` and `actors` are therefore let, not const: goTo swaps them.
   let instanceGroup = null;
-  // Binds each NPC's scene group to its runtime state (position, facing, animation, name label,
-  // speech bubble). Text is injected so this runs head-less in tests.
+  // Binds each NPC's scene group to its runtime state (position, facing, animation).
   let actors = null;
 
   function build(id, opts) {
@@ -91,7 +90,7 @@ export function createApp(options = {}) {
     scene.background = model.rooms.some((r) => r.open) ? sky : indoors;
     instanceGroup = buildInstanceObject3D(model, { registry, warn });
     scene.add(instanceGroup);
-    actors = createNpcActors(instanceGroup, runtime.getNpcs(), { createText });
+    actors = createNpcActors(instanceGroup, runtime.getNpcs());
   }
   build(instanceId);
 
@@ -120,6 +119,43 @@ export function createApp(options = {}) {
     return input;
   }
 
+  // Names and speech are HTML over the canvas, not glyphs in the scene: always legible, never the
+  // size of a building. The overlay needs a DOM, so a head-less test simply gets none.
+  const labels = container.appendChild ? createLabelsOverlay(container) : null;
+  const _v = new THREE.Vector3();
+  const view = {
+    get width() {
+      return container.clientWidth || 1;
+    },
+    get height() {
+      return container.clientHeight || 1;
+    },
+    // World point -> screen position in 0..1, plus how far away it is. Null when behind the camera.
+    project(position, height, cam) {
+      _v.set(position.x, position.y + height, position.z);
+      const distance = cam.position.distanceTo(_v);
+      _v.project(cam);
+      if (_v.z > 1) return null;
+      return { x: (_v.x + 1) / 2, y: (1 - _v.y) / 2, distance };
+    },
+  };
+
+  function syncLabels() {
+    if (!labels) return;
+    const speech = runtime.getSpeech();
+    labels.sync(
+      runtime.getNpcs().map((npc) => ({
+        id: npc.id,
+        name: npc.name ?? npc.id,
+        says: speech?.get?.(npc.id)?.text ?? null,
+        position: npc.position,
+        height: 1.95,
+      })),
+      camera,
+      view
+    );
+  }
+
   function syncCamera() {
     const p = runtime.getPlayer();
     camera.position.set(p.position.x, p.position.y + eyeHeight, p.position.z);
@@ -127,7 +163,7 @@ export function createApp(options = {}) {
     camera.rotation.x = pitch;
   }
   syncCamera();
-  actors.sync(runtime.getNpcs(), camera, 0, runtime.getSpeech());
+  actors.sync(runtime.getNpcs(), camera, 0);
 
   // The nearest NPC within talkRange (or null), for the E-to-talk control.
   function nearestNpc() {
@@ -154,7 +190,8 @@ export function createApp(options = {}) {
     const clamped = Math.min(dt, DEFAULTS.maxDt);
     const result = runtime.step(clamped, currentInput());
     syncCamera();
-    actors.sync(runtime.getNpcs(), camera, clamped, runtime.getSpeech());
+    actors.sync(runtime.getNpcs(), camera, clamped);
+    syncLabels();
     renderer.render?.(scene, camera);
     onFrame?.(clamped);
     return result;
@@ -215,7 +252,8 @@ export function createApp(options = {}) {
     goTo(id, opts = {}) {
       build(id, opts);
       syncCamera();
-      actors.sync(runtime.getNpcs(), camera, 0, runtime.getSpeech());
+      actors.sync(runtime.getNpcs(), camera, 0);
+      syncLabels();
       return runtime.getScene();
     },
     blueprint: () => runtime.blueprint(),
@@ -240,6 +278,7 @@ export function createApp(options = {}) {
     dispose() {
       this.stop();
       actors.dispose();
+      labels?.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
       win.removeEventListener?.("keyup", onKeyUp);
       win.removeEventListener?.("mousemove", onMouseMove);

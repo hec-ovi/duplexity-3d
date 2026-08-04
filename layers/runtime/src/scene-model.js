@@ -201,6 +201,26 @@ export function buildSceneModel(instance) {
     }
   }
 
+  // Flat surfaces marked out on the floor (roadway, pavement, square). Walked over, never collided
+  // with: they say what the ground is, so it can be surfaced differently and NPCs told where to walk.
+  const zones = [];
+  for (const room of instance.rooms) {
+    for (const zone of room.zones ?? []) {
+      const [zx, zy, zz] = zone.position;
+      const [zw, zd] = zone.size;
+      zones.push({
+        id: zone.id,
+        room: room.id,
+        kind: zone.kind,
+        assetRef: zone.assetRef ?? null,
+        center: { x: zx, y: zy, z: zz },
+        size: { x: zw, z: zd },
+        min: { x: zx - zw / 2, z: zz - zd / 2 },
+        max: { x: zx + zw / 2, z: zz + zd / 2 },
+      });
+    }
+  }
+
   const objects = [];
   const items = [];
   for (const room of instance.rooms) {
@@ -269,6 +289,7 @@ export function buildSceneModel(instance) {
     rooms,
     walls,
     blocks,
+    zones,
     colliders: [...walls.filter((w) => w.collides).map((w) => w.collider), ...blocks.map((b) => b.collider)],
     portals: portalsOut,
     objects,

@@ -1,7 +1,7 @@
 // runtime - in-scene speech model (pure, no three.js).
 //
 // The data behind a billboarded speech bubble: one active line per NPC with a lifetime. The renderer
-// (npc-actor.js, via troika-three-text in the browser) just mirrors whatever is active; this module
+// (labels-overlay.js, HTML over the canvas) just mirrors whatever is active; this module
 // owns WHEN a bubble shows and expires. Lifetime is counted in accumulated sim dt, so it is
 // deterministic and needs no wall clock.
 

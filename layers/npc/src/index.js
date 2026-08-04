@@ -82,14 +82,61 @@ function startModeFor(disposition, allowedModes) {
   return prefs.find((m) => allowedModes.includes(m)) ?? allowedModes[0];
 }
 
-// Spawn the NPC at (a small offset from) its home room's centre, so authored NPCs stand inside a
-// real room rather than stacked at the world origin. Rooms without a position (unit-test stubs)
-// fall back to the origin.
+// Where one NPC stands. A cast must not pile up on one spot, and in a room the size of a city that
+// spot could be inside a building, so the position is scattered over the floor and rejected if it
+// lands in a `block` (a building mass standing on open ground).
+//
+// The scatter is an R2 low-discrepancy sequence: deterministic in the index (no clock, no random) and
+// spread evenly rather than clumping the way a hash would.
+const R2_X = 0.7548776662466927;
+const R2_Y = 0.5698402909980532;
+const EDGE = 1.5; // keep clear of the walls
+
+const frac = (n) => n - Math.floor(n);
+
+function insideBlock(blocks, x, z) {
+  return (blocks ?? []).some((b) => {
+    const [bx, , bz] = b.position;
+    const [bw, , bd] = b.size;
+    return Math.abs(x - bx) <= bw / 2 + EDGE && Math.abs(z - bz) <= bd / 2 + EDGE;
+  });
+}
+
 function spawnInRoom(room, index) {
   const p = room?.position;
   if (!Array.isArray(p)) return { position: [0, 0, 0], facing: 0 };
-  const offset = ((index % 3) - 1) * 0.8;
-  return { position: [p[0] + offset, p[1], p[2]], facing: 0 };
+  const [w, , d] = room.size ?? [];
+  if (!w || !d) return { position: [p[0], p[1], p[2]], facing: 0 };
+
+  // People keep to the pavement. Where a room marks out walk zones, a cast is scattered over those
+  // rather than over the whole floor, which on a street means nobody standing in the road.
+  const walkable = (room.zones ?? []).filter((z) => z.kind === "sidewalk" || z.kind === "plaza");
+  if (walkable.length) {
+    const zone = walkable[index % walkable.length];
+    const [zx, , zz] = zone.position;
+    const [zw, zd] = zone.size;
+    for (let k = 0; k < 32; k++) {
+      const t = index * 32 + k + 1;
+      const x = zx + (frac(t * R2_X) - 0.5) * zw;
+      const z = zz + (frac(t * R2_Y) - 0.5) * zd;
+      if (!insideBlock(room.blocks, x, z)) {
+        return { position: [x, p[1], z], facing: frac(t * R2_X) * Math.PI * 2 };
+      }
+    }
+  }
+
+  const spanX = Math.max(0, w - EDGE * 2);
+  const spanZ = Math.max(0, d - EDGE * 2);
+  for (let k = 0; k < 32; k++) {
+    const t = index * 32 + k + 1;
+    const x = p[0] + (frac(t * R2_X) - 0.5) * spanX;
+    const z = p[2] + (frac(t * R2_Y) - 0.5) * spanZ;
+    if (!insideBlock(room.blocks, x, z)) {
+      return { position: [x, p[1], z], facing: frac(t * R2_X) * Math.PI * 2 };
+    }
+  }
+  // Every sample landed in a building: stand at the room's edge, which is street either way.
+  return { position: [p[0] - spanX / 2, p[1], p[2] - spanZ / 2], facing: 0 };
 }
 
 // --- deterministic voice-design composer (ported from gamentic) -------------------------------------

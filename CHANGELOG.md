@@ -4,6 +4,15 @@ What the project does now, newest first.
 
 ## 0.3 - The outdoors is open
 
+- Names and speech are HTML laid over the canvas, not glyphs in the 3D scene. A line is always
+  legible and never rendered at the size of a building, it wraps, and it needs no font atlas. The
+  troika dependency is gone.
+- A street level is city blocks: each block is a pavement with one to four buildings on it, each with
+  its own footprint, height and front door, and the roadway is what no block covers. The pavement is a
+  walk zone, so NPCs are placed on it rather than in the road.
+- A cast is scattered over its room (or over the walk zones where a room has them) instead of stacking
+  on the room's centre, and never inside a building.
+
 - A street level is open ground, not rooms. One floor, buildings standing on it as solid masses, and
   the gaps between them are the streets: no corridors, nothing to squeeze through. The edge of the
   level stops you and is drawn as nothing, so the city ends in open air rather than in a wall.

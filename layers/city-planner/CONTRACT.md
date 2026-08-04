@@ -21,8 +21,8 @@ ids, never on coordinates.
   - `opts.seed?`: overrides `CitySpec.seed`. Same seed and spec give the same street, always.
 
 ## Outputs (params out)
-- `instance` - a persistence Instance holding ONE `open` room (the ground), its `blocks[]` (the
-  building masses), one `LINK` portal per building carrying `blockId` (the door is on that mass's
+- `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
+  roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a block), one `LINK` portal per building carrying `blockId` (the door is on that mass's
   face), and one `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`. `rules`
   carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
   schema: owned by `persistence` (`instance.json`).
@@ -51,9 +51,12 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
 ## Invariants this layer will never break
 - The outdoors is open. One room, marked `open`: its edge stops you and is drawn as nothing, so the
   level ends in empty space instead of a wall. There are no corridors and no doorways out here.
-- Buildings stand on a lattice with a full street between any two of them and a street all the way
-  round the outside, so the streets are connected by construction and every building fronts one on
-  all four sides. No two masses touch, and none leaves the ground.
+- City blocks stand on a lattice with a full street between any two and a street all the way round the
+  outside, so the streets are connected by construction and every block fronts one on all four sides.
+  A block is a pavement with one to four buildings on it, each with its own footprint, height and door;
+  no two masses touch, and none leaves the ground or its pavement.
+- The roadway is what no block covers. Pavement is a zone, so it is walked over, never collided with,
+  and NPCs are given it as the place to be.
 - Every building's door is on a face of ITS OWN mass, and you can walk to it: proved by the injected
   validator's flood fill of the open floor, not assumed.
 - The spawn stands in a street, never inside a building.

@@ -111,8 +111,48 @@ describe("npc.authorNpcs - author-time with a real body (Phase 5)", () => {
     for (const n of npcs) {
       const home = ctx.rooms.find((r) => r.id === n.homeRoom);
       expect(home).toBeTruthy();
-      expect(Math.abs(n.spawn.position[0] - home.position[0])).toBeLessThanOrEqual(1);
-      expect(n.spawn.position[2]).toBe(home.position[2]);
+      const [x, , z] = n.spawn.position;
+      expect(Math.abs(x - home.position[0])).toBeLessThanOrEqual(home.size[0] / 2);
+      expect(Math.abs(z - home.position[2])).toBeLessThanOrEqual(home.size[2] / 2);
+    }
+  });
+
+  it("scatters a cast over a big room instead of piling it on one spot", () => {
+    // One open room the size of a city block: everyone standing on the same tile would be wrong.
+    const street = {
+      id: "street",
+      theme: "city",
+      rooms: [{ id: "ground", position: [0, 0, 0], size: [80, 6, 80] }],
+      goal: { type: "survive", seconds: 30 },
+    };
+    const npcs = authorNpcs(street, { count: 6, roles: [{ role: "passer-by" }] }, {});
+    const spots = new Set(npcs.map((n) => n.spawn.position.slice(0, 3).join(",")));
+    expect(spots.size).toBe(6);
+
+    // and they are spread, not huddled: some pair is more than a few metres apart
+    const far = npcs.some((a) =>
+      npcs.some((b) => Math.hypot(a.spawn.position[0] - b.spawn.position[0], a.spawn.position[2] - b.spawn.position[2]) > 10)
+    );
+    expect(far).toBe(true);
+    // same input, same places: no clock, no random
+    expect(authorNpcs(street, { count: 6, roles: [{ role: "passer-by" }] }, {}).map((n) => n.spawn)).toEqual(
+      npcs.map((n) => n.spawn)
+    );
+  });
+
+  it("never stands an NPC inside a building on open ground", () => {
+    const block = { id: "m1", position: [0, 0, 0], size: [40, 20, 40] }; // most of the room is solid
+    const street = {
+      id: "street",
+      theme: "city",
+      rooms: [{ id: "ground", position: [0, 0, 0], size: [60, 6, 60], blocks: [block] }],
+      goal: { type: "survive", seconds: 30 },
+    };
+    for (const n of authorNpcs(street, { count: 8, roles: [{ role: "passer-by" }] }, {})) {
+      const [x, , z] = n.spawn.position;
+      const insideX = Math.abs(x - block.position[0]) <= block.size[0] / 2;
+      const insideZ = Math.abs(z - block.position[2]) <= block.size[2] / 2;
+      expect(insideX && insideZ).toBe(false);
     }
   });
 

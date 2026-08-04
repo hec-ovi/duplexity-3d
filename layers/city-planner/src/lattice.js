@@ -49,6 +49,41 @@ export function chooseCells(all, wanted, rng) {
   return Array.from({ length: wanted }, (_, k) => all[offset + k * stride]);
 }
 
+export const PAVEMENT = 2.2; // how much of a block is pavement before the buildings start
+
+/**
+ * Split one city block into the plots its buildings stand on. The block keeps a pavement all the way
+ * round, and the buildings inside it differ in footprint, so a block reads as several premises rather
+ * than one slab.
+ *
+ * @returns {Array<{center:{x:number,z:number}, size:{w:number,d:number}}>}
+ */
+export function plotsInBlock(center, count) {
+  const inner = BLOCK - PAVEMENT * 2;
+  if (count <= 1) return [{ center: { ...center }, size: { w: inner, d: inner } }];
+  if (count === 2) {
+    // one wide, one narrow, split along z
+    const wide = inner * 0.58;
+    const narrow = inner - wide - 1;
+    return [
+      { center: { x: center.x, z: center.z - inner / 2 + wide / 2 }, size: { w: inner, d: wide } },
+      { center: { x: center.x, z: center.z + inner / 2 - narrow / 2 }, size: { w: inner, d: narrow } },
+    ];
+  }
+  // three or four: quarters, each a little different
+  const half = (inner - 1) / 2;
+  const quads = [
+    { x: -1, z: -1, w: half * 1.05, d: half },
+    { x: 1, z: -1, w: half * 0.95, d: half },
+    { x: -1, z: 1, w: half, d: half * 0.9 },
+    { x: 1, z: 1, w: half, d: half * 1.05 },
+  ].slice(0, Math.min(count, 4));
+  return quads.map((q) => ({
+    center: { x: center.x + (q.x * (inner - q.w)) / 2, z: center.z + (q.z * (inner - q.d)) / 2 },
+    size: { w: q.w, d: q.d },
+  }));
+}
+
 /** The four faces of a footprint. A door goes on one of them, and every one fronts a street. */
 export const FACES = [
   { name: "south", dx: 0, dz: -1 },
@@ -57,10 +92,10 @@ export const FACES = [
   { name: "east", dx: 1, dz: 0 },
 ];
 
-/** Where a door sits on one face of a footprint, as a portal position + axis. */
-export function doorOnFace(center, face, size) {
+/** Where a door sits on one face of a footprint of the given size, as a portal position + axis. */
+export function doorOnFace(center, footprint, face, size) {
   if (face.dx !== 0) {
-    return { position: [center.x + (face.dx * BLOCK) / 2, 0, center.z], axis: "x", size };
+    return { position: [center.x + (face.dx * footprint.w) / 2, 0, center.z], axis: "x", size };
   }
-  return { position: [center.x, 0, center.z + (face.dz * BLOCK) / 2], axis: "z", size };
+  return { position: [center.x, 0, center.z + (face.dz * footprint.d) / 2], axis: "z", size };
 }

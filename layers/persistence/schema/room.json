@@ -56,7 +56,7 @@
     },
     "blocks": {
       "type": "array",
-      "description": "Solid volumes standing inside this room: building masses on a street. Nothing walks through one; a door on a block's face leads to the instance inside it.",
+      "description": "Solid volumes standing inside this room: one per BUILDING on a street. Nothing walks through one; a door on a block's face leads to the instance inside it.",
       "items": {
         "type": "object",
         "properties": {
@@ -79,6 +79,44 @@
         },
         "required": [
           "id",
+          "position",
+          "size"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "zones": {
+      "type": "array",
+      "description": "Flat surfaces marked out on the floor: the roadway, the pavement round a block, a square. They are walked over, never collided with; they say what the ground IS, so it can be surfaced differently and NPCs can be told where to walk.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "road",
+              "sidewalk",
+              "plaza"
+            ],
+            "description": "road: the carriageway. sidewalk: the pavement pedestrians keep to. plaza: open paving."
+          },
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "size": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec2.json"
+          },
+          "assetRef": {
+            "type": "string",
+            "description": "Surface to face it with. Omitted means a plain one for its kind."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
           "position",
           "size"
         ],
