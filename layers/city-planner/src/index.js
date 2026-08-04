@@ -18,7 +18,7 @@ import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from ".
 
 export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
 
-const SKY = 140; // how high the invisible limit reaches, metres: taller than anything built under it
+const SKY = 320; // how high the invisible limit reaches, metres: taller than anything built under it
 const STOREY = 3.2; // a building's mass grows this much per floor it holds
 const PARAPET = 1; // and carries this much past its top floor
 const DOOR = [2, 3];

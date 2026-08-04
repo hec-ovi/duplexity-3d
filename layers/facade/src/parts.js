@@ -31,6 +31,7 @@ const WINDOW_SHAPE = {
 const WINDOW = { margin: 0.6, maxBays: 10 };
 const ADVERT = { depth: 0.4, margin: 1.2, minSpan: 6 };
 const NEON = { thickness: 0.16, proud: 0.1 };
+const STRIP = { width: 0.28, thickness: 0.12, proud: 0.08 };
 
 /** Where a wall's outward normal points, and how wide that wall is. */
 export function walls({ w, d }) {
@@ -154,6 +155,20 @@ export function advert(wall, y, height, face, colour, portrait) {
 
 /** Whether a wall is wide enough to carry an advert at all. */
 export const takesAdvert = (wall) => wall.span >= ADVERT.minSpan;
+
+/**
+ * A line of light running the FULL HEIGHT of a wall. The reference city's towers are lit up their
+ * corners and their seams, not only across their tops, and it is what reads from three streets away.
+ */
+export function strip(wall, along, bottom, height, colour, width = STRIP.width) {
+  return {
+    kind: "strip",
+    position: on(wall, along, bottom + height / 2, STRIP.proud),
+    size: [width, height, STRIP.thickness],
+    facing: facing(wall),
+    colour,
+  };
+}
 
 /** A neon line along the top edge of a tier: what a building wears instead of a roofline. */
 export function neon(wall, y, colour) {

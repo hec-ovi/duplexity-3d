@@ -116,6 +116,11 @@
           "floors": {
             "type": "integer",
             "minimum": 1
+          },
+          "taper": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "The top's size as a share of its base. Below 1 leans in as it rises; 1 stands straight."
           }
         },
         "required": [

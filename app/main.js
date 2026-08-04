@@ -103,7 +103,7 @@ function showGate() {
 
 // Eight ways to point, from a bearing in radians off where the player is looking.
 const ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
-const arrowFor = (bearing) => ARROWS[Math.round((bearing / (Math.PI / 4) + 8) % 8)];
+const arrowFor = (bearing) => ARROWS[Math.round(bearing / (Math.PI / 4) + 8) % 8];
 
 const app = createApp({
   container,

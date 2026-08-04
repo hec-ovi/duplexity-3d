@@ -6,7 +6,10 @@
   "type": "object",
   "properties": {
     "name": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "What the place is called, and what its cartel says. Null where a place has no sign (a house)."
     },
     "shape": {
@@ -16,67 +19,223 @@
     "tiers": {
       "type": "array",
       "description": "The solid masses it is stacked from, ground one first. The ground tier always fills the plot; the ones above step back off it.",
-      "items": { "$ref": "#/$defs/box" }
+      "items": {
+        "$ref": "#/$defs/box"
+      }
     },
     "bands": {
       "type": "array",
       "description": "The ledge round each step and the parapet capping the top.",
-      "items": { "$ref": "#/$defs/box" }
+      "items": {
+        "$ref": "#/$defs/box"
+      }
     },
     "parts": {
       "type": "array",
-      "items": { "$ref": "#/$defs/part" }
+      "items": {
+        "$ref": "#/$defs/part"
+      }
     },
     "style": {
       "type": "object",
       "description": "The look this building wears, drawn once from its seed so everything on it agrees.",
       "properties": {
-        "window": { "type": "string", "enum": ["square", "tall", "ribbon", "bay", "grid"] },
-        "balcony": { "type": "string", "enum": ["slab", "cage", "french", "corner"] },
-        "mount": { "type": "string", "enum": ["flat", "blade", "roof", "frame"] },
-        "door": { "type": "string", "enum": ["shopfront", "flush", "recessed", "double", "shutter"] }
+        "window": {
+          "type": "string",
+          "enum": [
+            "square",
+            "tall",
+            "ribbon",
+            "bay",
+            "grid"
+          ]
+        },
+        "balcony": {
+          "type": "string",
+          "enum": [
+            "slab",
+            "cage",
+            "french",
+            "corner"
+          ]
+        },
+        "mount": {
+          "type": "string",
+          "enum": [
+            "flat",
+            "blade",
+            "roof",
+            "frame"
+          ]
+        },
+        "door": {
+          "type": "string",
+          "enum": [
+            "shopfront",
+            "flush",
+            "recessed",
+            "double",
+            "shutter"
+          ]
+        }
       },
-      "required": ["window", "balcony", "mount", "door"],
+      "required": [
+        "window",
+        "balcony",
+        "mount",
+        "door"
+      ],
       "additionalProperties": false
     },
     "door": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "What the front door is, for whoever builds it. Null on a building with no way in.",
       "properties": {
-        "style": { "type": "string", "enum": ["shopfront", "flush", "recessed", "double", "shutter"] },
-        "colour": { "type": "string", "description": "A CSS colour: what this place burns over its door." }
+        "style": {
+          "type": "string",
+          "enum": [
+            "shopfront",
+            "flush",
+            "recessed",
+            "double",
+            "shutter"
+          ]
+        },
+        "colour": {
+          "type": "string",
+          "description": "A CSS colour: what this place burns over its door."
+        }
       },
-      "required": ["style"],
+      "required": [
+        "style"
+      ],
+      "additionalProperties": false
+    },
+    "topper": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "What stands on the roof of a building tall enough to be seen over. Null on anything low.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "mast",
+            "frame",
+            "dish",
+            "spire",
+            "vents"
+          ]
+        },
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "kind",
+        "position",
+        "width",
+        "height"
+      ],
       "additionalProperties": false
     }
   },
-  "required": ["name", "parts"],
+  "required": [
+    "name",
+    "parts"
+  ],
   "additionalProperties": false,
   "$defs": {
     "box": {
       "type": "object",
       "properties": {
-        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
-        "size": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 3, "maxItems": 3 }
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "taper": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "The top's [width, depth] as a share of the bottom's. [1,1] is a box; below 1 batters inward, above 1 flares into a crown."
+        },
+        "legs": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "This tier is open sky carried on this many columns: a void cut through the building. Nothing is dressed on it."
+        }
       },
-      "required": ["position", "size"],
+      "required": [
+        "position",
+        "size"
+      ],
       "additionalProperties": false
     },
     "part": {
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "enum": ["window", "advert", "neon", "balcony", "awning", "sign"] },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "window",
+            "advert",
+            "neon",
+            "strip",
+            "balcony",
+            "awning",
+            "sign"
+          ]
+        },
         "position": {
           "type": "array",
           "description": "Middle of the part, in the building's frame.",
-          "items": { "type": "number" },
+          "items": {
+            "type": "number"
+          },
           "minItems": 3,
           "maxItems": 3
         },
         "size": {
           "type": "array",
           "description": "[across the wall, up, out from the wall] in metres.",
-          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
           "minItems": 3,
           "maxItems": 3
         },
@@ -88,31 +247,80 @@
           "type": "string",
           "description": "window: square, tall, ribbon, bay or grid. balcony: slab, cage, french or corner."
         },
-        "rail": { "type": "number", "description": "balcony: how high the rail round it stands." },
-        "floor": { "type": "boolean", "description": "balcony: false is a rail on the wall with nothing to stand on." },
-        "bars": { "type": "boolean", "description": "balcony: a cage, with bars over the parapet." },
-        "lit": { "type": "boolean", "description": "window: whether the light behind it is on." },
-        "blind": { "type": "boolean", "description": "window: whether a blind is pulled down over it." },
-        "colour": { "type": ["string", "null"], "description": "awning, sign, window, advert: a CSS colour." },
-        "text": { "type": ["string", "null"], "description": "sign, advert: what it says, or null on a panel with no words." },
+        "rail": {
+          "type": "number",
+          "description": "balcony: how high the rail round it stands."
+        },
+        "floor": {
+          "type": "boolean",
+          "description": "balcony: false is a rail on the wall with nothing to stand on."
+        },
+        "bars": {
+          "type": "boolean",
+          "description": "balcony: a cage, with bars over the parapet."
+        },
+        "lit": {
+          "type": "boolean",
+          "description": "window: whether the light behind it is on."
+        },
+        "blind": {
+          "type": "boolean",
+          "description": "window: whether a blind is pulled down over it."
+        },
+        "colour": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "awning, sign, window, advert: a CSS colour."
+        },
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "sign, advert: what it says, or null on a panel with no words."
+        },
         "graphic": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "advert: a lit composition instead of words - bars, rings, wave, grid or figure."
         },
-        "holo": { "type": "boolean", "description": "advert: projected into the air in front of the panel." },
-        "portrait": { "type": "boolean", "description": "advert: running up the building rather than across it." },
+        "holo": {
+          "type": "boolean",
+          "description": "advert: projected into the air in front of the panel."
+        },
+        "portrait": {
+          "type": "boolean",
+          "description": "advert: running up the building rather than across it."
+        },
         "orientation": {
           "type": "string",
-          "enum": ["flat", "blade"],
+          "enum": [
+            "flat",
+            "blade"
+          ],
           "description": "sign: flat against the wall, or out at right angles so it reads down the street."
         },
         "mount": {
           "type": "string",
-          "enum": ["flat", "blade", "roof", "frame"],
+          "enum": [
+            "flat",
+            "blade",
+            "roof",
+            "frame"
+          ],
           "description": "sign: how it is hung - on the fascia, out at right angles, on the parapet, or clear of the wall on arms."
         }
       },
-      "required": ["kind", "position", "size", "facing"],
+      "required": [
+        "kind",
+        "position",
+        "size",
+        "facing"
+      ],
       "additionalProperties": false
     }
   }

@@ -14,7 +14,7 @@ const HOUSE_PROGRAMS = ["house", "shop"];
 const PLACES = 6;
 // A skyline needs a mix, and a street needs walls: heights come from this, so a block reads as a run
 // of tall buildings with the odd low one between them rather than as a suburban strip.
-const STOREY_MIX = [2, 3, 4, 5, 6, 6, 8, 9, 11, 12, 14, 16, 18, 22];
+const STOREY_MIX = [2, 3, 4, 5, 6, 6, 8, 9, 11, 12, 14, 16, 18, 22, 26, 34];
 // How many of a building's storeys you can actually walk into. The rest stand over the street: a run
 // is a few conversations, not a tower block to clear floor by floor.
 const PLAYABLE = [1, 1, 1, 2, 2, 3];

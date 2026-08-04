@@ -59,8 +59,8 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       batch(`window:${look}:${shape}`, part.size, () => windowMaterial?.(part) ?? matte(0x2a3138), part);
       continue;
     }
-    if (part.kind === "neon") {
-      batch(`neon:${part.colour}:${shape}`, part.size, () => burning(part.colour, 1.6), part);
+    if (part.kind === "neon" || part.kind === "strip") {
+      batch(`${part.kind}:${part.colour}:${shape}`, part.size, () => burning(part.colour, 1.6), part);
       continue;
     }
     if (part.kind === "balcony") {
@@ -135,7 +135,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(...size), material(), batched.length);
     mesh.name = key;
     // A window and a neon strip are sources, not shadow casters.
-    mesh.userData = { kind: key.startsWith("window") || key.startsWith("neon") ? "light" : "part" };
+    mesh.userData = { kind: /^(window|neon|strip)/.test(key) ? "light" : "part" };
     batched.forEach((part, i) => {
       const [ox, oy, oz] = part.offset ?? [0, 0, 0];
       const sin = Math.sin(part.facing);

@@ -14,6 +14,8 @@ import { buildFacadeParts } from "./facade-parts.js";
 import { buildLamp, buildLampShafts, lampMaterials } from "./lamps.js";
 import { buildStreetProps } from "./props.js";
 import { buildHolograms } from "./holograms.js";
+import { taperedBox } from "./shapes.js";
+import { buildTopper } from "./toppers.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -241,14 +243,32 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     const faces = materials?.block(b) ?? blockMat;
     const masses = dressed?.tiers ?? [{ position: [0, b.size.y / 2, 0], size: [b.size.x, b.size.y, b.size.z] }];
     masses.forEach((tier, i) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...tier.size), faces);
-      mesh.position.set(foot.x + tier.position[0], foot.y + tier.position[1], foot.z + tier.position[2]);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.name = i === 0 ? `block:${b.id}` : `block:${b.id}:tier${i}`;
-      mesh.userData = { kind: "block", assetRef: b.assetRef };
-      group.add(mesh);
+      const [tw, th, td] = tier.size;
+      const [taperX, taperZ] = tier.taper ?? [1, 1];
+      // A tier carried on LEGS is a void cut through the building: sky, with columns holding up what
+      // is above it. Anything else is one mass, leaning in or flaring out as it rises.
+      const pieces = tier.legs
+        ? Array.from({ length: tier.legs }, (_, k) => ({
+            geometry: new THREE.BoxGeometry(tw / (tier.legs * 3), th, td / 2),
+            at: [((k - (tier.legs - 1) / 2) * tw) / Math.max(1, tier.legs - 1 || 1), 0, 0],
+          }))
+        : [{ geometry: taperedBox(tw, th, td, taperX, taperZ), at: [0, 0, 0] }];
+      pieces.forEach((piece, k) => {
+        const mesh = new THREE.Mesh(piece.geometry, faces);
+        mesh.position.set(
+          foot.x + tier.position[0] + piece.at[0],
+          foot.y + tier.position[1],
+          foot.z + tier.position[2] + piece.at[2]
+        );
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.name = i === 0 && k === 0 ? `block:${b.id}` : `block:${b.id}:tier${i}.${k}`;
+        mesh.userData = { kind: "block", assetRef: b.assetRef };
+        group.add(mesh);
+      });
     });
+    // What stands on the roof: a mast, a frame, a dish. Only on something tall enough to see it over.
+    if (dressed?.topper) group.add(buildTopper(dressed.topper, foot));
     for (const band of dressed?.bands ?? []) {
       const trim = new THREE.Mesh(new THREE.BoxGeometry(...band.size), bandMat);
       trim.position.set(foot.x + band.position[0], foot.y + band.position[1], foot.z + band.position[2]);
@@ -295,7 +315,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // the way a building on the street is dressed is tens of thousands of objects nobody can see.
   for (const far of model.skyline ?? []) {
     const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(far.size.x, far.size.y, far.size.z),
+      taperedBox(far.size.x, far.size.y, far.size.z, far.taper ?? 1),
       materials?.tower(far) ?? blockMat
     );
     mesh.position.set(far.center.x, far.center.y, far.center.z);
