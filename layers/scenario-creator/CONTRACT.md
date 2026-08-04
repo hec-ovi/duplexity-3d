@@ -63,6 +63,11 @@ this same `RoomGraph -> Instance` seam; the grid solver is the valid-by-construc
   one-sided portal (`roomB` is `"EXIT"` or `"LINK"`, the latter leading to another instance) is held
   to the same alignment on the one room it has, and joins no rooms for connectivity.
 - The goal is satisfiable: its target room/item/NPC location is reachable from spawn.
+- On OPEN ground (a room with `blocks`, i.e. buildings standing on a street), four more hold: every
+  block is inside its room, no two blocks overlap, a door carrying `blockId` sits on a face of that
+  block, and every door in the spawn's room can be WALKED to. The last one is a flood fill of the open
+  floor (`src/walkable.js`), because open ground has no portal graph to reason over: a building parked
+  across the only approach is invisible to every other check.
 - Output validates against `instance.json`; an invalid layout is never returned.
 
 ## Dependencies (contracts only)

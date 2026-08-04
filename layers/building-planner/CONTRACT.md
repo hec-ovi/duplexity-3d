@@ -28,7 +28,9 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
   open into.
 - The ground floor has a `leave` door back to `LotPlan.returnInstanceId` / `returnRoomId`. A lot with
   no return named stands on its own, and the same door becomes a plain `EXIT`.
-- Floor n and floor n+1 are joined by a `stairs_up` / `stairs_down` pair, each on its own wall face.
+- Floor n and floor n+1 are joined by a matching pair, each on its own wall face: `stairs_up` /
+  `stairs_down` in a small building, `elevator_up` / `elevator_down` from four storeys up. Both work
+  the same way; the name is what the sign over it and the map icon read from.
 
 ## Errors
 - `NO_ASSET_FOR_KIND` - the theme has no floor or wall kit in the registry.

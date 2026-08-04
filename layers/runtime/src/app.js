@@ -66,7 +66,8 @@ export function createApp(options = {}) {
   });
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0b0d10);
+  const sky = new THREE.Color(0x2a3c52); // outdoors: the level ends in open air, so give it a sky
+  const indoors = new THREE.Color(0x0b0d10);
   scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x202024, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.2);
   sun.position.set(4, 10, 6);
@@ -86,7 +87,9 @@ export function createApp(options = {}) {
       scene.remove(instanceGroup);
       disposeObject3D(instanceGroup);
     }
-    instanceGroup = buildInstanceObject3D(runtime.getSceneModel(), { registry, warn });
+    const model = runtime.getSceneModel();
+    scene.background = model.rooms.some((r) => r.open) ? sky : indoors;
+    instanceGroup = buildInstanceObject3D(model, { registry, warn });
     scene.add(instanceGroup);
     actors = createNpcActors(instanceGroup, runtime.getNpcs(), { createText });
   }

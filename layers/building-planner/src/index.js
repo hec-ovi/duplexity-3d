@@ -14,6 +14,7 @@ const DOOR = [1.4, 2.4]; // interior door
 const WAY_OUT = [1.6, 2.4]; // the street door
 const STAIRS = [1.2, 2.4];
 const MIN_ROOM = 2.5; // a room narrower than this is not worth walking into
+const TALL = 4; // storeys from which a building has a lift instead of a staircase
 
 // How many rooms a floor gets, as [cols, rows].
 const PROGRAMS = {
@@ -107,6 +108,9 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, op
   const arrival = cells[0]; // (0,0): where the front door leaves you, and the floor's own spawn
   const stairwell = cells.at(-1); // the far corner: the top and bottom of every flight of stairs
   const stairRoomOn = (index) => roomIdFor(stairwell, arrivalName(index));
+  // Past a few storeys a building has a lift, not a staircase. It works the same way (a door to the
+  // floor above or below); it is named so the sign over it and the map icon can say so.
+  const vertical = floors >= TALL ? "elevator" : "stairs";
 
   const rooms = cells.map((cell) => ({
     id: roomIdFor(cell, arrivalId),
@@ -148,7 +152,7 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, op
       link: {
         instanceId: lot.floorInstanceIds[floorIndex - 1],
         spawnRoomId: stairRoomOn(floorIndex - 1),
-        kind: "stairs_down",
+        kind: `${vertical}_down`,
       },
     });
   }
@@ -159,7 +163,7 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, op
       roomA: roomIdFor(stairwell, arrivalId),
       roomB: "LINK",
       ...faceOpening(stairwell, outerFace(at, stairwell, ["north", "east"]), STAIRS),
-      link: { instanceId: above, spawnRoomId: stairRoomOn(floorIndex + 1), kind: "stairs_up" },
+      link: { instanceId: above, spawnRoomId: stairRoomOn(floorIndex + 1), kind: `${vertical}_up` },
     });
   }
 

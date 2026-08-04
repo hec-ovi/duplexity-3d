@@ -1,6 +1,6 @@
 # city-planner
 
-Builds the outside: a street you can walk, a door for every building on it, one entry and one locked
+Builds the outside: open ground, buildings standing on it, a door on each one, an entry and a locked
 exit gate.
 
 ```js
@@ -16,20 +16,26 @@ const { instance, lots } = createStreets(
 `instance` is a persistence Instance you can hand straight to the runtime. `lots` is one brief per
 front door, which `building-planner` turns into the floors behind it.
 
-## Why the roads are on a grid
+## Why there are no rooms out here
 
-Two segments that are neighbours on an integer grid share a full wall, so the opening between them
-lands on exactly the same plane from both sides. That exactness is what the runtime needs to cut a
-doorway, and it is why a street built here is correct by construction instead of correct within a
-tolerance. Doors and the gate only ever go on a face with nothing behind it, so no two ever collide
-and no doorway is ever cut into one room's wall and not its neighbour's.
+Indoors is rooms and doorways. Outdoors is not: it is one open floor with solid masses on it, and the
+gaps between the masses are the streets. So the level has no corridors, nothing to squeeze through,
+and its edge is a limit that stops you while being drawn as nothing, which is why the city ends in
+empty space rather than in a wall.
+
+Buildings sit on a lattice with a full street between any two of them and a street all the way round
+the outside. That makes the streets connected by construction and gives every building four frontages.
+A building's height comes from how many floors it holds, so a tall one reads as tall from the street
+before you go in.
 
 ## What it does not decide
 
-Where the buildings' rooms go, what is inside them, who lives there, or how the map is unlocked.
-It hands out briefs and gets out of the way.
+What is inside a building, who lives there, or how the map is unlocked. It hands out briefs and gets
+out of the way. It also does not decide whether the layout is legal: the injected validator walks the
+open floor and refuses a level where a building has been parked across the only way to a door.
 
 ## Modifying it
 
-See [CONTRACT.md](CONTRACT.md). The road shape is `src/grid.js`; metres, door sizes and the gate live
-at the top of `src/index.js`. Run this layer's tests with `npx vitest run layers/city-planner`.
+See [CONTRACT.md](CONTRACT.md). Block size, street width and which cells get built on are in
+`src/lattice.js`; door and gate sizes are at the top of `src/index.js`. Run this layer's tests with
+`npx vitest run layers/city-planner`.

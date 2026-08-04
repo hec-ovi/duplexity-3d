@@ -65,6 +65,10 @@ The outdoor level on its own, plus one `LotPlan` per front door.
 node tools/level.js street --id ashgate --theme city --size large --lots 4
 ```
 
+Outdoors is open ground, not rooms: one floor, buildings standing on it as solid masses, and the gaps
+between them are the streets. The edge of the level stops you and is drawn as nothing, so the city
+ends in open air rather than in a wall. A building's height comes from how many floors it holds.
+
 Returns `{ instance, lots, report }`. Feed each `lots[]` entry to [building](#building) to fill it in.
 A lot brief fixes the ids the building must use, the room its front door opens into, and where its way
 out leads back to. It says nothing about coordinates, because a building interior is its own space.
@@ -88,7 +92,7 @@ node tools/level.js building --id ashgate-b1 --theme city --floors 3 --program o
 
 Floor 1 is `<id>-f1`, floor 2 is `<id>-f2`, and so on. Each floor gets one thing to find, in the room
 furthest from where you come in. Stairs land you in the same corner on both floors, so walking up and
-back down returns you where you were.
+back down returns you where you were. From four storeys up a building has a lift instead of stairs.
 
 <a id="house"></a>
 ## House
@@ -123,7 +127,9 @@ node tools/level.js map --in city.json        # nodes, doors, the gate, and what
 
 `validate` runs the same geometry proof the generators are held to: no overlapping rooms, every room
 reachable on foot, every doorway aligned on both sides, one-sided doors on outer walls only, and a
-goal you can actually reach.
+goal you can actually reach. On open ground it also walks the floor: buildings must sit inside the
+level, clear of each other, with their door on their own face and a way through the streets to reach
+it.
 
 <a id="play"></a>
 ## Play
@@ -135,8 +141,9 @@ npm test                         # every layer's contract tests
 ```
 
 `npm run dev` builds a new city each visit. `?seed=1234` plays the same one again, so a seed is a
-level you can pass to someone. A map overlay in the corner fills in as you walk: it draws only the
-rooms you have been in, and marks a door you cannot use yet in red.
+level you can pass to someone. A map overlay in the corner keeps you centred and slides the world
+under you: it draws only the rooms you have been in, the buildings on the ground you are standing on,
+and marks a door you cannot use yet in red.
 
 The rogue rule: each instance has a goal. Clearing every required instance opens the exit gate, and
 walking into an open gate wins the run. The gate never counts the instance it stands in.
@@ -178,9 +185,9 @@ reading its code.
 
 - A layer may use another layer's `CONTRACT.md` and `schema/`, never its `src/`. Cross-layer calls are
   injected as handles.
-- Rooms are axis-aligned boxes on a uniform grid. That is what makes a doorway land on exactly the
-  same plane from both sides, and it is why levels are correct by construction rather than by
-  tolerance. Do not hand-place coordinates: change the generator and rebuild with a seed.
+- Indoors is rooms: axis-aligned boxes on a uniform grid, which is what makes a doorway land on
+  exactly the same plane from both sides. Outdoors is open ground with solid masses on it, and the
+  streets are the gaps. Do not hand-place coordinates: change the generator and rebuild with a seed.
 - A door leading out of an instance (`roomB` is `"EXIT"` or `"LINK"`) must sit on an outer wall. On a
   shared wall the runtime cuts the opening on one side only.
 - Nothing is random. No `Math.random`, no clock: seeds only, or the same spec stops rebuilding the

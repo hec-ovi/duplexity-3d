@@ -61,6 +61,7 @@ function roomSides(room) {
 // The opening [start,end] a portal cuts, along the wall's span axis, or null if the portal is not
 // on this side. Portal.axis is the wall normal; the opening width (size[0]) runs along the span.
 function portalOpeningOnSide(portal, room, side) {
+  if (portal.blockId) return null; // a door on a building's face cuts nothing out of the room
   if (portal.axis !== side.axis) return null;
   if (portal.roomA !== room.id && portal.roomB !== room.id) return null;
   const planeCoord = side.axis === "z" ? portal.position[2] : portal.position[0];
@@ -73,7 +74,7 @@ function portalOpeningOnSide(portal, room, side) {
 // A wall segment between vertical bounds [yBottom, yTop]. `collides` distinguishes a full-height
 // wall from a door header (lintel), which renders but must NOT collide (collision is XZ-only, so a
 // lintel collider would wrongly re-block the doorway below it).
-function wallRecord(side, a, b, yBottom, yTop, collides) {
+function wallRecord(side, a, b, yBottom, yTop, collides, renders = true) {
   const t = WALL_THICKNESS;
   const mid = (a + b) / 2;
   const cy = (yBottom + yTop) / 2;
@@ -102,6 +103,7 @@ function wallRecord(side, a, b, yBottom, yTop, collides) {
     yTop,
     thickness: t,
     collides,
+    renders,
     center,
     size,
     collider,
@@ -125,6 +127,7 @@ export function buildSceneModel(instance) {
       id: room.id,
       floorKit: room.floorKit,
       wallKit: room.wallKit,
+      open: Boolean(room.open), // open ground: an edge that stops you, drawn as nothing
       center: { x: cx, y: cy, z: cz },
       size: { x: w, y: h, z: d },
       floorY: cy,
@@ -149,12 +152,18 @@ export function buildSceneModel(instance) {
       // Two rooms sharing a wall compute the identical segments (and cut the identical portal
       // opening), so keying by geometry collapses the shared wall to one piece.
       const add = (rec) => {
-        if (!wallsByKey.has(rec.id)) wallsByKey.set(rec.id, rec);
+        const seen = wallsByKey.get(rec.id);
+        // A wall shared between an open room and a walled one is still drawn: the walled side needs
+        // it. Rendering wins over not rendering, whichever room reached it first.
+        if (!seen || (rec.renders && !seen.renders)) wallsByKey.set(rec.id, rec);
       };
-      // Solid, full-height wall pieces on either side of each doorway.
+      // Solid, full-height wall pieces on either side of each doorway. An OPEN room (a street, a
+      // plaza) still has them as colliders, so the world has an edge, but draws nothing: you look out
+      // into empty space instead of at a wall.
       for (const [a, b] of subtractOpenings(side.spanMin, side.spanMax, openings.map((o) => o.span))) {
-        add(wallRecord(side, a, b, floorY, floorY + height, true));
+        add(wallRecord(side, a, b, floorY, floorY + height, true, !room.open));
       }
+      if (room.open) continue; // no doorway headers to draw over open ground
       // A header (lintel) above each doorway whose authored opening height is below the room
       // height, honouring Portal.size[1]. Rendered but non-colliding.
       for (const o of openings) {
@@ -169,6 +178,28 @@ export function buildSceneModel(instance) {
     }
   }
   const walls = [...wallsByKey.values()];
+
+  // Buildings standing in an open room: solid masses you walk around. They are not rooms (there is no
+  // inside to them here; the inside is another instance behind their door), so they contribute a
+  // collider and a box to draw, and nothing else.
+  const blocks = [];
+  for (const room of instance.rooms) {
+    for (const block of room.blocks ?? []) {
+      const [bx, by, bz] = block.position;
+      const [bw, bh, bd] = block.size;
+      blocks.push({
+        id: block.id,
+        room: room.id,
+        label: block.label ?? null,
+        assetRef: block.assetRef ?? null,
+        center: { x: bx, y: by + bh / 2, z: bz },
+        size: { x: bw, y: bh, z: bd },
+        min: { x: bx - bw / 2, z: bz - bd / 2 },
+        max: { x: bx + bw / 2, z: bz + bd / 2 },
+        collider: { minX: bx - bw / 2, maxX: bx + bw / 2, minZ: bz - bd / 2, maxZ: bz + bd / 2 },
+      });
+    }
+  }
 
   const objects = [];
   const items = [];
@@ -237,7 +268,8 @@ export function buildSceneModel(instance) {
     rules: instance.rules ?? {}, // freeform authored flags; the blueprint reads `label` / `mapKind`
     rooms,
     walls,
-    colliders: walls.filter((w) => w.collides).map((w) => w.collider),
+    blocks,
+    colliders: [...walls.filter((w) => w.collides).map((w) => w.collider), ...blocks.map((b) => b.collider)],
     portals: portalsOut,
     objects,
     items,

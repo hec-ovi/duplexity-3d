@@ -2,6 +2,22 @@
 
 What the project does now, newest first.
 
+## 0.3 - The outdoors is open
+
+- A street level is open ground, not rooms. One floor, buildings standing on it as solid masses, and
+  the gaps between them are the streets: no corridors, nothing to squeeze through. The edge of the
+  level stops you and is drawn as nothing, so the city ends in open air rather than in a wall.
+- Buildings sit on a lattice with a full street between any two and a street round the outside, so
+  the streets connect by construction and every building has four frontages. A mass is as tall as the
+  floors it holds, and its door is on its own face: you walk up to it and cross to the instance inside.
+- The validator learned open ground, where a portal graph proves nothing: buildings must sit inside
+  the level and clear of each other, a door must be on its own building's face, and every door must be
+  WALKABLE to, proved by flooding the open floor. A building parked across the only approach is caught.
+- Buildings of four storeys or more have a lift rather than a staircase.
+- The map overlay keeps the player centred and slides the world under them, at a scale taken from the
+  room they are in. Discovering a room no longer rescales everything already learned. It draws the
+  buildings on the ground it is standing on.
+
 ## 0.2 - A level toolkit, cities, and a run you can win
 
 - `SKILL.md` makes the repo an agentic skill: pick a capability, run one command, check the result.

@@ -30,8 +30,10 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   `link.instanceId` with `opts.spawnRoomId = link.spawnRoomId`. The runtime plays one instance at a
   time and never loads the next one itself.
 - `blueprint()` - the floor plan for the map overlay: `{ instanceId, label, mapKind, floor, player,
-  rooms[], doors[] }`, in world XZ metres. Each door carries its `kind`, its `to` instance, and
-  whether it is `open` right now.
+  rooms[], blocks[], doors[] }`, in world XZ metres. Each door carries its `kind`, its `to` instance,
+  and whether it is `open` right now; `blocks[]` are the buildings standing on open ground. The
+  overlay it feeds (`src/blueprint-hud.js`) keeps the player centred at a scale taken from the room
+  they are IN, so discovering a room slides the map instead of rescaling it.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
 
 The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, { spawnRoomId })`
@@ -52,6 +54,9 @@ positional audio.
   scenario-creator honored its contract; logged and surfaced).
 
 ## Invariants this layer will never break
+- A room marked `open` (a street, a plaza) still collides at its edge and renders no wall there, so
+  the level ends in empty space you cannot walk into. A `block` (a building on that ground) is solid:
+  nothing walks through one, and a door on its face is reached, not passed through.
 - `blueprint()` never contains a room the player has not walked into. The overlay cannot leak a floor
   plan the player has not earned, because the data is not there to draw.
 - It NEVER mutates the authored Adventure data. Play-time state (positions, modes, flags) is a

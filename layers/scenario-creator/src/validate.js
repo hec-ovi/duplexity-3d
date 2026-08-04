@@ -3,6 +3,8 @@
 // the layout is regenerated rather than shipped. It is also the adversarial guard the tests fire at
 // hand-built broken fixtures (overlapping rooms, unaligned portals, unreachable goal).
 
+import { approachPoint, reachableInRoom } from "./walkable.js";
+
 const EPS = 1e-4;
 // Portals with only ONE room behind them: the far side is outside the level ("EXIT") or is another
 // instance entirely ("LINK": a street door, a stairwell). They are held to the same wall-alignment
@@ -129,11 +131,13 @@ export function validateLayout(instance) {
   const refOk = portals.every((p) => ids.has(p.roomA) && (ONE_SIDED.has(p.roomB) || ids.has(p.roomB)));
   checks.push(mkCheck("portals_reference_rooms", refOk));
 
-  // every portal opening lies on a wall face of BOTH rooms it joins (or the one room + EXIT).
+  // every portal opening lies on a wall face of BOTH rooms it joins (or the one room + EXIT). A door
+  // on a building's face is held to that face instead, since it cuts nothing out of the room.
   const boxById = new Map(boxes.map((b) => [b.id, b]));
   let alignedOk = true;
   let alignedDetail;
   for (const p of portals) {
+    if (p.blockId) continue;
     const a = boxById.get(p.roomA);
     const bOk = ONE_SIDED.has(p.roomB) || (boxById.get(p.roomB) && openingOnRoom(p, boxById.get(p.roomB)));
     if (!a || !openingOnRoom(p, a) || !bOk) {
@@ -150,7 +154,7 @@ export function validateLayout(instance) {
   let outerOk = true;
   let outerDetail;
   for (const p of portals) {
-    if (!ONE_SIDED.has(p.roomB)) continue;
+    if (!ONE_SIDED.has(p.roomB) || p.blockId) continue;
     const clash = boxes.find((b) => b.id !== p.roomA && openingOnRoom(p, b));
     if (clash) {
       outerOk = false;
@@ -168,6 +172,12 @@ export function validateLayout(instance) {
   const connOk = rooms.length > 0 && rooms.every((r) => reachable.has(r.id));
   checks.push(mkCheck("full_connectivity", connOk, connOk ? undefined : "a room is unreachable from spawn"));
 
+  // Open ground: buildings must stand inside their room, clear of each other, and must not seal off
+  // any door. These checks only run where there are blocks, so a walled level is unaffected.
+  if (rooms.some((r) => (r.blocks ?? []).length)) {
+    checks.push(...openGroundChecks(instance, rooms, portals));
+  }
+
   // the goal target sits in a reachable room (only checked when a goal + spawn are present).
   if (instance.goal && instance.spawn) {
     const { ok, detail } = goalReachable(instance, reachable, boxes);
@@ -175,6 +185,98 @@ export function validateLayout(instance) {
   }
 
   return { ok: checks.every((c) => c.ok), checks };
+}
+
+// The three things that can go wrong on open ground, none of which the portal graph would catch.
+function openGroundChecks(instance, rooms, portals) {
+  const out = [];
+  const blocksOf = (room) => room.blocks ?? [];
+  const boxOfBlock = (b) => {
+    const [cx, , cz] = b.position;
+    const [w, , d] = b.size;
+    return { id: b.id, minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 };
+  };
+
+  let insideOk = true;
+  let insideDetail;
+  let clearOk = true;
+  let clearDetail;
+  for (const room of rooms) {
+    const r = box(room);
+    const boxes = blocksOf(room).map(boxOfBlock);
+    for (const b of boxes) {
+      if (b.minX < r.minX - EPS || b.maxX > r.maxX + EPS || b.minZ < r.minZ - EPS || b.maxZ > r.maxZ + EPS) {
+        insideOk = false;
+        insideDetail = `block ${b.id} sticks out of room ${room.id}`;
+      }
+    }
+    for (let i = 0; i < boxes.length && clearOk; i++) {
+      for (let j = i + 1; j < boxes.length; j++) {
+        if (overlaps(boxes[i], boxes[j])) {
+          clearOk = false;
+          clearDetail = `blocks ${boxes[i].id} and ${boxes[j].id} overlap`;
+          break;
+        }
+      }
+    }
+  }
+  out.push(mkCheck("blocks_inside_rooms", insideOk, insideDetail));
+  out.push(mkCheck("blocks_do_not_overlap", clearOk, clearDetail));
+
+  // A door on a building has to be ON that building, and you have to be able to walk up to it.
+  let doorsOk = true;
+  let doorsDetail;
+  const targets = [];
+  const spawnRoom = instance.spawn
+    ? rooms.find((r) => containsPoint(box(r), instance.spawn.position[0], instance.spawn.position[2]))
+    : null;
+  for (const p of portals) {
+    const room = rooms.find((r) => r.id === p.roomA);
+    if (!room) continue;
+    const block = p.blockId ? blocksOf(room).find((b) => b.id === p.blockId) : null;
+    if (p.blockId && !block) {
+      doorsOk = false;
+      doorsDetail = `door ${p.id} names block ${p.blockId}, which is not in room ${room.id}`;
+      continue;
+    }
+    if (block && !onBlockFace(p, boxOfBlock(block))) {
+      doorsOk = false;
+      doorsDetail = `door ${p.id} is not on a face of block ${p.blockId}`;
+      continue;
+    }
+    if (spawnRoom && room.id === spawnRoom.id) {
+      const at = approachPoint(p, block, room);
+      targets.push({ id: p.id, x: at.x, z: at.z });
+    }
+  }
+  out.push(mkCheck("block_doors_on_a_face", doorsOk, doorsDetail));
+
+  if (spawnRoom && targets.length) {
+    const { reached, ok } = reachableInRoom(
+      spawnRoom,
+      { x: instance.spawn.position[0], z: instance.spawn.position[2] },
+      targets
+    );
+    const missed = targets.filter((t) => !reached.has(t.id)).map((t) => t.id);
+    out.push(mkCheck("doors_walkable", ok, ok ? undefined : `no way through to ${missed.join(", ")}`));
+  }
+  return out;
+}
+
+// The portal plane coincides with one of the block's four vertical faces, and its opening stays on it.
+function onBlockFace(portal, b) {
+  if (portal.axis === "x") {
+    const plane = portal.position[0];
+    if (Math.abs(plane - b.minX) > EPS && Math.abs(plane - b.maxX) > EPS) return false;
+    const c = portal.position[2];
+    const half = portal.size[0] / 2;
+    return c - half >= b.minZ - EPS && c + half <= b.maxZ + EPS;
+  }
+  const plane = portal.position[2];
+  if (Math.abs(plane - b.minZ) > EPS && Math.abs(plane - b.maxZ) > EPS) return false;
+  const c = portal.position[0];
+  const half = portal.size[0] / 2;
+  return c - half >= b.minX - EPS && c + half <= b.maxX + EPS;
 }
 
 function goalReachable(instance, reachable, boxes) {

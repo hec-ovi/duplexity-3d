@@ -113,14 +113,30 @@ describe("a generated city is a valid, connected, winnable level", () => {
     });
     rt.load(adventure, "ashgate");
 
-    // Head for the first front door: down the avenue to its block, into that block, then into the
-    // doorway. Each leg is axis-aligned, so it passes through the openings between segments.
+    // Head for the first front door, keeping to the streets: the margin lane the spawn stands in,
+    // then the lane the door faces onto. Each leg is a straight walk down open ground.
     const street = adventure.instances[0];
+    const ground = street.rooms[0];
     const door = street.portals.find((p) => p.roomB === "LINK");
-    const block = street.rooms.find((r) => r.id === door.roomA);
-    expect(walkTo(rt, block.position[0], 0)).toBe(true);
-    expect(walkTo(rt, block.position[0], block.position[2])).toBe(true);
-    walkTo(rt, door.position[0], door.position[2]);
+    const mass = ground.blocks.find((b) => b.id === door.blockId);
+    const margin = street.spawn.position[0]; // the lane running up the western edge
+    const southLane = -ground.size[2] / 2 + 5;
+
+    const [dx, , dz] = door.position;
+    const stand =
+      door.axis === "x"
+        ? { x: dx + Math.sign(dx - mass.position[0]) * 3, z: dz } // a north-south lane
+        : { x: dx, z: dz + Math.sign(dz - mass.position[2]) * 3 }; // an east-west lane
+
+    if (door.axis === "x") {
+      expect(walkTo(rt, margin, southLane)).toBe(true);
+      expect(walkTo(rt, stand.x, southLane)).toBe(true);
+      expect(walkTo(rt, stand.x, stand.z)).toBe(true);
+    } else {
+      expect(walkTo(rt, margin, stand.z)).toBe(true);
+      expect(walkTo(rt, stand.x, stand.z)).toBe(true);
+    }
+    walkTo(rt, dx, dz, 3); // the last step up to the door itself, until the building stops us
 
     expect(transits.map((t) => t.portalId)).toEqual([door.id]);
 

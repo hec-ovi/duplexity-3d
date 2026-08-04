@@ -17,6 +17,7 @@ const STYLE = {
   doorShut: "#c2564f",
   stairs: "#d9b45c",
   exit: "#7fd39b",
+  block: "rgba(159, 180, 194, 0.5)",
   player: "#ffffff",
   label: "#9fb4c2",
 };
@@ -27,24 +28,28 @@ const DOOR_COLOR = {
   leave: STYLE.door,
   stairs_up: STYLE.stairs,
   stairs_down: STYLE.stairs,
+  elevator_up: STYLE.stairs,
+  elevator_down: STYLE.stairs,
   exit: STYLE.exit,
 };
 
-// Fit the drawn rooms into the canvas with a margin, keeping the aspect square so a floor plan is not
-// stretched. Returns world -> canvas projection.
-function fitProjection(plan, width, height, margin) {
-  const xs = plan.rooms.flatMap((r) => [r.min.x, r.max.x]);
-  const zs = plan.rooms.flatMap((r) => [r.min.z, r.max.z]);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minZ = Math.min(...zs);
-  const maxZ = Math.max(...zs);
-  const scale = Math.min(
-    (width - margin * 2) / Math.max(maxX - minX, 1e-6),
-    (height - margin * 2) / Math.max(maxZ - minZ, 1e-6)
-  );
-  const offX = (width - (maxX - minX) * scale) / 2 - minX * scale;
-  const offZ = (height - (maxZ - minZ) * scale) / 2 - minZ * scale;
+// How much ground to show: enough to take in the room you are standing in, whether that is a 5 metre
+// bedroom or an 88 metre city. It depends on where you ARE, never on how much you have discovered, so
+// walking into a new room slides the map rather than rescaling everything you had learned to read.
+function scaleFor(plan, width, height) {
+  const here = plan.rooms.find((r) => r.here) ?? plan.rooms[0];
+  const span = Math.max(here.max.x - here.min.x, here.max.z - here.min.z);
+  const view = Math.min(90, Math.max(14, span * 1.25));
+  return view / Math.min(width, height);
+}
+
+// The player stays in the middle at a FIXED scale, and the world slides under them. Discovering a room
+// must not rescale the whole map: a plan that refit itself every time it grew would shrink the room you
+// are standing in and move everything you had learned to read.
+function centredOn(plan, width, height, metresPerPixel) {
+  const scale = 1 / metresPerPixel;
+  const offX = width / 2 - plan.player.x * scale;
+  const offZ = height / 2 - plan.player.z * scale;
   return { x: (wx) => wx * scale + offX, z: (wz) => wz * scale + offZ, scale };
 }
 
@@ -53,16 +58,16 @@ function fitProjection(plan, width, height, margin) {
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {object|null} plan  what `runtime.blueprint()` returned
- * @param {{width:number,height:number,margin?:number}} size
+ * @param {{width:number,height:number,margin?:number,metresPerPixel?:number}} size
  */
-export function drawBlueprint(ctx, plan, { width, height, margin = 14 }) {
+export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPerPixel }) {
   ctx.clearRect(0, 0, width, height);
   if (!plan || plan.rooms.length === 0) return;
 
   ctx.fillStyle = STYLE.paper;
   ctx.fillRect(0, 0, width, height);
 
-  const at = fitProjection(plan, width, height, margin);
+  const at = centredOn(plan, width, height, metresPerPixel ?? scaleFor(plan, width, height));
 
   for (const room of plan.rooms) {
     const x = at.x(room.min.x);
@@ -74,6 +79,14 @@ export function drawBlueprint(ctx, plan, { width, height, margin = 14 }) {
     ctx.strokeStyle = room.here ? STYLE.inkHere : STYLE.ink;
     ctx.lineWidth = room.here ? 2 : 1;
     ctx.strokeRect(x, y, w, h);
+  }
+
+  // Buildings standing in the open: solid on the plan, because that is what they are on the ground.
+  for (const block of plan.blocks ?? []) {
+    const x = at.x(block.min.x);
+    const y = at.z(block.min.z);
+    ctx.fillStyle = STYLE.block;
+    ctx.fillRect(x, y, (block.max.x - block.min.x) * at.scale, (block.max.z - block.min.z) * at.scale);
   }
 
   // Doors sit across the wall they are cut into: along Z when the wall normal is X, and the other way

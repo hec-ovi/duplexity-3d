@@ -15,6 +15,7 @@ const COLORS = {
   floor: 0x5b6068,
   floorAlt: 0x6e5a34,
   wall: 0x8a8f98,
+  block: 0x6d7482,
   object: 0x8a6d3b,
   item: 0xffd479,
   npc: { friendly: 0x5fbf6a, neutral: 0xc9c9c9, wary: 0xe0b050, hostile: 0xcc4b4b },
@@ -56,11 +57,12 @@ function sizeFor(registry, ref, fallback, warn) {
 export function buildInstanceObject3D(model, { registry, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
-  const counts = { floors: 0, walls: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
+  const counts = { floors: 0, walls: 0, blocks: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
 
   const floorMat = standard(COLORS.floor);
   const floorAltMat = standard(COLORS.floorAlt);
   const wallMat = standard(COLORS.wall);
+  const blockMat = standard(COLORS.block);
   const objectMat = standard(COLORS.object);
   const itemMat = standard(COLORS.item, 0x6b5410);
 
@@ -75,12 +77,25 @@ export function buildInstanceObject3D(model, { registry, warn = console.warn } =
   }
 
   for (const w of model.walls) {
+    // An open room's perimeter still stops you, but there is nothing there to see: the street simply
+    // ends. Only walls that render become meshes; the collider stands either way.
+    if (w.renders === false) continue;
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.size.x, w.size.y, w.size.z), wallMat);
     mesh.position.set(w.center.x, w.center.y, w.center.z);
     mesh.name = w.id;
     mesh.userData = { kind: "wall" };
     group.add(mesh);
     counts.walls++;
+  }
+
+  // Buildings on a street: one mass each, drawn from the ground up.
+  for (const b of model.blocks ?? []) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), blockMat);
+    mesh.position.set(b.center.x, b.center.y, b.center.z);
+    mesh.name = `block:${b.id}`;
+    mesh.userData = { kind: "block", assetRef: b.assetRef };
+    group.add(mesh);
+    counts.blocks++;
   }
 
   for (const obj of model.objects) {

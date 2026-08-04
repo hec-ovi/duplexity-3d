@@ -73,6 +73,17 @@ describe("building-planner contract", () => {
     expect(instances[0].portals.some((p) => p.link?.kind === "stairs_down")).toBe(false);
   });
 
+  it("a tall building has a lift where a small one has stairs", () => {
+    const short = build({ floors: 3 }).instances[0].portals.find((p) => p.link?.kind.endsWith("_up"));
+    const tall = build({ floors: 6 }).instances[0].portals.find((p) => p.link?.kind.endsWith("_up"));
+    expect(short.link.kind).toBe("stairs_up");
+    expect(tall.link.kind).toBe("elevator_up");
+    // it still pairs up: what goes up comes back down the same way
+    expect(build({ floors: 6 }).instances[1].portals.find((p) => p.id.endsWith("-down")).link.kind).toBe(
+      "elevator_down"
+    );
+  });
+
   it("doors that leave a floor never share a wall face", () => {
     const { instances } = build({ floors: 3 });
     for (const instance of instances) {

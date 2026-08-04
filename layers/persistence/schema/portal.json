@@ -5,19 +5,31 @@
   "description": "A door/gate. It joins two rooms of one instance, joins a room to the instance EXIT, or (with `link`) joins a room to another INSTANCE: a street door into a building, a stairwell between floors. `position` sits on the shared wall plane of both sides; `axis` is the wall normal; `size` is the opening [width, height].",
   "type": "object",
   "properties": {
-    "id": { "type": "string" },
-    "roomA": { "type": "string", "description": "Room id on the near side. Always a real room of this instance." },
+    "id": {
+      "type": "string"
+    },
+    "roomA": {
+      "type": "string",
+      "description": "Room id on the near side. Always a real room of this instance."
+    },
     "roomB": {
       "type": "string",
       "description": "Room id on the other side; the literal \"EXIT\" for the instance exit; or the literal \"LINK\" when the far side is another instance (then `link` says which)."
     },
-    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "position": {
+      "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+    },
     "axis": {
       "type": "string",
-      "enum": ["x", "z"],
+      "enum": [
+        "x",
+        "z"
+      ],
       "description": "Wall normal direction. The portal opening lies in the plane perpendicular to this axis."
     },
-    "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec2.json" },
+    "size": {
+      "$ref": "https://doplexity-3d.dev/schema/persistence/vec2.json"
+    },
     "link": {
       "$ref": "#/$defs/link",
       "description": "Present exactly when roomB is \"LINK\". Walking into this portal moves play to another instance."
@@ -25,34 +37,77 @@
     "lock": {
       "$ref": "#/$defs/lock",
       "description": "Absent means always open. Present means the portal stays shut until map-state says its rule is satisfied."
+    },
+    "blockId": {
+      "type": "string",
+      "description": "The door is on the face of this block (a building standing in an open room) instead of on the room's own wall. Nothing is cut open: you reach the door and cross to the instance behind it."
     }
   },
-  "required": ["id", "roomA", "roomB", "position", "axis", "size"],
+  "required": [
+    "id",
+    "roomA",
+    "roomB",
+    "position",
+    "axis",
+    "size"
+  ],
   "additionalProperties": false,
   "allOf": [
     {
       "description": "roomB \"LINK\" and the `link` object imply each other.",
-      "if": { "properties": { "roomB": { "const": "LINK" } }, "required": ["roomB"] },
-      "then": { "required": ["link"] },
-      "else": { "not": { "required": ["link"] } }
+      "if": {
+        "properties": {
+          "roomB": {
+            "const": "LINK"
+          }
+        },
+        "required": [
+          "roomB"
+        ]
+      },
+      "then": {
+        "required": [
+          "link"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "link"
+          ]
+        }
+      }
     }
   ],
   "$defs": {
     "link": {
       "type": "object",
       "properties": {
-        "instanceId": { "type": "string", "description": "The instance play moves to." },
+        "instanceId": {
+          "type": "string",
+          "description": "The instance play moves to."
+        },
         "spawnRoomId": {
           "type": "string",
           "description": "Room to arrive in on the far side. Omitted means that instance's own spawn."
         },
         "kind": {
           "type": "string",
-          "enum": ["enter", "leave", "stairs_up", "stairs_down"],
+          "enum": [
+            "enter",
+            "leave",
+            "stairs_up",
+            "stairs_down",
+            "elevator_up",
+            "elevator_down"
+          ],
           "description": "What the door is, for signage and blueprint icons. Carries no rule."
         }
       },
-      "required": ["instanceId", "kind"],
+      "required": [
+        "instanceId",
+        "kind"
+      ],
       "additionalProperties": false
     },
     "lock": {
@@ -60,17 +115,38 @@
       "properties": {
         "rule": {
           "type": "string",
-          "enum": ["all_cleared", "cleared"],
+          "enum": [
+            "all_cleared",
+            "cleared"
+          ],
           "description": "`all_cleared`: every required instance on the map is cleared (the rogue's exit gate). `cleared`: the single instance named by `instanceId` is cleared."
         },
-        "instanceId": { "type": "string", "description": "Required by the `cleared` rule, unused by `all_cleared`." }
+        "instanceId": {
+          "type": "string",
+          "description": "Required by the `cleared` rule, unused by `all_cleared`."
+        }
       },
-      "required": ["rule"],
+      "required": [
+        "rule"
+      ],
       "additionalProperties": false,
       "allOf": [
         {
-          "if": { "properties": { "rule": { "const": "cleared" } }, "required": ["rule"] },
-          "then": { "required": ["instanceId"] }
+          "if": {
+            "properties": {
+              "rule": {
+                "const": "cleared"
+              }
+            },
+            "required": [
+              "rule"
+            ]
+          },
+          "then": {
+            "required": [
+              "instanceId"
+            ]
+          }
         }
       ]
     }

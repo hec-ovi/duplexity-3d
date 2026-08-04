@@ -134,6 +134,82 @@ describe("scenario-creator - the validator rejects broken geometry (adversarial 
     expect(validateLayout(mk("LINK", -3, link)).checks.find((c) => c.name === "full_connectivity").ok).toBe(true);
   });
 
+  it("checks open ground: buildings inside the level, clear of each other, doors on a face you can reach", () => {
+    // 40x40 of open ground with one 12x12 building at the origin, and a door on its west face.
+    const ground = (over = {}) => ({
+      id: "open",
+      theme: "city",
+      rooms: [
+        {
+          id: "ground",
+          position: [0, 0, 0],
+          size: [40, 20, 40],
+          floorKit: "f",
+          wallKit: "w",
+          open: true,
+          blocks: [{ id: "m1", position: [0, 0, 0], size: [12, 15, 12] }],
+          ...over.room,
+        },
+      ],
+      portals: [
+        {
+          id: "d1",
+          roomA: "ground",
+          roomB: "LINK",
+          blockId: "m1",
+          position: [-6, 0, 0],
+          axis: "x",
+          size: [2, 3],
+          link: { instanceId: "inside", kind: "enter" },
+          ...over.portal,
+        },
+      ],
+      spawn: { position: [-18, 0, 0], facing: 0 },
+      goal: { type: "survive", seconds: 5 },
+    });
+    const check = (inst, name) => validateLayout(inst).checks.find((c) => c.name === name).ok;
+
+    expect(validateLayout(ground()).ok).toBe(true);
+
+    // a building hanging over the edge of the level
+    expect(
+      check(ground({ room: { blocks: [{ id: "m1", position: [18, 0, 0], size: [12, 15, 12] }] } }), "blocks_inside_rooms")
+    ).toBe(false);
+
+    // two buildings in the same place
+    expect(
+      check(
+        ground({
+          room: {
+            blocks: [
+              { id: "m1", position: [0, 0, 0], size: [12, 15, 12] },
+              { id: "m2", position: [4, 0, 0], size: [12, 15, 12] },
+            ],
+          },
+        }),
+        "blocks_do_not_overlap"
+      )
+    ).toBe(false);
+
+    // a door floating beside its building instead of on it
+    expect(check(ground({ portal: { position: [-9, 0, 0] } }), "block_doors_on_a_face")).toBe(false);
+    // a door naming a building that is not there
+    expect(check(ground({ portal: { blockId: "ghost" } }), "block_doors_on_a_face")).toBe(false);
+
+    // a second building parked across the only way to that door: nothing is misaligned, but you
+    // cannot get there, which only a walk of the open floor can tell you.
+    const walled = ground({
+      room: {
+        blocks: [
+          { id: "m1", position: [0, 0, 0], size: [12, 15, 12] },
+          { id: "wall-off", position: [-10, 0, 0], size: [2, 15, 40] },
+        ],
+      },
+    });
+    expect(check(walled, "blocks_do_not_overlap")).toBe(true);
+    expect(check(walled, "doors_walkable")).toBe(false);
+  });
+
   it("rejects a one-sided door put on an interior wall, where only one side would be cut open", () => {
     // Two rooms sharing the wall at x=3. A door leading to another instance placed THERE would be
     // cut out of one room's wall and not the other's, since shared walls are deduped by geometry.

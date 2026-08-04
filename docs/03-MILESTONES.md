@@ -268,6 +268,26 @@ Legend: [x] done, [~] in progress, [ ] not started.
   a real headless browser: the generated city renders, the overlay draws, the gate reports what is left,
   and the console is silent.
 
+## Phase 14 - Open world outdoors [x]
+
+- [x] Additive on `persistence`: `room.open` (an edge that stops you, drawn as nothing), `room.blocks[]`
+  (solid masses standing on the floor), `portal.blockId` (a door on a mass's face, cutting nothing), and
+  `elevator_up` / `elevator_down` link kinds.
+- [x] `runtime`: open rooms collide without rendering, blocks render and collide, a block door is
+  reached rather than passed through, and `blueprint()` carries the blocks. The overlay is now centred
+  on the player at a scale taken from the room they are in, so discovery slides the map instead of
+  rescaling it. Outdoor instances get a sky instead of the indoor black.
+- [x] `city-planner` rebuilt around a block lattice: one open ground room, building masses with a full
+  street between any two, a door on each mass, a spawn in the street and a gate in the boundary. The
+  corridor-street solver it replaces is gone.
+- [x] `scenario-creator` proves open ground: blocks inside their room, no two overlapping, block doors
+  on their own face, and every door walkable, by flooding the open floor (`src/walkable.js`). A portal
+  graph cannot see a building parked across an approach; this can.
+- [x] `building-planner`: four storeys or more gets a lift instead of stairs.
+- [x] DoD met: `npm test` = 278 local tests, 50 schemas, and the page verified in a real headless
+  browser: open streets between building masses under a sky, the overlay reading as a city map, the
+  console silent.
+
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1

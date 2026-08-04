@@ -2,12 +2,18 @@
   "$id": "https://doplexity-3d.dev/schema/persistence/room.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Room",
-  "description": "An axis-aligned box room. `position` is the room center; `size` is [width(x), height(y), depth(z)] in meters.",
+  "description": "One room, an axis-aligned box. Indoors it has walls with doorways cut into them. Outdoors set `open`: the perimeter still stops you, but nothing is drawn there, so a street ends in empty space rather than a wall. `blocks` are the solid masses standing inside it (buildings on a street), which you walk around, not through.",
   "type": "object",
   "properties": {
-    "id": { "type": "string" },
-    "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
-    "size": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" },
+    "id": {
+      "type": "string"
+    },
+    "position": {
+      "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+    },
+    "size": {
+      "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+    },
     "floorKit": {
       "type": "string",
       "description": "asset-registry id (or kit family tag) for the floor pieces."
@@ -18,7 +24,9 @@
     },
     "objects": {
       "type": "array",
-      "items": { "$ref": "https://doplexity-3d.dev/schema/persistence/object.json" }
+      "items": {
+        "$ref": "https://doplexity-3d.dev/schema/persistence/object.json"
+      }
     },
     "inventory": {
       "type": "array",
@@ -26,15 +34,64 @@
       "items": {
         "type": "object",
         "properties": {
-          "itemId": { "type": "string" },
-          "assetRef": { "type": "string" },
-          "position": { "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json" }
+          "itemId": {
+            "type": "string"
+          },
+          "assetRef": {
+            "type": "string"
+          },
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          }
         },
-        "required": ["itemId"],
+        "required": [
+          "itemId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "open": {
+      "type": "boolean",
+      "description": "True for open ground (a street, a plaza): the perimeter is a limit you cannot cross, drawn as nothing. Default false, which is a walled room."
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Solid volumes standing inside this room: building masses on a street. Nothing walks through one; a door on a block's face leads to the instance inside it.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "position": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "size": {
+            "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
+          },
+          "assetRef": {
+            "type": "string",
+            "description": "Kit piece to face it with. Omitted means a plain mass."
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "size"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["id", "position", "size", "floorKit", "wallKit"],
+  "required": [
+    "id",
+    "position",
+    "size",
+    "floorKit",
+    "wallKit"
+  ],
   "additionalProperties": false
 }

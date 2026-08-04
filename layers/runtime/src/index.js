@@ -290,6 +290,9 @@ export function createRuntime(deps = {}) {
           center: { x: r.center.x, z: r.center.z },
           here: r.id === player.currentRoom,
         }));
+      const blocks = model.blocks
+        .filter((b) => seen.has(b.room))
+        .map((b) => ({ id: b.id, min: { ...b.min }, max: { ...b.max }, label: b.label }));
       const doors = model.portals
         .filter((p) => seen.has(p.roomA) || seen.has(p.roomB))
         .map((p) => ({
@@ -308,6 +311,7 @@ export function createRuntime(deps = {}) {
         floor: model.rules.floor ?? null,
         player: { x: player.position.x, z: player.position.z, yaw: player.yaw },
         rooms,
+        blocks,
         doors,
       };
     },
