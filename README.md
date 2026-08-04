@@ -29,7 +29,12 @@ npm install
 node tools/level.js city --id ashgate --theme city --lots 3 --floors 2,1,3 --out city.json
 node tools/level.js validate --in city.json    # schema, geometry, and the map. Exit 1 if broken
 node tools/level.js map --in city.json         # what is unlocked, what the gate is waiting for
+node tools/level.js save --in city.json --name ashgate   # keep a city you liked, and load it later
 ```
+
+Flags shape a whole city. To choose one building in it, pass a `CitySpec` file with `--spec`: it pins
+a premises to a block, gives it a name, a program, a height, a sealed front (a building with no way
+in) or the run's quest, and everything else is generated around it.
 
 `node tools/level.js` on its own lists every command and flag. [SKILL.md](SKILL.md) is the same thing
 written for an agent, and installs as a skill or a plugin.

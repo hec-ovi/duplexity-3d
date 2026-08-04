@@ -25,6 +25,7 @@ name.
 | `house` | A single-floor building that stands alone | [House](#house) |
 | `npcs` | Who lives in the level | [NPCs](#npcs) |
 | `check` | Prove a level, and read what it unlocks | [Check](#check) |
+| `keep` | Save a city you liked, and open it again | [Keep](#keep) |
 | `play` | Walk the level | [Play](#play) |
 | `voice` | Hear NPC lines out loud | [Voice](#voice) |
 | `extend` | Change how levels are generated | [Extend](#extend) |
@@ -47,14 +48,46 @@ node tools/level.js city --id ashgate --theme city --label Ashgate \
 
 | Flag | Default | Change it when |
 | --- | --- | --- |
-| `--size small\|medium\|large` | medium | You want 3, 5 or 7 street segments. |
-| `--lots <n>` | one per two segments | The level needs more or fewer front doors. |
-| `--floors 2,1,3` | 1 each | Buildings should differ in height. A short list repeats its last value. |
+| `--size small\|medium\|large` | medium | You want 2x2, 3x3 or 4x4 city blocks. |
+| `--lots <n>` | 2 to 4 per block | The level needs more or fewer buildings. |
+| `--floors 2,1,3` | drawn from a mix | Buildings should differ in height. A short list repeats its last value. |
+| `--accessible <0..1>` | 1 | Some buildings should have no way in. |
 | `--npcs <n>` | 2 | Per instance. `0` builds an empty level. |
 | `--seed <n>` | from the id | You want a different level from the same flags. |
 
 Then always [check it](#check). The output is an Adventure document: the same file the runtime plays,
 `server/` serves and `persistence` exports.
+
+### Pinning what matters
+
+Flags shape the whole city. To choose ONE building, write a `CitySpec` file and pass `--spec`;
+flags still override what it says, and everything unpinned is generated around it.
+
+```json
+{
+  "id": "ashgate", "theme": "city", "label": "Ashgate",
+  "sizeHint": "medium", "lots": 6, "accessibleRatio": 0.7,
+  "buildings": [
+    { "block": 0, "slot": 1, "label": "The Vault", "program": "office", "floors": 6,
+      "quest": { "itemId": "ashgate-ledger" } },
+    { "block": 2, "slot": 0, "label": "Boarded up", "accessible": false }
+  ]
+}
+```
+
+```bash
+node tools/level.js city --spec ashgate.spec.json --seed 11 --out city.json
+```
+
+- `block` is a city block in lattice order, `slot` a premises on it (0-3). The block is split into
+  enough premises to hold the slot it was given.
+- `accessible: false` seals a building: a mass with no door, nothing built behind it, and the exit
+  gate never waits on it. `accessibleRatio` does the same to a share of the rest. One always opens.
+- `quest` puts the named item in that building, on the floor you name or the top one, and finding it
+  becomes that floor's goal. Every other floor keeps its own token.
+
+This is the seam for one agent per building: hand an agent a `LotPlan` from [street](#street) and it
+can build that one interior without knowing anything about the city around it.
 
 <a id="street"></a>
 ## Street
@@ -131,6 +164,20 @@ goal you can actually reach. On open ground it also walks the floor: buildings m
 level, clear of each other, with their door on their own face and a way through the streets to reach
 it.
 
+<a id="keep"></a>
+## Keep
+
+A city you liked, saved under a name and opened again exactly as it was:
+
+```bash
+node tools/level.js save --in city.json --name ashgate
+node tools/level.js load --name ashgate --out city.json
+```
+
+Checkpoints are the portable bundle `persistence` exports, so one opens on any checkout. Saving
+validates first: nothing that would fail to load gets written. They live in `$DUPLEXITY_CHECKPOINTS`,
+or `checkpoints/` where you ran the command; `--dir` picks another place.
+
 <a id="play"></a>
 ## Play
 
@@ -171,7 +218,7 @@ reading its code.
 
 | Change | Folder |
 | --- | --- |
-| Road shape, lots, the gate | `layers/city-planner/` |
+| Block shape, what stands on it, the gate | `layers/city-planner/` |
 | Floor plans, room mixes, stairwells | `layers/building-planner/` |
 | What counts as a correct map (the validator) | `layers/scenario-creator/` |
 | Unlock rules, what the exit waits for | `layers/map-state/` |

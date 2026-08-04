@@ -82,11 +82,12 @@ export function createBuilding(lot, assetQuery, opts = {}) {
 
   const floorKit = pickKit(assetQuery, "room-floor", lot.theme);
   const wallKit = pickKit(assetQuery, "wall", lot.theme);
+  const quest = questFloor(lot, floors);
 
   const instances = [];
   const checks = [];
   for (let f = 0; f < floors; f++) {
-    const instance = buildFloor({ lot, floors, floorIndex: f, cols, rows, floorKit, wallKit, opts });
+    const instance = buildFloor({ lot, floors, floorIndex: f, cols, rows, floorKit, wallKit, quest, opts });
     const report = opts.validateInstance
       ? opts.validateInstance(instance)
       : { ok: true, checks: [{ name: "not_validated", ok: true }] };
@@ -97,7 +98,16 @@ export function createBuilding(lot, assetQuery, opts = {}) {
   return { instances, report: { ok: true, checks } };
 }
 
-function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, opts }) {
+// Where the run's objective sits, if this lot was given one: a named item on a chosen floor,
+// the top one by default. Every other floor keeps its own anonymous token.
+function questFloor(lot, floors) {
+  if (!lot.quest) return null;
+  const floor = lot.quest.floor ?? floors;
+  if (floor > floors) throw new LotPlanInvalidError(`quest on floor ${floor} of a ${floors}-floor building`);
+  return { index: floor - 1, itemId: lot.quest.itemId };
+}
+
+function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, quest, opts }) {
   const id = lot.floorInstanceIds[floorIndex];
   const isGround = floorIndex === 0;
   // Every floor is partitioned the same way, so the stairwell sits in the same corner all the way up
@@ -167,10 +177,12 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, op
     });
   }
 
-  // The floor's own win condition: one thing to find, in the room furthest from the arrival.
-  const prize = `${id}-token`;
-  const goal = opts.goalFor?.(floorIndex, id) ?? { type: "discover_item", itemId: prize };
-  if (!opts.goalFor) {
+  // The floor's own win condition: one thing to find, in the room furthest from the arrival. The
+  // caller can name a different goal per floor, and then it owns whether that goal is satisfiable.
+  const pinned = opts.goalFor?.(floorIndex, id);
+  const prize = quest?.index === floorIndex ? quest.itemId : `${id}-token`;
+  const goal = pinned ?? { type: "discover_item", itemId: prize };
+  if (!pinned) {
     const room = rooms.find((r) => r.id === roomIdFor(stairwell, arrivalId));
     room.inventory.push({
       itemId: prize,

@@ -2,17 +2,21 @@
 // The level toolkit. One command per thing you can build, JSON on stdout (or to --out).
 //
 //   node tools/level.js city     --id ashgate --theme city --lots 3 --floors 2,1,3
+//   node tools/level.js city     --spec ashgate.spec.json --out city.json
 //   node tools/level.js street   --id ashgate --theme city --size large
 //   node tools/level.js building --id ashgate-b1 --theme city --floors 3 --program office
 //   node tools/level.js house    --id cottage --theme city
 //   node tools/level.js validate --in city.json
 //   node tools/level.js map      --in city.json
+//   node tools/level.js save     --in city.json --name ashgate
+//   node tools/level.js load     --name ashgate --out city.json
 //
 // Every command is deterministic: the same flags produce the same level, byte for byte.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { parseArgs, asInt, asIntList } from "./src/args.js";
 import { composeCity } from "./src/compose-city.js";
+import { checkpointsDir, loadCheckpoint, saveCheckpoint } from "./src/checkpoints.js";
 import { createStreets } from "../layers/city-planner/src/index.js";
 import { createBuilding } from "../layers/building-planner/src/index.js";
 import { validateLayout } from "../layers/scenario-creator/src/index.js";
@@ -28,6 +32,8 @@ const USAGE = `level - build a level, or check one you already have
   house     a single-floor building
   validate  prove an Adventure file: schema, geometry, and the map
   map       what an Adventure file unlocks, and what the exit is waiting for
+  save      keep an Adventure file as a named checkpoint
+  load      open a named checkpoint
 
 common flags
   --id <id>          instance id (required to build)
@@ -35,20 +41,30 @@ common flags
   --label <text>     name shown on the map overlay
   --seed <n>         same seed, same level
   --out <file>       write JSON here instead of stdout
-  --in <file>        the Adventure to read (validate, map)
+  --in <file>        the Adventure to read (validate, map, save)
 
 city / street
-  --size small|medium|large    how much road (3, 5 or 7 segments). Default medium
-  --lots <n>                   how many front doors
-  --floors 2,1,3               floors per lot, in order. A short list repeats its last value
+  --spec <file>                a CitySpec in JSON; flags below override what it says
+  --size small|medium|large    how many blocks (2x2, 3x3, 4x4). Default medium
+  --lots <n>                   how many buildings across the city
+  --floors 2,1,3               floors per building, in order. A short list repeats its last value
+  --accessible <0..1>          share of buildings with a front door. Default 1
   --npcs <n>                   NPCs per instance (city only). Default 2, 0 for an empty level
+
+  Pinning one building (its name, program, height, whether it opens, where the quest sits) is a
+  --spec file: "buildings": [{ "block": 0, "slot": 1, "label": "The Vault", "floors": 6,
+  "program": "office", "quest": { "itemId": "ledger" } }]
 
 building / house
   --floors <n>                 how many floors (building only; a house is always 1)
   --program house|apartments|office|shop
   --width <m> --depth <m>      footprint. Default 10 x 10
   --return-to <instanceId> --return-room <roomId>
-                               where the front door leads back to. Omit and it becomes an EXIT`;
+                               where the front door leads back to. Omit and it becomes an EXIT
+
+save / load
+  --name <name>                what to call the checkpoint
+  --dir <path>                 where checkpoints live. Default $DUPLEXITY_CHECKPOINTS`;
 
 const registry = createRegistry();
 const assetQuery = (q) => registry.query(q);
@@ -77,18 +93,34 @@ function readAdventure(args) {
   return JSON.parse(readFileSync(need(args, "in"), "utf8"));
 }
 
+const flag = (args, key) => (args[key] && args[key] !== true ? args[key] : undefined);
+
+// A CitySpec from a file, from flags, or both: the file is the base, flags override it. Anything a
+// building is pinned to (a name, a program, a height, the quest) is spec-file territory.
 function citySpec(args) {
-  const spec = {
-    id: need(args, "id"),
-    theme: need(args, "theme"),
-    sizeHint: args.size && args.size !== true ? args.size : "medium",
-  };
-  if (args.label && args.label !== true) spec.label = args.label;
+  const file = flag(args, "spec");
+  const spec = file ? JSON.parse(readFileSync(file, "utf8")) : {};
+  if (flag(args, "id")) spec.id = args.id;
+  if (flag(args, "theme")) spec.theme = args.theme;
+  if (flag(args, "label")) spec.label = args.label;
+  if (flag(args, "size")) spec.sizeHint = args.size;
   if (args.lots) spec.lots = asInt(args.lots, 1);
+  if (args.accessible !== undefined) spec.accessibleRatio = Number(args.accessible);
   if (args.npcs !== undefined) spec.npcs = asInt(args.npcs, 2);
   if (args.seed) spec.seed = asInt(args.seed, 0);
   const floors = asIntList(args.floors);
   if (floors?.length) spec.floorsPerLot = floors;
+  spec.sizeHint ??= "medium";
+
+  if (!spec.id || !spec.theme) {
+    console.error("missing --id and --theme (or a --spec file that names them)");
+    process.exit(2);
+  }
+  const check = validate(SCHEMA_ID.cityPlanner.citySpec, spec);
+  if (!check.ok) {
+    console.error(`CITY_SPEC_INVALID: ${JSON.stringify(check.errors.slice(0, 3), null, 2)}`);
+    process.exit(2);
+  }
   return spec;
 }
 
@@ -169,6 +201,18 @@ const COMMANDS = {
       })),
     });
     if (!ok) process.exitCode = 1;
+  },
+
+  save(args) {
+    const dir = flag(args, "dir") ?? checkpointsDir();
+    const { file, id } = saveCheckpoint(readAdventure(args), need(args, "name"), { dir });
+    console.log(`saved ${id} to ${file}`);
+  },
+
+  load(args) {
+    const dir = flag(args, "dir") ?? checkpointsDir();
+    const { adventure } = loadCheckpoint(need(args, "name"), { dir });
+    emit(args, adventure);
   },
 
   map(args) {

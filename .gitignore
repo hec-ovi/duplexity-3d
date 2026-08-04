@@ -32,3 +32,6 @@ Thumbs.db
 *.log
 .cache/
 tmp/
+
+# Saved cities (generated; keep the spec files, not the output)
+checkpoints/

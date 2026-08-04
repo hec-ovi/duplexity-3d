@@ -296,16 +296,24 @@ not the saturation. No rain; standing water optional.
 
 Ordered so each step is one box and lands green.
 
-### 16a - Authoring surface (generator + contracts)
-- **Inaccessible buildings.** A mass with no door and no `LotPlan`: never a map node, so the gate
-  never waits on it. Spec: a ratio (`accessibleRatio`) plus an explicit list. `city-planner`.
-- **Per-lot overrides.** `CitySpec.buildings[]` pins a premises by block and slot: name, program,
-  floors, accessible, and optionally its goal. Everything else stays generated around it.
-  `city-planner` (+ schema).
-- **Quest placement.** A goal pinned to a named building, so the objective sits somewhere chosen.
-  `city-planner` emits it; `building-planner` already takes `goalFor`.
-- **Checkpoints.** `tools/level.js save --in city.json --name ashgate` / `load --name ashgate`, over
-  the export/import `persistence` already has. `tools/`.
+### 16a - Authoring surface (generator + contracts) [x]
+- [x] **Inaccessible buildings.** A mass with no door and no `LotPlan`: never a map node, so the gate
+  never waits on it. `CitySpec.accessibleRatio` seals a share of them, `buildings[].accessible: false`
+  seals a chosen one, and one building always opens.
+- [x] **Per-lot overrides.** `CitySpec.buildings[]` pins a premises by `{ block, slot }`: label,
+  program, floors, accessible, quest. The block is split into enough premises to hold the slot, and
+  everything unpinned is generated around it. Every seeded choice moved into `city-planner/src/premises.js`,
+  leaving `src/index.js` as plain assembly.
+- [x] **Quest placement.** `LotPlan.quest { itemId, floor? }`: `building-planner` places the named item
+  on that floor (the top one by default) and makes finding it that floor's goal, while every other
+  floor keeps its own token. Fixed alongside: a caller-supplied `goalFor` that returned nothing for a
+  floor left that floor with a goal whose item was never planted.
+- [x] **Checkpoints.** `tools/level.js save --in city.json --name ashgate` / `load --name ashgate`,
+  over the export/import `persistence` already has, validated before writing. Plus `city --spec
+  <file>`, so an author (or an agent) hands the toolkit a whole `CitySpec` and flags override it.
+- [x] DoD met: `npm test` = 291 local tests. `tools/checkpoints.test.js` drives the real command line
+  as a process: a spec file builds the city it describes, the quest item exists exactly once on the
+  floor asked for, and a checkpoint round trips unchanged.
 
 ### 16b - Surfaces (own geometry, own textures)
 - Procedural canvas textures in `layers/runtime/`: asphalt with lane markings, kerb, paving slabs,

@@ -113,6 +113,60 @@ describe("city-planner contract", () => {
     }
   });
 
+  it("a sealed building is scenery: it stands there with no door and nothing behind it", () => {
+    const { instance, lots } = build({ sizeHint: "large", lots: 6, accessibleRatio: 0.5 });
+    expect(instance.rooms[0].blocks).toHaveLength(6);
+    expect(lots).toHaveLength(3);
+
+    const withDoors = new Set(instance.portals.filter((p) => p.blockId).map((p) => p.blockId));
+    expect(withDoors.size).toBe(3);
+    for (const lot of lots) expect(withDoors.has(`mass-${lot.lotId}`)).toBe(true);
+    // a city with no way into anything would open its gate at once, so one always opens
+    expect(build({ lots: 4, accessibleRatio: 0 }).lots).toHaveLength(1);
+  });
+
+  it("a pinned building is built as asked, and the rest is generated around it", () => {
+    const pinned = {
+      ...spec,
+      lots: 5,
+      buildings: [
+        { block: 1, slot: 2, label: "The Vault", program: "office", floors: 6, quest: { itemId: "ledger" } },
+        { block: 0, slot: 0, label: "Boarded up", accessible: false },
+      ],
+    };
+    expect(validate(SCHEMA_ID.cityPlanner.citySpec, pinned).ok).toBe(true);
+
+    const { instance, lots } = createStreets(pinned, assetQuery, { validateInstance: passing });
+    expect(lots).toHaveLength(4); // five premises, one of them sealed
+
+    const vault = lots.find((l) => l.label === "The Vault");
+    expect(vault).toMatchObject({ floors: 6, program: "office", quest: { itemId: "ledger", floor: 6 } });
+    expect(validate(SCHEMA_ID.cityPlanner.lotPlan, vault).ok).toBe(true);
+
+    // the sealed one is a mass on the ground, and nothing else
+    const sealed = instance.rooms[0].blocks.find((b) => b.label === "Boarded up");
+    expect(sealed).toBeDefined();
+    expect(instance.portals.some((p) => p.blockId === sealed.id)).toBe(false);
+    expect(lots.some((l) => l.label === "Boarded up")).toBe(false);
+  });
+
+  it("refuses a pin it cannot honour", () => {
+    const pin = (buildings, over = {}) =>
+      createStreets({ ...spec, ...over, buildings }, assetQuery, { validateInstance: passing });
+    expect(() => pin([{ block: 99, slot: 0 }])).toThrowError(CitySpecInvalidError);
+    expect(() => pin([{ block: 0, slot: 0 }, { block: 0, slot: 0 }])).toThrowError(CitySpecInvalidError);
+    // a quest nobody can walk to, and less room than the pins need
+    expect(() => pin([{ block: 0, slot: 0, accessible: false, quest: { itemId: "x" } }])).toThrowError(
+      CitySpecInvalidError
+    );
+    expect(() => pin([{ block: 0, slot: 0 }, { block: 1, slot: 1 }], { lots: 1 })).toThrowError(
+      CitySpecInvalidError
+    );
+    expect(() => pin([{ block: 0, slot: 0, floors: 2, quest: { itemId: "x", floor: 4 } }])).toThrowError(
+      CitySpecInvalidError
+    );
+  });
+
   it("the same spec and seed lay out the same city every time", () => {
     expect(build({ seed: 7 })).toEqual(build({ seed: 7 }));
   });

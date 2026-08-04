@@ -9,35 +9,17 @@
 // inside a building is a separate instance, reached by walking up to its door.
 
 import { createRng, hashString } from "./rng.js";
-import { BLOCK, FACES, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize, plotsInBlock } from "./lattice.js";
+import { BLOCK, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize } from "./lattice.js";
+import { planPremises } from "./premises.js";
+import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from "./errors.js";
+
+export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
 
 const SKY = 60; // how high the invisible limit reaches, metres: taller than anything built under it
 const STOREY = 3.2; // a building's mass grows this much per floor it holds
 const DOOR = [2, 3];
 const GATE = [6, 4];
 const GROUND_ROOM = "ground";
-
-export class CitySpecInvalidError extends Error {
-  constructor(reason) {
-    super(`city spec cannot be built: ${reason}`);
-    this.code = "CITY_SPEC_INVALID";
-  }
-}
-
-export class NoAssetForKindError extends Error {
-  constructor(kind, theme) {
-    super(`no asset registered for kind "${kind}" in theme "${theme}"`);
-    this.code = "NO_ASSET_FOR_KIND";
-  }
-}
-
-export class LayoutInvalidError extends Error {
-  constructor(report) {
-    super("the generated level failed the geometry validator");
-    this.code = "LAYOUT_INVALID";
-    this.report = report;
-  }
-}
 
 // Prefer the outdoor piece when the kit distinguishes one, but never require it: a theme with a
 // single floor and wall still builds a street.
@@ -47,51 +29,6 @@ function pickKit(assetQuery, kind, theme) {
     assetQuery?.({ kind, theme })?.[0]?.id;
   if (!id) throw new NoAssetForKindError(kind, theme);
   return id;
-}
-
-// How many floors this lot gets. A short `floorsPerLot` repeats its last value, so [3] means every
-// building is three storeys and omitting it means every building is one.
-function floorsFor(spec, index) {
-  const list = spec.floorsPerLot ?? [];
-  if (list.length === 0) return 1;
-  return list[Math.min(index, list.length - 1)];
-}
-
-const PROGRAMS = ["apartments", "office", "shop"];
-const HOUSE_PROGRAMS = ["house", "shop"];
-// A skyline needs a mix. Without floorsPerLot, heights are drawn from this: mostly low premises with
-// the odd tower, so a block reads as houses and shops around something taller.
-const FLOOR_MIX = [1, 1, 1, 2, 2, 3, 4, 6, 9];
-const MAX_PER_BLOCK = 4;
-
-// How many premises each block gets. Blocks differ, and the total is trimmed or topped up to match
-// what the spec asked for, so `lots` still means "this many buildings".
-// A front door faces the pavement, never the inside of its own block: the gap between two premises
-// is not a street, and a door onto it is a door nobody can reach.
-function outwardFace(blockCentre, plotCentre, rng) {
-  const out = FACES.filter(
-    (f) =>
-      (f.dx !== 0 && Math.sign(plotCentre.x - blockCentre.x) === f.dx) ||
-      (f.dz !== 0 && Math.sign(plotCentre.z - blockCentre.z) === f.dz)
-  );
-  return rng.pick(out.length ? out : FACES); // a premises alone on its block fronts every side
-}
-
-function premisesPerBlock(cellCount, wanted, rng) {
-  const counts = Array.from({ length: cellCount }, () => rng.int(2, MAX_PER_BLOCK));
-  if (wanted == null) return counts;
-  let total = counts.reduce((a, b) => a + b, 0);
-  for (let guard = 0; total !== wanted && guard < cellCount * MAX_PER_BLOCK * 2; guard++) {
-    const i = guard % cellCount;
-    if (total > wanted && counts[i] > 0) {
-      counts[i] -= 1;
-      total -= 1;
-    } else if (total < wanted && counts[i] < MAX_PER_BLOCK) {
-      counts[i] += 1;
-      total += 1;
-    }
-  }
-  return counts;
 }
 
 /**
@@ -110,13 +47,8 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const rng = createRng(opts.seed ?? spec.seed ?? hashString(spec.id));
   const wantExit = spec.exit !== false;
 
-  const all = cells(n);
-  const maxBuildings = all.length * MAX_PER_BLOCK;
-  if (spec.lots != null && spec.lots > maxBuildings) {
-    throw new CitySpecInvalidError(`${spec.lots} buildings asked for, room for ${maxBuildings}`);
-  }
-  const perBlock = premisesPerBlock(all.length, spec.lots ?? null, rng);
-  const wanted = perBlock.reduce((a, b) => a + b, 0);
+  const lattice = cells(n);
+  const premises = planPremises(spec, lattice, rng);
 
   const floorKit = pickKit(assetQuery, "room-floor", spec.theme);
   const wallKit = pickKit(assetQuery, "wall", spec.theme);
@@ -130,61 +62,51 @@ export function createStreets(spec, assetQuery, opts = {}) {
   // The whole ground is roadway; each block lays its pavement over it, and the buildings stand on
   // that. So the streets are simply what no block covers.
   zones.push({ id: "road", kind: "road", position: [0, 0, 0], size: [extent, extent] });
-
-  let built = 0;
-  for (let c = 0; c < all.length && built < wanted; c++) {
-    const cell = all[c];
-    const count = perBlock[c];
-    if (count === 0) continue;
-
+  for (const index of [...new Set(premises.map((p) => p.block))].sort((a, b) => a - b)) {
     zones.push({
-      id: `pavement-${cell.index}`,
+      id: `pavement-${index}`,
       kind: "sidewalk",
-      position: [cell.center.x, 0, cell.center.z],
+      position: [lattice[index].center.x, 0, lattice[index].center.z],
       size: [BLOCK, BLOCK],
     });
+  }
 
-    const plots = plotsInBlock(cell.center, count);
-    for (let k = 0; k < plots.length && built < wanted; k++) {
-      const plot = plots[k];
-      const lotId = `${spec.id}-b${built + 1}`;
-      const floors = spec.floorsPerLot?.length ? floorsFor(spec, built) : rng.pick(FLOOR_MIX);
-      const height = Math.min(SKY - 2, floors * STOREY + 2);
-      const blockId = `mass-${lotId}`;
-      blocks.push({
-        id: blockId,
-        position: [plot.center.x, 0, plot.center.z],
-        size: [plot.size.w, height, plot.size.d],
-        assetRef: wallKit,
-        label: `${spec.label ?? spec.id} ${built + 1}`,
-      });
+  for (const p of premises) {
+    const blockId = `mass-${p.id}`;
+    blocks.push({
+      id: blockId,
+      position: [p.plot.center.x, 0, p.plot.center.z],
+      size: [p.plot.size.w, Math.min(SKY - 2, p.floors * STOREY + 2), p.plot.size.d],
+      assetRef: wallKit,
+      label: p.label,
+    });
+    if (!p.accessible) continue; // scenery: a mass with no way in, so nothing is built behind it
 
-      const floorInstanceIds = Array.from({ length: floors }, (_, f) => `${lotId}-f${f + 1}`);
-      const doorPortalId = `door-${lotId}`;
-      portals.push({
-        id: doorPortalId,
-        roomA: GROUND_ROOM,
-        roomB: "LINK",
-        blockId, // the door is on the building's face; nothing is cut out of the ground
-        ...doorOnFace(plot.center, plot.size, outwardFace(cell.center, plot.center, rng), DOOR),
-        link: { instanceId: floorInstanceIds[0], spawnRoomId: "entry", kind: "enter" },
-      });
+    const floorInstanceIds = Array.from({ length: p.floors }, (_, f) => `${p.id}-f${f + 1}`);
+    const doorPortalId = `door-${p.id}`;
+    portals.push({
+      id: doorPortalId,
+      roomA: GROUND_ROOM,
+      roomB: "LINK",
+      blockId, // the door is on the building's face; nothing is cut out of the ground
+      ...doorOnFace(p.plot.center, p.plot.size, p.face, DOOR),
+      link: { instanceId: floorInstanceIds[0], spawnRoomId: "entry", kind: "enter" },
+    });
 
-      lots.push({
-        lotId,
-        label: `${spec.label ?? spec.id} ${built + 1}`,
-        theme: spec.theme,
-        program: floors > 1 ? rng.pick(PROGRAMS) : rng.pick(HOUSE_PROGRAMS),
-        floors,
-        floorInstanceIds,
-        entryRoomId: "entry",
-        returnInstanceId: spec.id,
-        returnRoomId: GROUND_ROOM,
-        doorPortalId,
-        footprint: { width: Math.max(6, plot.size.w - 2), depth: Math.max(6, plot.size.d - 2) },
-      });
-      built += 1;
-    }
+    lots.push({
+      lotId: p.id,
+      label: p.label,
+      theme: spec.theme,
+      program: p.program,
+      floors: p.floors,
+      floorInstanceIds,
+      entryRoomId: "entry",
+      returnInstanceId: spec.id,
+      returnRoomId: GROUND_ROOM,
+      doorPortalId,
+      footprint: { width: Math.max(6, p.plot.size.w - 2), depth: Math.max(6, p.plot.size.d - 2) },
+      ...(p.quest ? { quest: p.quest } : {}),
+    });
   }
 
   // The way out of the city: a gate in the eastern limit, shut until the map is cleared.

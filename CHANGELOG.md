@@ -2,6 +2,20 @@
 
 What the project does now, newest first.
 
+## 0.4 - Cities you can author, and keep
+
+- A building can be sealed: a mass with no door, nothing built behind it, and no node on the map, so
+  the exit gate never waits on a place you cannot enter. `accessibleRatio` seals a share of them and
+  one building always opens.
+- A `CitySpec` can pin individual premises by block and slot: its name, program, height, whether it
+  opens at all, and where the run's quest sits. Everything unpinned is generated around them, so one
+  chosen building and a city built from a seed are the same command.
+- A pinned quest puts a named item in a chosen building, on a chosen floor (the top one by default),
+  and finding it becomes that floor's goal. Every other floor keeps its own token.
+- `node tools/level.js city --spec ashgate.spec.json` builds from a spec file, with flags overriding
+  what it says, and `save --name` / `load --name` keep a city you liked as a portable bundle.
+  Checkpoints validate before they are written, so anything on disk is something that will load.
+
 ## 0.3 - The outdoors is open
 
 - Names and speech are HTML laid over the canvas, not glyphs in the 3D scene. A line is always

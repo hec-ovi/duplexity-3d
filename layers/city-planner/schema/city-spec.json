@@ -16,7 +16,18 @@
     "lots": {
       "type": "integer",
       "minimum": 0,
-      "description": "How many front doors to place. Default: one per two segments, at least one."
+      "description": "How many buildings to place across the whole city. Default: two to four per block, drawn from the seed."
+    },
+    "accessibleRatio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Share of buildings with a front door. Default 1. A sealed building is scenery: no door, nothing built behind it, and the exit gate never waits on it. At least one building always opens."
+    },
+    "buildings": {
+      "type": "array",
+      "description": "Pin individual premises; everything else is generated around them.",
+      "items": { "$ref": "#/$defs/pin" }
     },
     "floorsPerLot": {
       "type": "array",
@@ -35,5 +46,26 @@
     "seed": { "type": "integer" }
   },
   "required": ["id", "theme"],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "pin": {
+      "title": "BuildingPin",
+      "description": "One building an author chose, by where it stands. The block is split into enough premises to hold the slot.",
+      "type": "object",
+      "properties": {
+        "block": { "type": "integer", "minimum": 0, "description": "Which city block, in lattice order (row by row from the south-west)." },
+        "slot": { "type": "integer", "minimum": 0, "maximum": 3, "description": "Which premises on that block." },
+        "label": { "type": "string", "description": "Name shown on the map overlay and over the door." },
+        "program": { "type": "string", "enum": ["house", "apartments", "office", "shop"] },
+        "floors": { "type": "integer", "minimum": 1 },
+        "accessible": { "type": "boolean", "description": "false seals it: a mass with no door." },
+        "quest": {
+          "$ref": "https://doplexity-3d.dev/schema/city-planner/lot-plan.json#/$defs/quest",
+          "description": "Put the run's objective in this building. Implies a door."
+        }
+      },
+      "required": ["block", "slot"],
+      "additionalProperties": false
+    }
+  }
 }

@@ -9,9 +9,12 @@ ids, never on coordinates.
 
 ## Inputs (params in)
 - `createStreets(CitySpec, assetQuery, opts?) -> { instance, lots, report }`
-  - `CitySpec`: `{ id, theme, label?, sizeHint?, lots?, floorsPerLot?, npcs?, exit?, seed? }`.
-    `floorsPerLot` sets how tall each building is, in order, repeating its last value. `npcs` is read
-    by the toolkit that populates the level, not by the street layout.
+  - `CitySpec`: `{ id, theme, label?, sizeHint?, lots?, floorsPerLot?, accessibleRatio?, buildings?,
+    npcs?, exit?, seed? }`. `floorsPerLot` sets how tall each building is, in order, repeating its
+    last value. `accessibleRatio` is the share of buildings with a front door (default 1).
+    `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
+    quest); the block is split into enough premises to hold the slot, and everything unpinned is
+    generated around it. `npcs` is read by the toolkit that populates the level, not by the layout.
     schema: [schema/city-spec.json](schema/city-spec.json)
   - `assetQuery`: a handle to `asset-registry.query` (injected, never imported), used for the road and
     facade kits.
@@ -22,11 +25,13 @@ ids, never on coordinates.
 
 ## Outputs (params out)
 - `instance` - a persistence Instance holding ONE `open` room (the ground), its `zones[]` (the
-  roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a block), one `LINK` portal per building carrying `blockId` (the door is on that mass's
-  face), and one `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`. `rules`
-  carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
+  roadway, and a pavement per city block), its `blocks[]` (one mass per BUILDING, several to a
+  block), one `LINK` portal per building you can enter carrying `blockId` (the door is on that
+  mass's face), and one `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
+  `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
   schema: owned by `persistence` (`instance.json`).
-- `lots` - `LotPlan[]`, the brief `building-planner` builds from.
+- `lots` - `LotPlan[]`, the brief `building-planner` builds from: one per building WITH A DOOR, so a
+  sealed building appears in `blocks[]` and nowhere else.
   schema: [schema/lot-plan.json](schema/lot-plan.json)
 - `report` - the `ValidationReport` from the injected validator, or a passing report when none was
   injected. schema: owned by `scenario-creator`.
@@ -41,12 +46,14 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
 | `entryRoomId` | The room the street door opens into. The ground floor must contain it. |
 | `returnInstanceId` / `returnRoomId` | Where the building's way out puts the player back. |
 | `footprint` / `floors` / `program` | Size, height and room mix the building should be built to. |
+| `quest` | Present only where an author pinned the objective: the item to place and the floor it waits on. |
 
 ## Errors
 - `NO_ASSET_FOR_KIND` - the theme has no road or facade kit in the registry.
 - `LAYOUT_INVALID` - the injected validator rejected the street (a bug in this layer; never returned).
-- `CITY_SPEC_INVALID` - the spec asks for something unbuildable (no segments, or more lots than the
-  road has faces to put them on).
+- `CITY_SPEC_INVALID` - the spec asks for something unbuildable: an unknown `sizeHint`, more
+  buildings than the lattice holds, fewer than the pins need, a pin on a block or slot that does not
+  exist, two pins on the same place, or a quest inside a building sealed shut.
 
 ## Invariants this layer will never break
 - The outdoors is open. One room, marked `open`: its edge stops you and is drawn as nothing, so the
@@ -59,6 +66,8 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
   and NPCs are given it as the place to be.
 - Every building's door is on a face of ITS OWN mass, and you can walk to it: proved by the injected
   validator's flood fill of the open floor, not assumed.
+- A building without a door has nothing behind it: no `LotPlan`, so no instance, so no node on the
+  map and nothing for the exit gate to wait on. At least one building always has a door.
 - The spawn stands in a street, never inside a building.
 - Exactly one entry (the spawn) and exactly one exit gate, and the gate is locked `all_cleared`.
 - Every `LotPlan` names a door that exists in the returned instance, and no two lots share a door.
@@ -70,8 +79,11 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
 
 ## How to modify this blackbox safely
 Where the buildings stand, and so where the streets run, is `src/lattice.js` (block size, street
-width, which cells are built on). Swap the lattice for a ring, a river or an organic scatter without
-touching anything else, as long as the invariants above hold: the validator will tell you if a
-building has sealed off a door. Keep `tests/` green: masses never touch and stay on the ground, every
-lot gets its own door on its own mass, taller lots get taller masses, the gate is locked, the same
-seed repeats, and a spec asking for more buildings than there are places is refused.
+width, how a block splits into plots). What stands on each plot is `src/premises.js` (how many, how
+tall, what for, which have doors, where an author's pins land): every seeded choice is made there, so
+`src/index.js` stays plain assembly. Swap the lattice for a ring, a river or an organic scatter
+without touching anything else, as long as the invariants above hold: the validator will tell you if
+a building has sealed off a door. Keep `tests/` green: masses never touch and stay on the ground,
+every lot gets its own door on its own mass, taller lots get taller masses, a sealed building has no
+door and no brief, a pinned building is built as asked, the gate is locked, the same seed repeats,
+and a spec asking for more than there is room for is refused.

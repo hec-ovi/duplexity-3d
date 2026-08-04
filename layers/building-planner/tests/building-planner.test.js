@@ -114,6 +114,45 @@ describe("building-planner contract", () => {
     expect(instances[0].rooms.every((r) => r.inventory.length === 0)).toBe(true);
   });
 
+  it("a floor the caller leaves alone keeps a goal it can satisfy", () => {
+    const goal = { type: "survive", seconds: 30 };
+    const { instances } = createBuilding(lotPlan({ floors: 2 }), assetQuery, {
+      validateInstance: passing,
+      goalFor: (floorIndex) => (floorIndex === 0 ? goal : undefined),
+    });
+    expect(instances[0].goal).toEqual(goal);
+    expect(instances[1].goal.type).toBe("discover_item");
+    expect(
+      instances[1].rooms.some((r) => r.inventory.some((i) => i.itemId === instances[1].goal.itemId))
+    ).toBe(true);
+  });
+
+  it("a lot carrying the quest puts the named item on the floor it asked for", () => {
+    const lot = lotPlan({ floors: 3, quest: { itemId: "ashgate-ledger", floor: 2 } });
+    expect(validate(SCHEMA_ID.cityPlanner.lotPlan, lot).ok).toBe(true);
+
+    const { instances } = createBuilding(lot, assetQuery, { validateInstance: passing });
+    expect(instances[1].goal).toEqual({ type: "discover_item", itemId: "ashgate-ledger" });
+    expect(
+      instances[1].rooms.some((r) => r.inventory.some((i) => i.itemId === "ashgate-ledger"))
+    ).toBe(true);
+    // the other floors keep their own token, so the quest item exists exactly once
+    expect(instances[0].goal.itemId).toBe("ashgate-b1-f1-token");
+    expect(instances[2].goal.itemId).toBe("ashgate-b1-f3-token");
+
+    // no floor named: it waits at the top of the building
+    const top = createBuilding(lotPlan({ floors: 3, quest: { itemId: "crown" } }), assetQuery, {
+      validateInstance: passing,
+    });
+    expect(top.instances[2].goal.itemId).toBe("crown");
+  });
+
+  it("refuses a quest above the top floor", () => {
+    expect(() => build({ floors: 2, quest: { itemId: "crown", floor: 5 } })).toThrowError(
+      LotPlanInvalidError
+    );
+  });
+
   it("a lot with nowhere to go back to gets a plain way out instead of a link", () => {
     const alone = lotPlan();
     delete alone.returnInstanceId;

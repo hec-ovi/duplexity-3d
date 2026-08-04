@@ -30,6 +30,10 @@
     },
     "returnRoomId": { "type": "string", "description": "Room the player lands in on the way out. Required alongside returnInstanceId." },
     "doorPortalId": { "type": "string", "description": "The street-side portal, already present in the street instance." },
+    "quest": {
+      "$ref": "#/$defs/quest",
+      "description": "The run's objective sits in this building: the named item is placed on the given floor, and finding it is that floor's goal."
+    },
     "footprint": {
       "type": "object",
       "description": "Size to build each floor to, in metres.",
@@ -53,5 +57,17 @@
     "footprint"
   ],
   "dependentRequired": { "returnInstanceId": ["returnRoomId"] },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "quest": {
+      "title": "Quest",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string", "description": "Id of the item to find, and the name the goal is written in." },
+        "floor": { "type": "integer", "minimum": 1, "description": "Which floor holds it, ground floor 1. Default: the top floor." }
+      },
+      "required": ["itemId"],
+      "additionalProperties": false
+    }
+  }
 }

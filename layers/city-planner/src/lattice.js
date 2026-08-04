@@ -38,18 +38,8 @@ export function cells(n) {
   return out;
 }
 
-/**
- * Choose which cells get a building, spread over the lattice rather than filling one corner.
- * Deterministic: the same count and seed pick the same cells.
- */
-export function chooseCells(all, wanted, rng) {
-  if (wanted >= all.length) return all.slice(0, wanted);
-  const stride = Math.max(1, Math.floor(all.length / wanted));
-  const offset = rng.int(0, stride - 1);
-  return Array.from({ length: wanted }, (_, k) => all[offset + k * stride]);
-}
-
 export const PAVEMENT = 4.5; // pavement round a block, wide enough to walk and stand on
+export const MAX_PER_BLOCK = 4; // premises one block can be split into
 
 /**
  * Split one city block into the plots its buildings stand on. The block keeps a pavement all the way

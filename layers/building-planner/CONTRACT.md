@@ -9,12 +9,15 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 - `createBuilding(LotPlan, assetQuery, opts?) -> { instances, report }`
   - `LotPlan`: the brief from `city-planner` (schema owned there: `lot-plan.json`). It fixes the
     instance id of every floor, the room the front door opens into, where the way out leads back to,
-    the footprint, the floor count and the program.
+    the footprint, the floor count and the program. Its optional `quest { itemId, floor? }` puts the
+    run's objective here: the named item is placed on that floor (the top one by default) and finding
+    it is that floor's goal, while every other floor keeps its own token.
   - `assetQuery`: a handle to `asset-registry.query` (injected, never imported).
   - `opts.validateInstance?`: a handle to `scenario-creator.validateLayout` (injected). Every floor is
     proved against it before return; a failure raises `LAYOUT_INVALID`.
-  - `opts.goalFor?(floorIndex, floorInstanceId) -> Goal`: override the default win condition of a
-    floor. The default puts one item in the far room and asks for it, which is always satisfiable.
+  - `opts.goalFor?(floorIndex, floorInstanceId) -> Goal`: override the win condition of a floor.
+    Return nothing for a floor to leave it alone. The default puts one item in the far room and asks
+    for it, which is always satisfiable; a goal you name is yours to make satisfiable.
 
 ## Outputs (params out)
 - `instances` - one persistence Instance per floor, ground floor first, ids exactly
@@ -34,7 +37,8 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 
 ## Errors
 - `NO_ASSET_FOR_KIND` - the theme has no floor or wall kit in the registry.
-- `LOT_PLAN_INVALID` - the brief cannot be built (no floors, or a footprint too small for its program).
+- `LOT_PLAN_INVALID` - the brief cannot be built (no floors, a footprint too small for its program,
+  or a quest on a floor above the top of the building).
 - `LAYOUT_INVALID` - a floor failed the injected geometry validator (a bug here; never returned).
 
 ## Invariants this layer will never break
@@ -43,7 +47,8 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 - Every room on a floor is reachable from that floor's arrival room on foot.
 - A door that leaves the floor (the street door, a stairwell) sits on an OUTER wall and has a face to
   itself: two of them can never land on the same wall.
-- Every floor's goal is reachable within that floor: a run can never be blocked by an unwinnable one.
+- Every floor this layer sets a goal for is winnable on that floor: whatever must be found is placed
+  there, including a pinned quest item. A run can never be blocked by an unwinnable floor.
 - Deterministic: no `Math.random`, no clock. The same LotPlan builds the same building.
 
 ## Dependencies (contracts only)
