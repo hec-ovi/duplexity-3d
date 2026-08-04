@@ -2,49 +2,6 @@
 
 What the project does now, newest first.
 
-## 0.19 - Fast again
-
-The city had become an offline renderer. Four things, measured rather than guessed:
-
-- **Point light shadows are gone.** A point light's shadow is a CUBE: six renders of the whole scene,
-  every frame, per light. Two of them plus the moon was fourteen passes over eight thousand objects.
-  The city lights itself with emissive geometry, which costs nothing.
-- **Only what you would miss casts a shadow**: masses, walls, props and people. A balcony and a window
-  frame cost a pass each in the moon's map and read the same either way.
-- **The cones of haze under the lamps are gone.** Forty of them, transparent and additive over the
-  street, were the single biggest cost: at 1280x720 they alone were most of the frame.
-- **The drawing buffer is capped.** The scene is drawn to two targets, blurred for the bloom and
-  graded, so every pixel is paid for several times; on a big monitor that is four million of them.
-  Past 1.3 megapixels the buffer is rendered smaller and stretched to fit.
-
-Measured in the same software renderer, at 1280x720: 123ms a frame down to 21ms. At 1920x1080 it
-stays at 21ms instead of scaling with the window.
-
-- Materials shared rather than made per object: a skyline of a hundred and fifty towers is now four
-  merged meshes wearing four materials, and doors, roof gear, neon and awnings are made once for the
-  city rather than once each. 466 materials down to about 200.
-
-## 0.18 - Buildings with shapes, and something to look at while it loads
-
-- The massing library is the shape vocabulary the reference city actually has, not five stacks of
-  boxes: masses that BATTER inward as they rise or FLARE into a crown, a tower cut through by a void
-  and carried on legs, a shaft that narrows to a waist and widens again, two shafts joined at the
-  top by a bridge. Weighted so most of a street LEANS.
-- A tier is a tapered box now, with the same six faces and material groups a box had, so a wall that
-  leans is dressed at the width it actually is at each storey.
-- Something on every tall roof: a mast with a warning light and its guys, a girder frame, a dish, a
-  spire, a run of plant.
-- Light running the full height of a wall, up its corners and its seams. A tall building is read at
-  night by those lines, not by its windows.
-- Megastructures: four shapes three to six times anything on the ground, spaced round the city so one
-  is in view from anywhere in it. The skyline ring leans too, and stands taller the further out.
-- A loading screen that says which part is slow, and two reasons it is faster: every material is
-  compiled BEFORE the first frame instead of stalling on it, and the street is kept standing while
-  you are inside a building, so stepping back out is immediate.
-- Facade sheets are shared between buildings that would wear the same wall anyway, and painted at
-  512 rather than 1024. The windows are separate objects, so the sheet carries no fine detail: a
-  city's walls went from about a hundred megabytes of texture to under thirty.
-
 ## 0.17 - cityscape is its own box
 
 - Everything the city LOOKS like in three.js moved into `layers/cityscape/`: the fabric, the parts

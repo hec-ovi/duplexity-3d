@@ -39,8 +39,6 @@ ids, never on coordinates.
   on some building faces, and a sign over every front door), one `LINK`
   portal per building you can enter carrying `blockId` (the door is on that mass's face), and one
   `EXIT` portal in the boundary carrying `lock: { rule: "all_cleared" }`.
-  and its `skyline[]` (a ring of towers past the boundary, leaning in as they rise, plus a handful of
-  MEGASTRUCTURES three to six times anything on the ground, spaced so one is in view from anywhere).
   `rules` carries `{ mapKind: "street", label }` so `map-state` and the map overlay can name it.
   schema: owned by `persistence` (`instance.json`).
 - `lots` - `LotPlan[]`, the brief `building-planner` builds from: one per building WITH A DOOR, so a

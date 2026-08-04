@@ -12,7 +12,7 @@ import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
 import { advertFace } from "./adverts.js";
 import { styleFor } from "./styles.js";
-import { MAX_BALCONY_BAYS, advert, awning, balconies, neon, sign, signHeight, strip, takesAdvert, walls, windowRise, windowsOn } from "./parts.js";
+import { MAX_BALCONY_BAYS, advert, awning, balconies, neon, sign, signHeight, takesAdvert, walls, windowRise, windowsOn } from "./parts.js";
 import { massingFor, tierWalls } from "./massing.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
@@ -55,23 +55,21 @@ export function dressFacade(building) {
 
   // What shape it stands in: a stack of tiers, the ground one filling its plot and the ones above
   // stepping back off it.
-  const { shape, tiers, bands, topper } = massingFor({ w, h, d, floors, storey }, rng);
+  const { shape, tiers, bands } = massingFor({ w, h, d, floors, storey }, rng);
 
   // Windows, on every wall of every tier, storey by storey. One object each, its own light on or
   // off, so no two walls of a city read the same.
   const glazedGround = program === "house";
   const rise = windowRise(style.window);
   for (const tier of tiers) {
-    if (tier.legs) continue; // open sky on columns: there is no wall to put a window in
     const bottom = tier.position[1] - tier.size[1] / 2;
     const top = tier.position[1] + tier.size[1] / 2;
-    const first = Math.max(glazedGround ? 0 : 1, Math.ceil(bottom / storey));
-    for (let storeyIndex = first; storeyIndex * storey + rise < top; storeyIndex++) {
-      const at = storeyIndex * storey;
-      // A leaning wall is narrower the higher you go, so each storey is dressed at the size the wall
-      // actually is there.
-      for (const wall of tierWalls(tier, at)) {
-        parts.push(...windowsOn(wall, at, style.window, building.litRatio ?? 0.45, rng, WINDOW_COLOURS));
+    for (const wall of tierWalls(tier)) {
+      const first = Math.max(glazedGround ? 0 : 1, Math.ceil(bottom / storey));
+      for (let storeyIndex = first; storeyIndex * storey + rise < top; storeyIndex++) {
+        parts.push(
+          ...windowsOn(wall, storeyIndex * storey, style.window, building.litRatio ?? 0.45, rng, WINDOW_COLOURS)
+        );
       }
     }
   }
@@ -92,29 +90,11 @@ export function dressFacade(building) {
   // Holo adverts up the taller walls, and a neon line along the top of every tier. This is what a
   // street of concrete boxes is missing at night: something bolted to it that burns.
   for (const tier of tiers) {
-    if (tier.legs) continue;
     const bottom = tier.position[1] - tier.size[1] / 2;
     const top = tier.position[1] + tier.size[1] / 2;
     const edge = rng.pick(ADVERT_COLOURS);
-    // The neon runs along the top of the tier, so it is measured at the top; a panel hangs on the
-    // middle of the wall, so that is where it is measured.
-    for (const wall of tierWalls(tier, top)) {
+    for (const wall of tierWalls(tier)) {
       if (top - bottom > storey * 1.5 && rng.chance(0.55)) parts.push(neon(wall, top - 0.4, edge));
-    }
-    // Light running the full height of the tier, down its corners or its seams. A tall building is
-    // read at night by these long lines, not by its windows.
-    if (top - bottom > storey * 3 && rng.chance(0.6)) {
-      const runs = rng.pick([1, 2, 2, 3]);
-      for (const wall of tierWalls(tier, (bottom + top) / 2)) {
-        if (!rng.chance(0.55)) continue;
-        for (let i = 0; i < runs; i++) {
-          const along = ((i - (runs - 1) / 2) * (wall.span - 0.8)) / Math.max(1, runs);
-          parts.push(strip(wall, along, bottom + 0.4, top - bottom - 1.2, edge));
-        }
-      }
-    }
-
-    for (const wall of tierWalls(tier, (bottom + top) / 2)) {
       if (!takesAdvert(wall) || top - bottom < storey * 2.5) continue;
       if (!rng.chance(0.42)) continue;
       const portrait = rng.chance(0.55);
@@ -160,5 +140,5 @@ export function dressFacade(building) {
   // building's look: a shop has a glazed shopfront, an office a pair of flush leaves.
   const door = front ? { style: style.door, colour } : null;
 
-  return { name, shape, tiers, bands, topper, parts, style, door };
+  return { name, shape, tiers, bands, parts, style, door };
 }

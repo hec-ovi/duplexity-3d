@@ -10,9 +10,7 @@ import * as THREE from "three";
 import { lampHeight } from "./lamps.js";
 
 const POOL = 10; // real point lights alive at once
-// A point light shadow is a CUBE: six renders of the whole scene, every frame, per light. Two of
-// them was thirteen passes over a city of eight thousand objects, which is why it ran like an
-// offline renderer. The city lights itself with emissive geometry; it does not need them.
+const CASTERS = 2; // of those, how many throw shadows: the nearest, because they are what you see
 const SHADOW_MAP = 512;
 const REACH = 34; // metres a pooled light carries
 const FADE = 55; // how fast a light comes up or goes out, in intensity per second
@@ -61,7 +59,7 @@ export function createLightRig(scene, { lights = [], open = false, tintFor, exte
   // standing on ground rather than a picture of one.
   if (open) {
     moon.castShadow = true;
-    moon.shadow.mapSize.set(1024, 1024);
+    moon.shadow.mapSize.set(2048, 2048);
     const reach = Math.max(40, (extent ?? 120) * 0.6);
     Object.assign(moon.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach, near: 1, far: 400 });
     moon.shadow.bias = -0.0008;
@@ -92,6 +90,14 @@ export function createLightRig(scene, { lights = [], open = false, tintFor, exte
   for (let i = 0; i < Math.min(POOL, points.length); i++) {
     const lamp = new THREE.PointLight(0xffffff, 0, REACH, 2);
     lamp.name = `pooled-light:${i}`;
+    // Only the first few throw shadows: a point light shadow is six renders, and past the nearest
+    // couple nobody can tell.
+    if (i < CASTERS) {
+      lamp.castShadow = true;
+      lamp.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
+      lamp.shadow.bias = -0.004;
+      lamp.shadow.camera.near = 0.4;
+    }
     pool.push({ lamp, point: null, level: 0 });
     added.push(lamp);
   }

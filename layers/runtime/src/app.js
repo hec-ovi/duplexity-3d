@@ -32,17 +32,6 @@ const KEY_MAP = {
 const FOV = { normal: 75, zoomed: 38, rate: 6 }; // right button pulls the view in
 
 const DEFAULTS = { eyeHeight: 1.6, lookSensitivity: 0.0022, maxDt: 0.05 };
-// How many pixels we are willing to draw a frame. The scene is drawn to two targets, blurred for the
-// bloom and graded, so every pixel is paid for several times over; on a big monitor that is four
-// million of them and the whole thing crawls. Past this the buffer is rendered smaller and stretched
-// to fit, which costs a little sharpness and multiplies the frame rate.
-const PIXEL_BUDGET = 1_300_000;
-
-// The size to actually draw at, for a canvas that has to fill `width` by `height`.
-function drawingSize(width, height) {
-  const scale = Math.min(1, Math.sqrt(PIXEL_BUDGET / Math.max(1, width * height)));
-  return [Math.round(width * scale), Math.round(height * scale)];
-}
 
 export function createApp(options = {}) {
   const {
@@ -66,7 +55,6 @@ export function createApp(options = {}) {
     // it. Absent, the world is empty and only the simulation runs, which is what a head-less test
     // wants.
     createCityscape,
-    onLoading, // (busy) while a place is being built and its shaders compiled: for a loading screen
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
@@ -103,10 +91,6 @@ export function createApp(options = {}) {
   // The city is rebuilt whenever play moves to another instance (through a street door, up a
   // stairwell). `city` is therefore let, not const: goTo swaps it.
   let city = null;
-  // The street is expensive to build and you always come back to it, so it is kept standing while you
-  // are inside a building rather than thrown away and made again. Only open ground is worth holding.
-  const standing = new Map();
-  let here = null;
   // Whether the player is aboard the shuttle rather than walking.
   let riding = false;
   let elapsed = 0;
@@ -115,12 +99,10 @@ export function createApp(options = {}) {
     runtime.load(adventure, id, opts);
     if (city) {
       scene.remove(city.group);
-      // Anything being kept for the walk back stays built; everything else gives its buffers back.
-      if (standing.get(here) !== city) city.dispose();
+      city.dispose();
       city = null;
       riding = false;
     }
-    here = id;
     const model = runtime.getSceneModel();
     const open = model.rooms.some((r) => r.open);
     scene.background = open ? sky : indoors;
@@ -129,27 +111,8 @@ export function createApp(options = {}) {
     scene.fogNode = open
       ? fog(color(HAZE.colour), exponentialHeightFogFactor(HAZE.open, HAZE.top))
       : fog(color(indoors.getHex()), exponentialHeightFogFactor(HAZE.indoors, HAZE.ceiling));
-
-    city = standing.get(id) ?? createCityscape?.(model, { registry, warn, npcs: runtime.getNpcs() }) ?? emptyCity();
-    if (open) standing.set(id, city);
+    city = createCityscape?.(model, { registry, warn, npcs: runtime.getNpcs() }) ?? emptyCity();
     scene.add(city.group);
-  }
-
-  // Nothing is drawn until the backend is up AND every material in the place has been compiled. On
-  // WebGPU a shader is compiled the first time it is drawn, so without this the first frame of a
-  // city is a stall of several seconds with a black screen. Compiling up front turns that into a
-  // loading screen that says what it is doing.
-  function warmUp() {
-    if (injectedRenderer) return Promise.resolve(); // a stub renderer has nothing to compile
-    ready = false;
-    onLoading?.(true);
-    return Promise.resolve(renderer.init?.())
-      .then(() => renderer.compileAsync?.(scene, camera))
-      .then(() => {
-        ready = true;
-        lightEnvironment(); // something for a shiny surface to reflect, once there is a device
-        onLoading?.(false);
-      });
   }
 
   // Something for a shiny surface to reflect. Built from the scene itself once it is standing, so a
@@ -173,13 +136,7 @@ export function createApp(options = {}) {
   const renderer = injectedRenderer ?? new WebGPURenderer({ antialias: true });
   let ready = Boolean(injectedRenderer); // a real renderer has to come up before it can draw
   const pmrem = injectedRenderer ? null : new PMREMGenerator(renderer);
-  // `false` leaves the canvas's CSS size alone, so a smaller buffer is stretched over the same area.
-  renderer.setSize?.(...drawingSize(width, height), false);
-  if (renderer.domElement?.style) {
-    renderer.domElement.style.width = "100%";
-    renderer.domElement.style.height = "100%";
-    renderer.domElement.style.display = "block";
-  }
+  renderer.setSize?.(width, height);
   if (renderer.toneMapping !== undefined) {
     // Film response, so a lit window can be brighter than white without the whole street clipping.
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -369,7 +326,7 @@ export function createApp(options = {}) {
     const h = container.clientHeight || 1;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize?.(...drawingSize(w, h), false);
+    renderer.setSize?.(w, h);
   };
   win.addEventListener?.("resize", onResize);
 
@@ -393,10 +350,10 @@ export function createApp(options = {}) {
     // The host calls this from onTransit; the runtime never loads the next instance itself.
     goTo(id, opts = {}) {
       build(id, opts);
+      lightEnvironment();
       syncCamera();
       city.syncNpcs(runtime.getNpcs(), camera, 0);
       syncLabels();
-      warmUp(); // a place already standing compiles in no time; a new one says so while it does
       return runtime.getScene();
     },
     // Step on or off the shuttle, the same as pressing F. Returns whether the player is aboard.
@@ -422,7 +379,13 @@ export function createApp(options = {}) {
     requestPointerLock: () => renderer.domElement?.requestPointerLock?.(),
     start() {
       if (frameId != null) return;
-      if (!ready) warmUp();
+      if (!ready) {
+        // `init` resolves once the device is there. Without one (a stub renderer) we are ready now.
+        Promise.resolve(renderer.init?.()).then(() => {
+          ready = true;
+          lightEnvironment(); // something for a shiny surface to reflect, once there is a device
+        });
+      }
       last = 0;
       frameId = requestFrame(loop);
     },
@@ -433,8 +396,6 @@ export function createApp(options = {}) {
     dispose() {
       this.stop();
       city.dispose();
-      for (const kept of standing.values()) if (kept !== city) kept.dispose();
-      standing.clear();
       post?.dispose?.();
       pmrem?.dispose();
       labels?.dispose();

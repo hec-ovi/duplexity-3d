@@ -231,7 +231,6 @@ export function buildSceneModel(instance) {
       skyline.push({
         id: far.id,
         floors: far.floors ?? null,
-        taper: far.taper ?? 1,
         center: { x: fx, y: fy + fh / 2, z: fz },
         size: { x: fw, y: fh, z: fd },
       });

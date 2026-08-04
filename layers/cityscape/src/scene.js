@@ -11,11 +11,9 @@ import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { buildDoorway } from "./doorways.js";
 import { buildFacadeParts } from "./facade-parts.js";
-import { buildLamp, lampMaterials } from "./lamps.js";
+import { buildLamp, buildLampShafts, lampMaterials } from "./lamps.js";
 import { buildStreetProps } from "./props.js";
 import { buildHolograms } from "./holograms.js";
-import { mergeGeometries, scaleUv, taperedBox } from "./shapes.js";
-import { buildTopper } from "./toppers.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -243,32 +241,14 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     const faces = materials?.block(b) ?? blockMat;
     const masses = dressed?.tiers ?? [{ position: [0, b.size.y / 2, 0], size: [b.size.x, b.size.y, b.size.z] }];
     masses.forEach((tier, i) => {
-      const [tw, th, td] = tier.size;
-      const [taperX, taperZ] = tier.taper ?? [1, 1];
-      // A tier carried on LEGS is a void cut through the building: sky, with columns holding up what
-      // is above it. Anything else is one mass, leaning in or flaring out as it rises.
-      const pieces = tier.legs
-        ? Array.from({ length: tier.legs }, (_, k) => ({
-            geometry: new THREE.BoxGeometry(tw / (tier.legs * 3), th, td / 2),
-            at: [((k - (tier.legs - 1) / 2) * tw) / Math.max(1, tier.legs - 1 || 1), 0, 0],
-          }))
-        : [{ geometry: taperedBox(tw, th, td, taperX, taperZ), at: [0, 0, 0] }];
-      pieces.forEach((piece, k) => {
-        const mesh = new THREE.Mesh(piece.geometry, faces);
-        mesh.position.set(
-          foot.x + tier.position[0] + piece.at[0],
-          foot.y + tier.position[1],
-          foot.z + tier.position[2] + piece.at[2]
-        );
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.name = i === 0 && k === 0 ? `block:${b.id}` : `block:${b.id}:tier${i}.${k}`;
-        mesh.userData = { kind: "block", assetRef: b.assetRef };
-        group.add(mesh);
-      });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...tier.size), faces);
+      mesh.position.set(foot.x + tier.position[0], foot.y + tier.position[1], foot.z + tier.position[2]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = i === 0 ? `block:${b.id}` : `block:${b.id}:tier${i}`;
+      mesh.userData = { kind: "block", assetRef: b.assetRef };
+      group.add(mesh);
     });
-    // What stands on the roof: a mast, a frame, a dish. Only on something tall enough to see it over.
-    if (dressed?.topper) group.add(buildTopper(dressed.topper, foot));
     for (const band of dressed?.bands ?? []) {
       const trim = new THREE.Mesh(new THREE.BoxGeometry(...band.size), bandMat);
       trim.position.set(foot.x + band.position[0], foot.y + band.position[1], foot.z + band.position[2]);
@@ -309,31 +289,20 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     counts.doors++;
   }
 
-  // The city past the last block: masses you can see and never reach, wearing one painted sheet with
-  // their windows in it. Dressing these the way a building on the street is dressed is tens of
-  // thousands of objects nobody can see - and one MESH each is a hundred and fifty draws for a
-  // backdrop, so every tower wearing the same sheet is merged into one. They never move.
-  const skyline = new Map();
+  // The city past the last block: masses you can see and never reach, wearing windows and the odd
+  // advert so the skyline is lit rather than a row of silhouettes.
+  // The skyline: one mesh each, wearing one sheet with its windows painted into it. Dressing these
+  // the way a building on the street is dressed is tens of thousands of objects nobody can see.
   for (const far of model.skyline ?? []) {
-    const sheet = materials?.tower(far);
-    const geometry = taperedBox(far.size.x, far.size.y, far.size.z, far.taper ?? 1);
-    // The scale this one wants is baked into its own UVs, since the sheet it shares cannot carry it.
-    if (sheet) {
-      const [mx, my] = sheet.metres;
-      scaleUv(geometry, Math.max(far.size.x, far.size.z) / mx, far.size.y / my);
-    }
-    geometry.translate(far.center.x, far.center.y, far.center.z);
-    const key = sheet ? `tower:${sheet.variant}` : "tower:flat";
-    if (!skyline.has(key)) skyline.set(key, { material: sheet?.material ?? blockMat, parts: [] });
-    skyline.get(key).parts.push(geometry);
-    counts.skyline++;
-  }
-  for (const [key, { material, parts }] of skyline) {
-    const mesh = new THREE.Mesh(mergeGeometries(parts), material);
-    mesh.name = `skyline:${key}`;
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(far.size.x, far.size.y, far.size.z),
+      materials?.tower(far) ?? blockMat
+    );
+    mesh.position.set(far.center.x, far.center.y, far.center.z);
+    mesh.name = `skyline:${far.id}`;
     mesh.userData = { kind: "skyline" };
-    mesh.frustumCulled = false; // it wraps the whole city; culling it as one box only ever hides it
     group.add(mesh);
+    counts.skyline++;
   }
 
   let holograms = null;
@@ -375,6 +344,10 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     }
     counts.lights++;
   }
+
+  // The haze each lamp burns in, all of them in one draw.
+  const shafts = buildLampShafts(model.lights);
+  if (shafts) group.add(shafts);
 
   // What is parked and standing on the street. Solid: the model already gave them colliders.
   const street = buildStreetProps(model.props);
@@ -430,15 +403,11 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
 
   // Everything solid throws a shadow and takes one; the glowing bits do neither, since a lamp head
   // casting its own shadow only ever looks wrong.
-  // Who casts, and who only receives. A shadow map is another pass over everything in it, so only
-  // the things whose shadow you would MISS cast one: the building masses, the walls, and whatever is
-  // standing in the street. A balcony, a window frame and a lamp head cost a pass each and read the
-  // same either way. Ground takes shadows and throws none: a road is a slab a centimetre thick, so
-  // casting from it lands its own shadow back on its own face and the street goes black.
-  const CASTS = new Set(["block", "wall", "prop", "npc", "object"]);
   group.traverse((node) => {
     if (!node.isMesh || node.userData.kind === "light" || node.userData.kind === "skyline") return;
-    node.castShadow = CASTS.has(node.userData.kind);
+    // Ground takes shadows and throws none. A road is a slab a centimetre thick, so casting from it
+    // lands its own shadow back on its own face and the whole street goes black.
+    node.castShadow = node.userData.kind !== "zone" && node.userData.kind !== "floor";
     node.receiveShadow = true;
   });
   // What has to be moved on: the projections waver and their scan drifts.

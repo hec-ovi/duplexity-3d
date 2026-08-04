@@ -95,16 +95,11 @@ export function createCityscape(model, deps = {}) {
       rig.dispose();
       for (const moving of [traffic, rails, shuttle]) moving?.dispose();
       materials?.dispose();
-      // A material marked `shared` is made once for every city there will ever be, so a scene being
-      // taken down must not take it with it.
-      const give = (m) => {
-        if (m && !m.userData?.shared) m.dispose?.();
-      };
       group.traverse?.((node) => {
         node.geometry?.dispose?.();
         const material = node.material;
-        if (Array.isArray(material)) material.forEach(give);
-        else give(material);
+        if (Array.isArray(material)) material.forEach((m) => m.dispose?.());
+        else material?.dispose?.();
       });
     },
   };

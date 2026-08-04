@@ -447,36 +447,6 @@ parts, swappable texture sets per building, seeded per instance. Not downloaded 
 - Interiors have no windows onto the street, so a lit room is lit from its ceiling only.
 - The NPC brain behind `POST /interaction` is still the canned browser one in `npm run dev`.
 
-## Phase 18 - The shapes, and the wait [x]
-
-Hector, on the city as it stood: "it has nothing about the project he shared... in the structures he
-has he has specific buildings, with strange shapes and olographic things". He was right. The dressing
-had arrived and the SILHOUETTES had not: every building was a stack of upright boxes.
-
-What the reference actually is, measured off its own models (`assets/models/*.obj`, MIT): fifteen
-hand-modelled building shapes plus six megastructures, placed two to a block, rotated in quarters and
-scaled on Y. Their width profiles up their own height are not monotonic - they narrow and widen again,
-they have bands of nothing (voids), and the tall class runs four to five times its own footprint.
-
-- [x] Ten massing shapes, weighted so most of a street leans: battered, waisted, slotted, crowned and
-  void alongside the five that step. A tier is a TAPERED box, dressed at the width its wall has at
-  each storey.
-- [x] A topper on every tall roof: mast (with guys and a warning light), girder frame, dish, spire,
-  plant.
-- [x] Light running the full height of a wall.
-- [x] Megastructures, and a skyline ring that leans and climbs away.
-- [x] Buildings stand taller: the storey mix reaches 34, and the sky limit with it.
-- [x] Loading. Materials are compiled before the first frame rather than stalling on it, the street
-  is kept standing while you are indoors, facade sheets are shared and painted at 512. A loading
-  screen says which part is slow.
-
-### What is left after this phase
-- Furniture inside the rooms, which is what turns a floor plan into a place.
-- Interiors have no windows onto the street.
-- Buildings are axis-aligned to their plots; the reference rotates its models in quarter turns, which
-  would need plots that are not all square to the street.
-- The NPC brain behind `POST /interaction` is still the canned browser one in `npm run dev`.
-
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1

@@ -27,10 +27,6 @@ the whole play-time engine minus the single interaction call.
   `update` each frame and `dispose` on the way out, and asks it whether the player can step on the
   shuttle. Absent, the world is empty and only the simulation runs, which is what a head-less test
   wants.
-- `deps.onLoading(busy)` - raised while a place is being built and its materials compiled, and
-  lowered when it can be drawn. Nothing renders in between: on WebGPU a shader is compiled the first
-  time it is drawn, so compiling up front turns a multi-second stall on a black screen into a loading
-  screen that says what it is doing.
 - `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
   ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
   open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through
@@ -76,10 +72,6 @@ where it does not, film tone mapping, bloom taken from the scene's emissive outp
 lies on the streets and thins as it climbs, and a grade that pulls the shadows towards violet. What
 stands IN that scene is `cityscape`, injected: the shell holds one per instance and never has to know
 a rail from a lamp.
-
-Open ground is kept STANDING while the player is inside a building: a street costs the most to build
-and is the one place they always come back to, so stepping back out is immediate rather than a rebuild.
-Everything else is disposed the moment it is left.
 
 The browser shell (`src/app.js`) adds three host hooks on top: `goTo(instanceId, link)` rebuilds the
 place in another instance (disposing the one it leaves), `onFrame(dt)` fires after every tick so a

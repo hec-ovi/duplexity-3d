@@ -8,11 +8,8 @@ import { PALETTE } from "./palette.js";
 import { FACADE_SETS, paintCladding, setColours } from "./facade-sets.js";
 
 const BAY = 3; // metres of frontage per window bay
-// A facade sheet carries the CLADDING, the ledges, the shopfront and the parapet. The windows are
-// separate objects standing in the wall, so none of this is fine detail and none of it needs a big
-// sheet: at 1024 a city of them is a hundred megabytes of texture to upload before the first frame.
-const CELL = 48; // pixels per bay, before the sheet is capped
-const MAX = 512;
+const CELL = 72; // pixels per bay, before the sheet is capped
+const MAX = 1024;
 const MIN_BAYS = 2;
 const MAX_BAYS = 14;
 

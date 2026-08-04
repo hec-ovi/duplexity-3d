@@ -49,13 +49,6 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
 
   const slabMat = matte(COLOURS.slab);
   const railMat = matte(COLOURS.rail, { roughness: 0.5, metalness: 0.4 });
-  // A material is a pipeline switch; a geometry is not. Two neon lines of different lengths are the
-  // same material, so they are made once per colour and shared however many sizes they come in.
-  const shared = new Map();
-  const once = (key, make) => {
-    if (!shared.has(key)) shared.set(key, make());
-    return shared.get(key);
-  };
 
   for (const part of parts ?? []) {
     const [w, h, d] = part.size;
@@ -66,8 +59,8 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       batch(`window:${look}:${shape}`, part.size, () => windowMaterial?.(part) ?? matte(0x2a3138), part);
       continue;
     }
-    if (part.kind === "neon" || part.kind === "strip") {
-      batch(`${part.kind}:${part.colour}:${shape}`, part.size, () => once(`burn:${part.colour}`, () => burning(part.colour, 1.6)), part);
+    if (part.kind === "neon") {
+      batch(`neon:${part.colour}:${shape}`, part.size, () => burning(part.colour, 1.6), part);
       continue;
     }
     if (part.kind === "balcony") {
@@ -98,7 +91,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
       continue;
     }
     if (part.kind === "awning") {
-      batch(`awning:${part.colour}:${shape}`, part.size, () => once(`awning:${part.colour}`, () => matte(new THREE.Color(part.colour))), part);
+      batch(`awning:${part.colour}:${shape}`, part.size, () => matte(new THREE.Color(part.colour)), part);
       continue;
     }
 
@@ -142,7 +135,7 @@ export function buildFacadeParts(parts, { signMaterial, windowMaterial, advertMa
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(...size), material(), batched.length);
     mesh.name = key;
     // A window and a neon strip are sources, not shadow casters.
-    mesh.userData = { kind: /^(window|neon|strip)/.test(key) ? "light" : "part" };
+    mesh.userData = { kind: key.startsWith("window") || key.startsWith("neon") ? "light" : "part" };
     batched.forEach((part, i) => {
       const [ox, oy, oz] = part.offset ?? [0, 0, 0];
       const sin = Math.sin(part.facing);
