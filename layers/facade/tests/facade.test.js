@@ -80,3 +80,37 @@ describe("facade contract", () => {
     expect(() => dressFacade({ id: "x", size: { w: 0, h: 3, d: 3 } })).toThrowError(BuildingInvalidError);
   });
 });
+
+describe("windows", () => {
+  it("every window is its own thing, on every wall above the shopfront", () => {
+    const dressed = dressFacade(block); // 6 storeys, apartments, 14 x 12
+    const windows = dressed.parts.filter((p) => p.kind === "window");
+    expect(windows.length).toBeGreaterThan(20);
+
+    const storey = block.size.h / block.floors;
+    for (const win of windows) {
+      expect(win.position[1]).toBeGreaterThan(storey * 0.9); // nothing at street level on a block
+      expect(win.size[0]).toBeGreaterThan(0.5);
+      expect(typeof win.lit).toBe("boolean");
+    }
+    // they face all four ways, not just the front
+    expect(new Set(windows.map((w) => Math.round(w.facing * 100))).size).toBeGreaterThan(2);
+  });
+
+  it("no two buildings wear the same windows", () => {
+    const lit = (id) =>
+      dressFacade({ ...block, id, seed: id })
+        .parts.filter((p) => p.kind === "window")
+        .map((p) => (p.lit ? 1 : 0))
+        .join("");
+    expect(lit("mass-a")).not.toBe(lit("mass-b"));
+    expect(lit("mass-a")).toBe(lit("mass-a")); // and the same one is the same every time
+  });
+
+  it("a house is glazed to the ground; a shop keeps its front for the shopfront", () => {
+    const house = dressFacade({ ...shop, id: "h", program: "house", floors: 2, size: { w: 10, h: 8.4, d: 8 } });
+    const shopfront = dressFacade({ ...shop, id: "s", program: "shop", floors: 2, size: { w: 10, h: 8.4, d: 8 } });
+    const lowest = (d) => Math.min(...d.parts.filter((p) => p.kind === "window").map((p) => p.position[1]));
+    expect(lowest(house)).toBeLessThan(lowest(shopfront));
+  });
+});

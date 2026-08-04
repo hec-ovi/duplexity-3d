@@ -20,8 +20,11 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
 - `deps.dressFacade(building) -> { name, parts }` - injected facade dresser, normally `facade`.
-  Given one, every building gets its balconies, its awning and the cartel over its door built from
-  the parts it returns. Absent, buildings are bare masses.
+  Given one, every building gets its windows, its balconies, its awning and the cartel over its door
+  built from the parts it returns. Windows are real objects standing in the wall, one per opening,
+  each with its own light on or off; the ones that look alike are drawn together in one instanced
+  mesh, so a street of them costs a handful of draws rather than hundreds. Absent, buildings are bare
+  masses.
 - `deps.paintSurface(kind, ctxFor, opts) -> SurfacePlan` - injected surface painter, normally
   `surfaces`. Given one, the scene is textured: the road, the pavement, interior concrete, and every
   building wrapped in a facade of its own, each repeated at its true size in metres. Absent, every

@@ -2,6 +2,15 @@
 
 What the project does now, newest first.
 
+## 0.10 - Windows are windows
+
+- Every window is its own object standing in the wall, with its own light on or off, its own colour
+  and sometimes a blind pulled down. They used to be rectangles painted into one sheet per building,
+  which is why every wall of a city looked the same. The ones that look alike are drawn together in
+  one instanced mesh, so a street of hundreds costs a handful of draws.
+- The facade sheet is the WALL now: bands, ledges, the shopfront and the parapet. What is bolted to a
+  building, windows included, is geometry.
+
 ## 0.9 - Rooms with something in them, and light that behaves
 
 - Rooms are sized in METRES, not by a fixed grid: a floor is cut into rooms about 6.5m across, never

@@ -10,6 +10,7 @@ import { createRng, hashString } from "./rng.js";
 import { paintConcrete, paintRoad, paintSlabs } from "./ground.js";
 import { paintFacadeAlbedo, paintFacadeEmissive, planFacade } from "./facade.js";
 import { paintSignAlbedo, paintSignEmissive, planSign } from "./sign.js";
+import { paintWindowAlbedo, paintWindowEmissive, planWindow } from "./window.js";
 import MANIFEST from "../materials/manifest.json" with { type: "json" };
 
 const TILE = 256; // pixels per ground tile
@@ -25,7 +26,7 @@ const GROUND = {
   ceiling: { metres: 2.4, roughness: 0.96, metalness: 0 },
 };
 
-export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "sign"];
+export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "window", "sign"];
 
 /**
  * The photographed material for a surface, if one is catalogued: a set of map FILE NAMES relative to
@@ -120,6 +121,21 @@ export function paintSurface(kind, ctxFor, opts = {}) {
       lit: plan.windows.filter((w) => w.lit).length,
       // What colour this place burns over its door, so a light put there can match it.
       ...(plan.sign.lit ? { signColour: plan.sign.colour } : {}),
+    };
+  }
+
+  if (kind === "window") {
+    const plan = planWindow(opts);
+    const albedo = contextFor(ctxFor, "albedo", plan.width, plan.height);
+    paintWindowAlbedo(albedo, plan);
+    const emissive = contextFor(ctxFor, "emissive", plan.width, plan.height);
+    paintWindowEmissive(emissive, plan);
+    return {
+      kind,
+      pixels: [plan.width, plan.height],
+      metres: [opts.metresWide ?? 1.5, opts.metresTall ?? 1.35],
+      maps: { albedo, emissive },
+      material: { roughness: 0.35, metalness: 0.08, emissiveIntensity: plan.lit ? 1.1 : 0 },
     };
   }
 

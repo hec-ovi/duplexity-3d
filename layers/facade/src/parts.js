@@ -9,6 +9,7 @@ const BALCONY = { depth: 1.1, rail: 0.95, slab: 0.14, margin: 0.5 };
 // two never share a height, or the sign ends up growing through the awning.
 const AWNING = { depth: 1.3, drop: 0.3, at: 0.6 }; // `at` is a share of the storey
 const SIGN = { height: 0.66, drop: 0.14, at: 0.85, blade: { width: 0.8 } };
+const WINDOW = { width: 1.5, height: 1.35, depth: 0.22, sill: 0.9, margin: 0.6, proud: 0.02 };
 
 /** Where a wall's outward normal points, and how wide that wall is. */
 export function walls({ w, d }) {
@@ -50,6 +51,32 @@ export function balconies(wall, storeyY, bays, rng) {
 
 /** How many bays of balcony a wall gets, kept low: a facade is not a filing cabinet. */
 export const MAX_BALCONY_BAYS = 4;
+
+/**
+ * The windows along one storey of one wall. Each is its own thing standing in its own hole, with its
+ * own light on or off behind it, so a building is not one sheet of identical rectangles.
+ */
+export function windowsOn(wall, storeyY, bays, litRatio, rng, colours) {
+  const out = [];
+  const step = wall.span / bays;
+  for (let bay = 0; bay < bays; bay++) {
+    const along = (bay - (bays - 1) / 2) * step;
+    const lit = rng.chance(litRatio);
+    out.push({
+      kind: "window",
+      position: on(wall, along, storeyY + WINDOW.sill + WINDOW.height / 2, WINDOW.proud),
+      size: [WINDOW.width, WINDOW.height, WINDOW.depth],
+      facing: facing(wall),
+      lit,
+      colour: lit ? rng.pick(colours) : null,
+      blind: rng.chance(0.22), // some are shut, which is what stops a wall reading as a grid
+    });
+  }
+  return out;
+}
+
+/** How many windows a wall of this width takes. */
+export const windowBays = (span) => Math.max(1, Math.min(8, Math.floor((span - WINDOW.margin) / 2.6)));
 
 /** An awning over a shopfront: a slab standing out over the pavement, under the sign. */
 export function awning(wall, along, width, storey, colour) {

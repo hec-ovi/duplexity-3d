@@ -128,3 +128,7 @@ Answers to the three questions that came out of the above:
 > the provided examples
 
 > rooms and places inside are extremely small still
+
+> check last screenshot how it looks... like over the texture of windows, etc all windows look the
+> same, etc. i would recommend put windows as different obhects, and they have their own tesxture not
+> a single texture over a whole building

@@ -8,7 +8,8 @@ what a building is for beyond how it should look.
 
 ## Inputs (params in)
 - `paintSurface(kind, ctxFor, opts?) -> SurfacePlan`
-  - `kind`: `road` | `pavement` | `plaza` | `floor` | `wall` | `ceiling` | `concrete` | `facade` | `sign`.
+  - `kind`: `road` | `pavement` | `plaza` | `floor` | `wall` | `ceiling` | `concrete` | `facade` |
+    `window` | `sign`.
   - `ctxFor(map, width, height)`: injected canvas factory. Called once per map the surface needs
     (`albedo`, and `emissive` for a facade) and must return a 2D drawing context of that size. The
     caller owns the canvas; this layer only draws on it.
@@ -16,6 +17,9 @@ what a building is for beyond how it should look.
   - Facade only: `opts.metresWide` (frontage to cover), `opts.floors`, `opts.storeyHeight` (3.2),
     `opts.litRatio` (0.45), `opts.program` (a `house` keeps windows on the ground floor; anything
     else gets a glazed shopfront).
+  - Window only: `opts.lit`, `opts.colour` (what burns behind the glass) and `opts.blind`. One window,
+    painted on its own: a frame, the bars across it, and what is behind them. A building's windows are
+    separate objects, so this is worn by one at a time rather than tiled over a whole wall.
   - Sign only: `opts.text` (what it says), `opts.colour` (what it burns), `opts.metresWide` and
     `opts.metresTall` (the board). The type is sized off the board and the length of the name rather
     than measured, so a sign can be painted anywhere, including against a recording stub.

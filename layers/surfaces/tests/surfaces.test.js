@@ -81,29 +81,25 @@ describe("surfaces contract", () => {
     expect(plan.pixels).toEqual([360, 432]);
   });
 
-  it("every window that glows is a window that is there", () => {
-    const { plan, drawn } = paint("facade", { seed: "mass-2", metresWide: 12, floors: 5, litRatio: 0.6 });
-    const glass = new Set(rects(drawn.get("albedo"), PALETTE.facade.glass).map(key));
-    const lit = rects(drawn.get("emissive")).filter((r) => PALETTE.windows.includes(r.style));
+  it("a window is its own thing: a frame, bars, and glass that burns only when it is lit", () => {
+    const lit = paint("window", { lit: true, colour: "#ffd7a0" });
+    const dark = paint("window", { lit: false });
 
-    expect(lit.length).toBe(plan.lit);
-    expect(plan.lit).toBeGreaterThan(0);
-    for (const r of lit) expect(glass.has(key(r)), `lit ${key(r)} is not a window`).toBe(true);
+    expect(lit.plan.material.emissiveIntensity).toBeGreaterThan(0);
+    expect(dark.plan.material.emissiveIntensity).toBe(0);
+    // the lit one burns the colour it was given; the dark one burns nothing
+    expect(rects(lit.drawn.get("emissive"), "#ffd7a0").length).toBeGreaterThan(0);
+    expect(rects(dark.drawn.get("emissive")).every((r) => r.style === PALETTE.off)).toBe(true);
+    // and it covers the metres it says, which is what puts it in its hole in the wall
+    expect(lit.plan.metres).toEqual([1.5, 1.35]);
   });
 
-  it("a shop is glazed along the ground floor; a house has windows there like any other storey", () => {
-    const opts = { seed: "mass-3", metresWide: 12, floors: 2 };
-    const shop = paint("facade", { ...opts, program: "shop" });
-    const house = paint("facade", { ...opts, program: "house" });
-
-    const widest = (p) => Math.max(...rects(p.drawn.get("albedo"), PALETTE.facade.glass).map((r) => r.w));
-    const bays = shop.plan.pixels[0] / 72;
-    const bayW = shop.plan.pixels[0] / bays;
-    expect(widest(shop)).toBeCloseTo(bayW * 0.8, 5); // a shopfront pane
-    expect(widest(house)).toBeCloseTo(bayW * 0.4, 5); // a window
-    // and the shopfront is at the bottom of the sheet, where the ground floor is
-    const bottom = shop.plan.pixels[1] / 2;
-    expect(rects(shop.drawn.get("albedo"), PALETTE.facade.shopfront)[0].y).toBeCloseTo(bottom, 5);
+  it("a blind lets less light through, and hides the bars behind it", () => {
+    const open = paint("window", { lit: true, colour: "#ffd7a0" });
+    const shut = paint("window", { lit: true, colour: "#ffd7a0", blind: true });
+    const glow = (p) => rects(p.drawn.get("emissive"), "#ffd7a0");
+    expect(glow(shut)[0].alpha).toBeLessThan(glow(open)[0].alpha);
+    expect(rects(shut.drawn.get("albedo"), PALETTE.blind).length).toBe(1);
   });
 
   it("a wet road goes darker, smoother, and holds standing water", () => {

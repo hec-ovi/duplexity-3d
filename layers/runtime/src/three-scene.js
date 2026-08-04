@@ -242,7 +242,10 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
       x: b.center.x,
       y: b.center.y - b.size.y / 2,
       z: b.center.z,
-    }, { signMaterial: materials ? (part) => materials.sign(part) : undefined });
+    }, {
+      signMaterial: materials ? (part) => materials.sign(part) : undefined,
+      windowMaterial: materials ? (part) => materials.window(part) : undefined,
+    });
     parts.name = `dressing:${b.id}`;
     group.add(parts);
     counts.parts += dressed.parts.length;

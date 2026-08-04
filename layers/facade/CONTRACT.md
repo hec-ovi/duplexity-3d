@@ -15,7 +15,7 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 
 ## Outputs (params out)
 - `name` - what the place is called, and what its cartel says. Null for a house, which has no sign.
-- `parts[]` - `balcony`, `awning` and `sign`, each a box in the BUILDING'S OWN frame: origin in the
+- `parts[]` - `window`, `balcony`, `awning` and `sign`, each a box in the BUILDING'S OWN frame: origin in the
   middle of its footprint, on the ground. `size` is `[across the wall, up, out from the wall]` and
   `facing` is the turn that points it out of the wall it is on. A renderer adds the building's
   position, turns each part, and is done.
@@ -26,7 +26,10 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 
 ## Invariants this layer will never break
 - Deterministic: no `Math.random`, no clock.
-- Nothing is hung over a shopfront: balconies start at the first storey above the street.
+- Nothing is hung over a shopfront: balconies and windows start at the first storey above the street,
+  except on a house, which is glazed all the way down.
+- Every window is its OWN part, with its own light on or off, its own colour and its own blind. A wall
+  of windows is a wall of separate things, never one sheet with rectangles painted on it.
 - A part always stands clear of the wall it is on, on the outside, and faces away from the building.
 - A flat sign is wide across the wall and thin through it; a blade sign is the other way round, so it
   reads from up the street rather than only from in front of it.

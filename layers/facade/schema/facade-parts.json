@@ -20,7 +20,7 @@
     "part": {
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "enum": ["balcony", "awning", "sign"] },
+        "kind": { "type": "string", "enum": ["window", "balcony", "awning", "sign"] },
         "position": {
           "type": "array",
           "description": "Middle of the part, in the building's frame.",
@@ -40,6 +40,8 @@
           "description": "Radians. Turn the part by this and its front points out of the wall it is on."
         },
         "rail": { "type": "number", "description": "balcony: how high the rail round it stands." },
+        "lit": { "type": "boolean", "description": "window: whether the light behind it is on." },
+        "blind": { "type": "boolean", "description": "window: whether a blind is pulled down over it." },
         "colour": { "type": "string", "description": "awning, sign: a CSS colour." },
         "text": { "type": "string", "description": "sign: what it says." },
         "orientation": {

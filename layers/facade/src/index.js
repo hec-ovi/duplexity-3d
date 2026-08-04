@@ -10,11 +10,13 @@
 
 import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
-import { MAX_BALCONY_BAYS, awning, balconies, sign, signHeight, walls } from "./parts.js";
+import { MAX_BALCONY_BAYS, awning, balconies, sign, signHeight, walls, windowBays, windowsOn } from "./parts.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
 const AWNING_COLOURS = ["#7d4a52", "#4c5b6b", "#6b5a3c", "#3f5c50"];
 const BALCONIED = new Set(["apartments", "house"]);
+// What a lit window looks like from the street: mostly warm, the odd cold office or bar.
+const WINDOW_COLOURS = ["#ffd7a0", "#ffe9c4", "#f6c98a", "#bfe0ff", "#a8f0e0"];
 const BAY = 3; // the same rhythm the facade is painted on, so a balcony lands over a window
 
 export class BuildingInvalidError extends Error {
@@ -44,10 +46,21 @@ export function dressFacade(building) {
   const faces = walls({ w, d });
   const parts = [];
 
+  // Windows, on every wall of every storey above the shopfront. One object each, its own light on or
+  // off, so no two walls of a city read the same.
+  const glazedGround = program === "house";
+  for (const wall of faces) {
+    const bays = windowBays(wall.span);
+    for (let storeyIndex = glazedGround ? 0 : 1; storeyIndex < floors; storeyIndex++) {
+      parts.push(...windowsOn(wall, storeyIndex * storey, bays, building.litRatio ?? 0.45, rng, WINDOW_COLOURS));
+    }
+  }
+
   // Balconies, on the storeys above the street only: nobody hangs one over their own shopfront.
   // Two walls at most and six storeys at most, so a tall block does not turn into a filing cabinet.
   if (BALCONIED.has(program) && floors >= 2) {
-    const dressed = faces.filter(() => rng.chance(0.5)).slice(0, 2);
+    const picked = faces.filter(() => rng.chance(0.5)).slice(0, 2);
+    const dressed = picked.length ? picked : [rng.pick(faces)]; // a balconied block always has some
     for (const wall of dressed) {
       const bays = Math.max(1, Math.min(MAX_BALCONY_BAYS, Math.round(wall.span / BAY)));
       for (let storeyIndex = 1; storeyIndex < Math.min(floors, 7); storeyIndex++) {

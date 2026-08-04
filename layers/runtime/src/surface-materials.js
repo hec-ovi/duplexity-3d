@@ -29,6 +29,7 @@ export function createSurfaceMaterials({
   if (typeof paintSurface !== "function" || typeof doc?.createElement !== "function") return null;
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
+  const windowMats = new Map(); // one material per kind of window, shared by every one of them
   const loaded = new Map(); // one loaded image per file, however many surfaces are cut from it
   const textures = [];
   const loader = textureBase ? new THREE.TextureLoader() : null;
@@ -186,6 +187,24 @@ export function createSurfaceMaterials({
         : [edge, edge, edge, edge, face(), face()];
     },
 
+    /**
+     * One window. There are hundreds in a street, but only a handful of KINDS of window (lit or not,
+     * a few colours, blind up or down), so they are painted once each and shared.
+     */
+    window(part) {
+      const key = `window:${part.lit ? part.colour : "dark"}:${part.blind ? "blind" : "open"}`;
+      const [w, h] = part.size;
+      const plan = planFor(key, "window", {
+        lit: part.lit,
+        colour: part.colour,
+        blind: part.blind,
+        metresWide: w,
+        metresTall: h,
+      });
+      if (!windowMats.has(key)) windowMats.set(key, materialFor(plan, plan.metres[0], plan.metres[1]));
+      return windowMats.get(key);
+    },
+
     /** What colour a building burns over its door, once its facade has been painted. */
     signColour(blockId) {
       return plans.get(`facade:${blockId}`)?.signColour ?? null;
@@ -193,7 +212,9 @@ export function createSurfaceMaterials({
 
     dispose() {
       for (const texture of textures) texture.dispose();
+      for (const material of windowMats.values()) material.dispose();
       textures.length = 0;
+      windowMats.clear();
       plans.clear();
     },
   };

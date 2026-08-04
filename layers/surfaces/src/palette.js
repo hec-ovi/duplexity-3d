@@ -62,6 +62,7 @@ export const PALETTE = {
   // Shopfronts and signs glow harder than a window and pick a colour, but they are paint and gas on
   // a wet street, not a screen: kept short of full saturation so bloom does not turn them into neon.
   signs: ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e"],
+  blind: "#8d8375", // a blind pulled down: pale, and it lets less light through
   spill: "#ffe6c0", // what a lit shop throws out through its glass, behind the sign
   off: "#000000",
 };

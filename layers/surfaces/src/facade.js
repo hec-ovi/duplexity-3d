@@ -27,24 +27,15 @@ export function planFacade({ metresWide, floors, storeyHeight, litRatio, program
   const bayW = width / bays;
   const rowH = height / rows;
 
-  // A shop has its whole ground floor glazed; a house keeps a door and a window like any other storey.
+  // A shop has its whole ground floor glazed; a house keeps its front like any other storey. The
+  // windows themselves are not painted here: each one stands in its own hole, built as a part.
   const shopfront = program !== "house" && rows >= 1;
   const windows = [];
   for (let row = 0; row < rows; row++) {
-    const storey = rows - row; // 1 is the ground floor, painted at the bottom of the sheet
+    const storey = rows - row;
     if (storey === 1 && shopfront) continue;
     for (let bay = 0; bay < bays; bay++) {
-      const w = bayW * 0.4;
-      const h = rowH * 0.34;
-      windows.push({
-        x: bay * bayW + (bayW - w) / 2,
-        y: row * rowH + rowH * 0.3,
-        w,
-        h,
-        storey,
-        lit: rng.chance(litRatio),
-        colour: rng.pick(PALETTE.windows),
-      });
+      windows.push({ storey, lit: rng.chance(litRatio), colour: rng.pick(PALETTE.windows) });
     }
   }
 
@@ -96,23 +87,6 @@ export function paintFacadeAlbedo(ctx, plan, rng) {
   ctx.fillStyle = p.ledge;
   for (let row = 1; row < rows; row++) ctx.fillRect(0, row * rowH - 3, width, 4);
 
-  // A frame deep enough to read as a hole punched in the wall rather than a sticker on it, and
-  // glazing bars across it: a window is panes, not one pale rectangle.
-  const frame = Math.max(3, bayW * 0.06);
-  const bar = Math.max(2, frame * 0.5);
-  for (const win of plan.windows) {
-    ctx.fillStyle = p.frame;
-    ctx.fillRect(win.x - frame, win.y - frame, win.w + frame * 2, win.h + frame * 2);
-    ctx.fillStyle = p.glass;
-    ctx.fillRect(win.x, win.y, win.w, win.h);
-    ctx.fillStyle = p.frame;
-    for (let i = 1; i < 2; i++) ctx.fillRect(win.x + (win.w * i) / 2 - bar / 2, win.y, bar, win.h);
-    for (let i = 1; i < 3; i++) ctx.fillRect(win.x, win.y + (win.h * i) / 3 - bar / 2, win.w, bar);
-    // a sill under it, catching the light
-    ctx.fillStyle = p.ledge;
-    ctx.fillRect(win.x - frame * 1.6, win.y + win.h + frame, win.w + frame * 3.2, Math.max(2, frame * 0.8));
-  }
-
   if (plan.shopfront) {
     const top = height - rowH;
     ctx.fillStyle = p.shopfront;
@@ -135,18 +109,6 @@ export function paintFacadeEmissive(ctx, plan) {
   const { width, height, bayW, rowH } = plan;
   ctx.fillStyle = PALETTE.off;
   ctx.fillRect(0, 0, width, height);
-
-  // Lit windows glow pane by pane, with the bars dark between them, so a lit floor reads as windows
-  // in a building rather than as squares cut out of one.
-  const bar = Math.max(2, Math.max(3, bayW * 0.06) * 0.5);
-  for (const win of plan.windows) {
-    if (!win.lit) continue;
-    ctx.fillStyle = win.colour;
-    ctx.fillRect(win.x, win.y, win.w, win.h);
-    ctx.fillStyle = PALETTE.off;
-    for (let i = 1; i < 2; i++) ctx.fillRect(win.x + (win.w * i) / 2 - bar / 2, win.y, bar, win.h);
-    for (let i = 1; i < 3; i++) ctx.fillRect(win.x, win.y + (win.h * i) / 3 - bar / 2, win.w, bar);
-  }
 
   if (plan.sign.lit) {
     const top = height - rowH;
