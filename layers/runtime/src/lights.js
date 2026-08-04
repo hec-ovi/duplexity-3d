@@ -12,21 +12,21 @@ import { lampHeight } from "./lamps.js";
 const POOL = 10; // real point lights alive at once
 const CASTERS = 2; // of those, how many throw shadows: the nearest, because they are what you see
 const SHADOW_MAP = 512;
-const REACH = 24; // metres a pooled light carries
+const REACH = 34; // metres a pooled light carries
 const FADE = 55; // how fast a light comes up or goes out, in intensity per second
 
 const LOOK = {
-  street_lamp: { colour: 0xffd9a8, intensity: 28 },
-  wall_lamp: { colour: 0xffd9a8, intensity: 14 },
-  sign: { colour: 0xffc98a, intensity: 12, height: 3.6 },
+  street_lamp: { colour: 0xffd9a8, intensity: 45 },
+  wall_lamp: { colour: 0xffd9a8, intensity: 26 },
+  sign: { colour: 0xffc98a, intensity: 20, height: 3.6 },
   ceiling: { colour: 0xffeed6, intensity: 3.2, height: 2.8 },
 };
 
 const NIGHT = {
   sky: 0x2a3448,
-  ground: 0x0e1014,
-  ambient: 0.8, // enough to keep an unlit wall off pure black, without washing out the night
-  moon: 0.35,
+  ground: 0x1b2330, // the city bouncing back up: without it the road under your feet is pure black
+  ambient: 1.3, // enough to keep an unlit wall off black, without washing out the night
+  moon: 0.5,
 };
 
 const INDOORS = {
@@ -52,6 +52,9 @@ export function createLightRig(scene, { lights = [], open = false, tintFor, exte
   const hemi = new THREE.HemisphereLight(mood.sky, mood.ground, mood.ambient);
   const moon = new THREE.DirectionalLight(0xc8d8ff, mood.moon);
   moon.position.set(-40, 90, -30);
+  // A shadow that goes to black turns a street between two buildings into a hole. The moon only
+  // takes part of the light away.
+  moon.shadow.intensity = 0.6;
   // One shadow across the whole level, from the moon: what makes a building read as a solid thing
   // standing on ground rather than a picture of one.
   if (open) {

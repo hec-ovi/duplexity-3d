@@ -8,7 +8,9 @@
 
 import * as THREE from "three";
 import { WebGPURenderer, PostProcessing, PMREMGenerator } from "three/webgpu";
-import { pass, mrt, output, emissive, fog, color, exponentialHeightFogFactor } from "three/tsl";
+import {
+  pass, mrt, output, emissive, fog, color, exponentialHeightFogFactor, vec3, vec4, float, mix, screenUV,
+} from "three/tsl";
 import { bloom } from "three/addons/tsl/display/BloomNode.js";
 import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
@@ -415,15 +417,29 @@ export function createApp(options = {}) {
   };
 }
 
-// The scene, rendered with its emissive output kept on a second target, and the bloom taken from
-// THAT rather than from everything bright.
+// The grade the whole city is seen through: shadows pulled towards violet, highlights left warm, and
+// the corners of the frame taken down. Without it a night scene is grey with coloured lights in it;
+// with it the dark part of the picture has a colour of its own, which is what the reference has.
+const GRADE = { shadow: [0.82, 0.86, 1.16], highlight: [1.09, 0.98, 0.92], vignette: 0.5 };
+
+function graded(lit) {
+  const rgb = lit.rgb;
+  const brightness = rgb.dot(vec3(0.2126, 0.7152, 0.0722)).clamp(0, 1);
+  const tint = mix(vec3(...GRADE.shadow), vec3(...GRADE.highlight), brightness);
+  const corner = screenUV.sub(0.5).length().mul(1.35);
+  const vignette = float(1).sub(corner.mul(corner).mul(GRADE.vignette)).clamp(0.3, 1);
+  return vec4(rgb.mul(tint).mul(vignette), lit.a);
+}
+
+// The scene, rendered with its emissive output kept on a second target, the bloom taken from THAT
+// rather than from everything bright, and the grade over the lot.
 function buildPost(renderer, scene, camera) {
   const scenePass = pass(scene, camera);
   scenePass.setMRT(mrt({ output, emissive }));
   const post = new PostProcessing(renderer);
-  post.outputNode = scenePass
-    .getTextureNode("output")
-    .add(bloom(scenePass.getTextureNode("emissive"), 0.45, 0.85, 0));
+  post.outputNode = graded(
+    scenePass.getTextureNode("output").add(bloom(scenePass.getTextureNode("emissive"), 0.45, 0.85, 0))
+  );
   return post;
 }
 

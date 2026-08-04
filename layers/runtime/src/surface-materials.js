@@ -43,12 +43,18 @@ export function createSurfaceMaterials({
   const waiting = new Map(); // file -> the textures still showing a blank while it loads
   const textures = [];
   const loader = textureBase ? new THREE.ImageLoader() : null;
-  // Every texture starts on one blank pixel, so it can be uploaded the moment it is used and the
+  // Every texture starts on one WHITE pixel, so it can be uploaded the moment it is used and the
   // real image can arrive whenever it arrives. A texture with no image at all is fine on WebGL and
-  // throws on WebGPU.
+  // throws on WebGPU; a texture on an EMPTY canvas is transparent, and a surface multiplied by that
+  // is black, which is what a road looks like when its photograph has not landed yet.
   const blank = doc.createElement("canvas");
   blank.width = 1;
   blank.height = 1;
+  const ink = blank.getContext("2d");
+  if (ink) {
+    ink.fillStyle = "#ffffff";
+    ink.fillRect(0, 0, 1, 1);
+  }
 
   // A photographed material, if one is catalogued for this surface and the files are there. The
   // images are loaded once and cloned per surface, so each keeps its own repeat.
@@ -67,6 +73,10 @@ export function createSurfaceMaterials({
       loader.load(`${textureBase}/${file}`, (image) => {
         for (const t of waiting.get(file) ?? []) {
           t.image = image;
+          // The one-pixel placeholder was already uploaded at ONE PIXEL. A picture of a different
+          // size needs the GPU texture behind it thrown away and made again, or the surface keeps
+          // sampling that pixel however many times it is told the image changed.
+          t.dispose();
           t.needsUpdate = true;
         }
       });
@@ -96,6 +106,9 @@ export function createSurfaceMaterials({
     if (photo.maps.arm) {
       const arm = mapped(photo.maps.arm, ...repeat);
       material.aoMap = arm;
+      // Ambient occlusion baked into a photographed tile is for the crevices in it. Laid over a
+      // whole road it only takes the night down to black, so it is held well back.
+      material.aoMapIntensity = 0.45;
       material.roughnessMap = arm;
       material.metalnessMap = arm;
     }

@@ -7,7 +7,7 @@
 // Everything is seeded, so the same building is painted the same way every time it is loaded.
 
 import { createRng, hashString } from "./rng.js";
-import { paintConcrete, paintRoad, paintSlabs } from "./ground.js";
+import { paintConcrete, paintRoad, paintSlabGlow, paintSlabs } from "./ground.js";
 import { paintFacadeAlbedo, paintFacadeEmissive, planFacade } from "./facade.js";
 import { paintSignAlbedo, paintSignEmissive, planSign } from "./sign.js";
 import { paintWindowAlbedo, paintWindowEmissive, planWindow } from "./window.js";
@@ -204,21 +204,30 @@ export function paintSurface(kind, ctxFor, opts = {}) {
   if (!ground) throw new UnknownSurfaceError(kind);
   const wet = kind === "road" ? Math.max(0, Math.min(1, opts.wet ?? 0)) : 0;
 
+  const paving = kind === "pavement" || kind === "plaza";
   const albedo = contextFor(ctxFor, "albedo", TILE, TILE);
   if (kind === "road") paintRoad(albedo, rng, TILE, wet);
   else if (kind.startsWith("floor")) paintSlabs(albedo, rng, TILE, "floor");
-  else if (kind === "pavement" || kind === "plaza") paintSlabs(albedo, rng, TILE, kind);
+  else if (paving) paintSlabs(albedo, rng, TILE, kind);
   else paintConcrete(albedo, rng, TILE, kind);
+
+  // A pavement carries light in the joints between its slabs. Nothing else you stand on does.
+  const maps = { albedo };
+  if (paving) {
+    maps.emissive = contextFor(ctxFor, "emissive", TILE, TILE);
+    paintSlabGlow(maps.emissive, TILE, kind);
+  }
 
   return {
     kind: kind.split(".")[0],
     pixels: [TILE, TILE],
     metres: [ground.metres, ground.metres],
-    maps: { albedo },
+    maps,
     material: {
       // Water takes the tooth off asphalt, and what is left throws the lamps back down the street.
       roughness: ground.roughness - wet * 0.55,
       metalness: ground.metalness + wet * 0.25,
+      ...(paving ? { emissiveIntensity: 0.7 } : {}),
     },
   };
 }

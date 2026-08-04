@@ -9,17 +9,20 @@ what a building is for beyond how it should look.
 ## Inputs (params in)
 - `paintSurface(kind, ctxFor, opts?) -> SurfacePlan`
   - `kind`: `road` | `pavement` | `plaza` | `floor` | `wall` | `ceiling` | `concrete` | `facade` |
-    `window` | `sign`.
+    `tower` | `window` | `advert` | `sign`.
   - `ctxFor(map, width, height)`: injected canvas factory. Called once per map the surface needs
-    (`albedo`, and `emissive` for a facade) and must return a 2D drawing context of that size. The
-    caller owns the canvas; this layer only draws on it.
+    (`albedo`, plus `emissive` for anything that burns) and must return a 2D drawing context of that
+    size. The caller owns the canvas; this layer only draws on it.
   - `opts.seed?`: a number or a string. The same seed paints the same surface, always.
   - Facade only: `opts.metresWide` (frontage to cover), `opts.floors`, `opts.storeyHeight` (3.2),
     `opts.litRatio` (0.45), `opts.program` (a `house` keeps windows on the ground floor; anything
     else gets a glazed shopfront).
-  - Window only: `opts.lit`, `opts.colour` (what burns behind the glass) and `opts.blind`. One window,
+  - Window only: `opts.style` (square, tall, ribbon, bay, grid: how it is divided and how much of it
+    is frame), `opts.lit`, `opts.colour` (what burns behind the glass) and `opts.blind`. One window,
     painted on its own: a frame, the bars across it, and what is behind them. A building's windows are
     separate objects, so this is worn by one at a time rather than tiled over a whole wall.
+  - Advert only: `opts.text` OR `opts.graphic` (bars, rings, wave, grid, figure), `opts.colour` and
+    `opts.portrait`. A panel carries words or a lit composition, never both.
   - Sign only: `opts.text` (what it says), `opts.colour` (what it burns), `opts.metresWide` and
     `opts.metresTall` (the board). The type is sized off the board and the length of the name rather
     than measured, so a sign can be painted anywhere, including against a recording stub.
@@ -52,6 +55,11 @@ what a building is for beyond how it should look.
   letters that burn are the letters on the board.
 - A facade sheet is laid out from the ground up: storey 1 is at the bottom of the image, one row of
   bays per storey, so the rows land on the storeys of the building it is wrapped around.
+- Every building draws its own CLADDING from its seed - precast panel, tile, corrugated sheet, brick
+  or a glass curtain - each with its own colours, so two buildings side by side never wear the same
+  wall.
+- A pavement burns in its joints. It is the one thing you stand on that carries light of its own, and
+  it is never photographed: the light in it is what the city looks like after dark.
 - Nothing is imported but its own `src/`: no three.js, no `document`, no canvas of its own.
 
 ## Dependencies (contracts only)
@@ -60,9 +68,10 @@ None. It is a leaf: give it somewhere to draw and it draws.
 ## How to modify this blackbox safely
 Which photographed material stands in for which surface is `materials/manifest.json`: a slug, how
 big one tile is in the real world, and how it takes light. Nothing else needs to change to swap one.
-Colours for the painted fallbacks live in `src/palette.js` and nowhere else. The ground surfaces are `src/ground.js`, one
-painter each; a building's outside is `src/facade.js`, split into planning (where every window,
-ledge and band goes) and two painters that read that plan. Add a surface by adding a painter, a
-palette entry and a line in `GROUND` or a branch in `paintSurface`. A cartel is `src/sign.js`. Keep `tests/` green: the same
+Colours for the painted fallbacks live in `src/palette.js` and nowhere else. The ground surfaces are
+`src/ground.js`, one painter each; a building's outside is `src/facade.js`, split into planning (where
+every window, ledge and band goes) and two painters that read that plan, with the cladding patterns in
+`src/facade-sets.js`. Add a surface by adding a painter, a palette entry and a line in `GROUND` or a
+branch in `paintSurface`. A cartel is `src/sign.js`, a panel `src/advert.js`. Keep `tests/` green: the same
 seed paints the same calls, a facade's lit windows are all real windows, tiles cover the metres they
 claim, and an unusable canvas factory is refused rather than half-drawn.

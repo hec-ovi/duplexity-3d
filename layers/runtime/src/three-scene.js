@@ -11,7 +11,7 @@ import * as THREE from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { buildDoorway } from "./doorways.js";
 import { buildFacadeParts } from "./facade-parts.js";
-import { buildLamp, lampMaterials } from "./lamps.js";
+import { buildLamp, buildLampShafts, lampMaterials } from "./lamps.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -338,6 +338,10 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     counts.lights++;
   }
 
+  // The haze each lamp burns in, all of them in one draw.
+  const shafts = buildLampShafts(model.lights);
+  if (shafts) group.add(shafts);
+
   for (const obj of model.objects) {
     const { size, placeholder } = sizeFor(registry, obj.assetRef, DEFAULT_OBJECT_SIZE, warn);
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), objectMat);
@@ -390,7 +394,9 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // casting its own shadow only ever looks wrong.
   group.traverse((node) => {
     if (!node.isMesh || node.userData.kind === "light" || node.userData.kind === "skyline") return;
-    node.castShadow = true;
+    // Ground takes shadows and throws none. A road is a slab a centimetre thick, so casting from it
+    // lands its own shadow back on its own face and the whole street goes black.
+    node.castShadow = node.userData.kind !== "zone" && node.userData.kind !== "floor";
     node.receiveShadow = true;
   });
   group.userData = { instanceId: model.instanceId, counts };

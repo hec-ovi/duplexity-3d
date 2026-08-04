@@ -2,6 +2,25 @@
 
 What the project does now, newest first.
 
+## 0.15 - The look: parts that differ, ground that burns, a grade over the lot
+
+- Five kinds of window (square, tall, ribbon, bay, curtain grid), four balconies (slab, cage, French,
+  corner), five front doors (shopfront, flush, recessed, double, roller shutter), four sign mountings
+  (fascia, blade, roof box, framed) and four street lamps (post, twin, reach, bollard), plus brackets
+  on building faces. Each building draws one look from its seed and wears it throughout.
+- Every building is clad from a set of its own: precast panel, tile, corrugated sheet, brick or a
+  glass curtain, each with its own colours.
+- Pavements carry light in the joints between their slabs, cold against the warm lamps over them.
+- A cone of haze under every lamp, all of them in one draw.
+- A grade over the whole frame: shadows pulled towards violet, highlights left warm, corners taken
+  down.
+- Panels up the side of a building carry a trade or a lit graphic (bars, rings, a wave, a grid, a
+  figure) instead of invented words.
+- Fixed: every PHOTOGRAPHED surface rendered black. Textures start on a placeholder pixel while the
+  file loads, and the GPU texture behind one was never remade when the picture arrived, so roads,
+  walls, floors and ceilings all sampled that pixel. The placeholder is white now, and the texture is
+  thrown away and remade when its image lands.
+
 ## 0.14 - Six or seven places, and the way to them
 
 - `places` in a CitySpec: how many buildings you can walk into, 6 by default, chosen as far apart as
