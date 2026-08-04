@@ -288,32 +288,46 @@ Legend: [x] done, [~] in progress, [ ] not started.
   browser: open streets between building masses under a sky, the overlay reading as a city map, the
   console silent.
 
-## Phase 16 - Look and feel: lighting, facades, signs, checkpoints [ ]
+## Phase 16 - Look and feel, and the skill's authoring surface [ ]
 
-Reference: `~/Pictures/Screenshots` (a three.js street: wet reflective road, emissive signs, bloom,
-fog, lit windows, balconies, video billboards). Take the technique, not the saturation: Hector wants
-the neon dialled back and realism up. No rain; standing water as an option.
+Reference: `~/Pictures/Screenshots` (a three.js street: wet reflective road, emissive signs, video
+billboards, bloom, fog, lit windows, awnings and balconies, a HUD in the corner). Take the technique,
+not the saturation. No rain; standing water optional.
 
-- **Lighting box.** Fog, ACES tone mapping + exposure, a night key/fill, per-block lights (street
-  lamps, sign glow spilling onto the pavement), and bloom over emissive materials. Belongs in
-  `layers/runtime/` as its own module, driven by data on the instance (`rules.timeOfDay`, per-zone
-  and per-building light placements) so the generator decides and the renderer obeys.
-- **Surfaces.** Procedurally generated canvas textures, no downloaded meshes for the city fabric:
-  asphalt with lane markings and kerbs, paving slabs, concrete, facade sheets with window rows lit in
-  a seeded mix. Public-domain texture sources are allowed where a photo beats a canvas.
-- **Wet ground / water** as a spec parameter: a reflective (or part-reflective) road, puddles as
-  zones. Off by default.
-- **Facade detail as tiny skills.** Balconies, window rows, awnings, shopfront bands, `carteles`
-  (signs, some emissive, a few video billboards). Each is a small generator with its own contract and
-  its own SKILL entry, so an agent can be asked for exactly one and buildings become the same handful
-  of features in endless small variations. That variation is the point: dynamism first, realism as
-  close as it gets.
-- **Inaccessible buildings**: a mass with no door and no instances behind it, so it is never a map
-  node and the gate never waits on it. A ratio or an explicit list in the spec.
-- **Per-lot overrides + quest placement**: pin a named building (program, floors, name, goal) into a
-  named block, and let the run's objective sit in a specific place rather than wherever it landed.
-- **Checkpoints**: `tools/level.js save` / `load` over the existing `persistence` export/import, so a
-  city you like is kept and reopened by name.
+Ordered so each step is one box and lands green.
+
+### 16a - Authoring surface (generator + contracts)
+- **Inaccessible buildings.** A mass with no door and no `LotPlan`: never a map node, so the gate
+  never waits on it. Spec: a ratio (`accessibleRatio`) plus an explicit list. `city-planner`.
+- **Per-lot overrides.** `CitySpec.buildings[]` pins a premises by block and slot: name, program,
+  floors, accessible, and optionally its goal. Everything else stays generated around it.
+  `city-planner` (+ schema).
+- **Quest placement.** A goal pinned to a named building, so the objective sits somewhere chosen.
+  `city-planner` emits it; `building-planner` already takes `goalFor`.
+- **Checkpoints.** `tools/level.js save --in city.json --name ashgate` / `load --name ashgate`, over
+  the export/import `persistence` already has. `tools/`.
+
+### 16b - Surfaces (own geometry, own textures)
+- Procedural canvas textures in `layers/runtime/`: asphalt with lane markings, kerb, paving slabs,
+  concrete, facade sheets with window rows in a seeded lit/dark mix. Public-domain photo textures only
+  where they beat a canvas.
+- Facade shaping on a mass: ground-floor shopfront band, floor ledges, parapet. Still our boxes.
+
+### 16c - Lighting (its own runtime module)
+- Fog, ACES tone mapping + exposure, a night key/fill, and **bloom** over emissive materials.
+- Per-block lights: street lamps on the pavement, sign glow spilling onto the ground. Placement is
+  DATA the generator emits (`zone`/`building` light points), so the renderer obeys rather than decides.
+- Wet ground as a spec parameter: reflective road, puddles as zones. Off by default.
+
+### 16d - Facade parts as tiny skills
+- Balconies, window rows, awnings, shopfront bands, `carteles` (signs, some emissive, a few video
+  billboards via `VideoTexture`). Each a small generator with its own contract and its own entry in
+  `SKILL.md`, so an agent can be asked for exactly one, and buildings become the same handful of
+  features in endless small variations.
+
+Definition of done for the phase: `npm run dev` reads as a street at night rather than boxes, every
+step keeps `npm test` green and the contracts true, and an agent can build a city, pin one building
+in it, and save the result by name.
 
 ## Compaction points
 

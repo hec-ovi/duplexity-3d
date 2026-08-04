@@ -32,3 +32,61 @@ Answers to the three questions that came out of the above:
 - Inside a building floor: "Only what you have walked into" (rooms stay hidden on the blueprint
   until entered, then stay revealed).
 - Player voice: "Type to talk, listen to replies" (Fish TTS speaks NPC lines; the player types).
+
+## 2026-08-04 (later) - Open world outside, block model, look and feel
+
+> okey is very good, but think of a mode where we have streets as well, more open world, now looks
+> liek a dungeon, i mean is excellent as-is, but some details: when i discover a new room, the minimap
+> "additionate" new rooms, should simply put me on the actual room and thats it. and the open world
+> part, where we can join other instances, all are walls... remember this is an open world, so not
+> necesarry all is clock and rooms after rooms, could be streets, so like.. boxes that are buildings
+> with their instances.. now it looks i am ALREADY on an instance, this is correct for a single
+> building for example, like a big gallery... but the superior level, should be an open world instead,
+> so kind of.. instead walls and doors after doors, boxes with empty spaces which are streents, and a
+> boundarty that limits it of course, but that boundady sohuld be empty space just not walkable.. this
+> way buildings with elevators and multiple levels are tlal, etc
+
+> as i can see when i exit ashgate i see the whole building that is correct actually, we just need on
+> the outside, streets
+
+> i made screenshots of how it look,s and in downloads you can sewe the expected image... see how far
+> we are, made 3 in downloads so you see
+
+> do not abuse neons, etc, but keep the idea, of: streets with textures, walk zones for NPCs, and
+> buildings, the idea is our tool has the next: different buildings, a block, with different buildings
+> and walk zones, so each block can be special or in some cases similar... think of it holistically and
+> as i said a sboxes, so, streets are ont thing and the walk over "veredas" like on the block peaton
+> parts peasant parts, is different, streets are other thing, and builders from outside have different
+> shapes, and things, and inside they are their instances of course
+
+> for text, DO NOT USE TEXT ON THE THREEJS DIRECT! use instead, a ui overlay, will be easier, much
+> more intuitive
+
+> okey thats better, just have in count, you are putting a single box/building per block, in general
+> blocks have different buildings, and houses, or places... and street where people walk is too small
+> as well
+
+> aldo why glb...? glb is not for npcs? what we need is textures i think, not exacly glbs... we are far
+> away from glbs wiych are cars, bikes, people, or objects like i dont know those lights for cars stop
+> signals etc... but street and places where people walk and modelling of the buildings should be
+> unique and we should be able to do it
+
+> so, this is a skill? right not "fixed" so each generation with the skill you should easily build a
+> city with different structures on it and instances, and THEN you should be able also to customize
+> others, correct? thinkn of this skill also as multi agent so an agent can create a specific build for
+> specific things, also make some buildsa unaccessible meaning no access door, you understand? but good
+> modeling so maybe the quest is in a specific block street
+
+> also think a save checkpoint of a city we like, so a load thing also is a good feature we want. you
+> have green light, go ahead, make deep work on lighting as well i will provide other screenshots from
+> someone that did a street on threejs, he even uses videos inside the buildings, has lights and stuff,
+> made tons of screenshots, read all of them inside screenshots folder, lighting we will need so find a
+> way block have their lights, reflections, etc we want, raining no need, but some water parts could
+> be, as a parameter. lighting is too neon and saturated on the image but is fine, fidugre out the
+> buildings to do them with those details, in the end is just modeling like balconys windows, etc, and
+> "carteles" like neon ones, and some videos, i would recommend also small tiny skills for each small
+> part, like add balconies and create specific ones, custom made, with cartels and etc.. so in away most
+> of those are repeated features with tiny variances, you understand? this will give a vivid feeling,
+> our win is dinamism, but we want the realism as good as possible, if you need specific textures, feel
+> free to check from public domain for this kind of things like concrete, etc. you have green light to
+> research, explore, and implement
