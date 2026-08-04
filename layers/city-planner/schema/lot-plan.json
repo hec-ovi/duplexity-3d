@@ -29,6 +29,14 @@
       "description": "Instance the way out leads back to (the street). Omit for a building that stands on its own: its front door becomes a plain EXIT instead."
     },
     "returnRoomId": { "type": "string", "description": "Room the player lands in on the way out. Required alongside returnInstanceId." },
+    "returnAt": {
+      "type": "array",
+      "description": "Exact spot the way out leaves you, in the street's coordinates: the pavement in front of this building's own door. Without it you land in the middle of the room, which on open ground is the middle of the city.",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "returnFacing": { "type": "number", "description": "Which way you are looking when you come out, in radians: away from the building." },
     "doorPortalId": { "type": "string", "description": "The street-side portal, already present in the street instance." },
     "quest": {
       "$ref": "#/$defs/quest",

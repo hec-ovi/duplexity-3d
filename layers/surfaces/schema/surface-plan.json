@@ -7,7 +7,7 @@
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["road", "pavement", "plaza", "concrete", "facade"]
+      "enum": ["road", "pavement", "plaza", "concrete", "facade", "sign"]
     },
     "pixels": {
       "type": "array",
@@ -49,7 +49,7 @@
     },
     "signColour": {
       "type": "string",
-      "description": "Facade only, and only where the place has a sign lit over its door: what colour it burns, so a light put there can match it."
+      "description": "What colour a sign burns. On a facade it is set only where the place has one lit over its door, so a light put there can match it."
     }
   },
   "required": ["kind", "pixels", "metres", "maps", "material"],

@@ -354,11 +354,30 @@ Ordered so each step is one box and lands green.
   headless browser, outdoors and in: a lamp-lit street with signs glowing into the haze, a lit interior
   behind a door, console silent.
 
-### 16d - Facade parts as tiny skills
-- Balconies, window rows, awnings, shopfront bands, `carteles` (signs, some emissive, a few video
-  billboards via `VideoTexture`). Each a small generator with its own contract and its own entry in
-  `SKILL.md`, so an agent can be asked for exactly one, and buildings become the same handful of
-  features in endless small variations.
+### 16d - Facade parts, real doors, and places with names [x]
+- [x] `layers/facade/` is its own box: give it the shape of a building and it returns what is bolted
+  to it, in the building's own frame. One function per part in `src/parts.js` (balcony, awning,
+  cartel), what places are called in `src/naming.js`, and `src/index.js` deciding which building gets
+  what. No three.js, no DOM.
+- [x] Carteles carry LETTERS: `surfaces` paints a sign (`src/sign.js`) with the name on the board and
+  the same name in the emissive map, so the type is what burns. A tall building also gets a blade
+  sign at right angles to the wall.
+- [x] Doors are built, not painted: a surround proud of the wall, a leaf set back in it, a handle and
+  a step (`runtime/src/doorways.js`). An interior doorway is a real hole, so it gets the surround only.
+- [x] You come out of the front door you went in by: `link.spawnAt` / `link.facing` (additive on
+  `persistence`), supplied by `city-planner` as `LotPlan.returnAt` and put on the leave door by
+  `building-planner`. It used to drop you at the middle of the room it named, which on open ground is
+  the middle of the city.
+- [x] A building's front is painted to FIT its walls: one sheet for the wide sides, one for the narrow
+  ones, a whole number of bays across each. Nothing tiles.
+- [x] A wet road is a mirror under thinned asphalt (`Reflector`), so the lamps and the signs come back
+  up the street.
+- [x] Names hang over NPCs; what they say goes in one dialogue panel at the bottom of the screen.
+
+### Still open
+- Video billboards (`VideoTexture` on a cartel), and per-building bespoke textures an agent authors
+  by hand rather than by seed.
+- GLB props: cars, bikes, people, traffic lights. The city fabric stays ours.
 
 Definition of done for the phase: `npm run dev` reads as a street at night rather than boxes, every
 step keeps `npm test` green and the contracts true, and an agent can build a city, pin one building

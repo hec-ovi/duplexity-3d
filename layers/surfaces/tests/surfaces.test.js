@@ -14,7 +14,11 @@ function recorder(width, height) {
     strokeStyle: "",
     lineWidth: 1,
     globalAlpha: 1,
+    font: "",
+    textAlign: "",
+    textBaseline: "",
     fillRect: (x, y, w, h) => calls.push({ op: "fillRect", style: ctx.fillStyle, alpha: ctx.globalAlpha, x, y, w, h }),
+    fillText: (text, x, y) => calls.push({ op: "fillText", style: ctx.fillStyle, font: ctx.font, text, x, y }),
     beginPath: () => calls.push({ op: "beginPath" }),
     moveTo: (x, y) => calls.push({ op: "moveTo", x, y }),
     lineTo: (x, y) => calls.push({ op: "lineTo", x, y }),
@@ -40,17 +44,17 @@ const key = (r) => `${r.x}:${r.y}:${r.w}:${r.h}`;
 describe("surfaces contract", () => {
   it("paints every kind, and says how much world one tile covers", () => {
     for (const kind of SURFACE_KINDS) {
-      const { plan, drawn } = paint(kind, { seed: "ashgate", metresWide: 12, floors: 3 });
+      const { plan, drawn } = paint(kind, { seed: "ashgate", metresWide: 12, floors: 3, text: "NOMI RAMEN" });
       const r = validate(SCHEMA_ID.surfaces.surfacePlan, plan);
       expect(r.ok, `${kind}: ${JSON.stringify(r.errors, null, 2)}`).toBe(true);
       expect(plan.metres[0]).toBeGreaterThan(0);
-      expect(rects(drawn.get("albedo")).length).toBeGreaterThan(10);
+      expect(rects(drawn.get("albedo")).length).toBeGreaterThan(4);
     }
   });
 
   it("nothing is drawn over a tile edge, so a road has no seam grid", () => {
     for (const kind of SURFACE_KINDS) {
-      const { plan, drawn } = paint(kind, { seed: 3, metresWide: 20, floors: 5 });
+      const { plan, drawn } = paint(kind, { seed: 3, metresWide: 20, floors: 5, text: "NOMI RAMEN" });
       const [width, height] = plan.pixels;
       for (const [name, rec] of drawn) {
         for (const r of rects(rec)) {

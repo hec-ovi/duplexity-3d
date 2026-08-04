@@ -22,8 +22,9 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 |---|---|
 | The 3D world rendering, camera, controls, HUD frame drawing | `layers/runtime/` |
 | What things are MADE of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
+| What is BOLTED to a building: balconies, awnings, the cartel over the door, what a place is called | `layers/facade/` |
 | NPC movement, pathfinding, animation, deterministic behavior modes | `layers/runtime/` (behavior) + `layers/npc/` (definitions) |
-| Speech/chat bubbles or name labels above NPCs in-scene | `layers/runtime/` |
+| Name tags over NPCs, or the dialogue panel their lines go in | `layers/runtime/` |
 | What an NPC says / does when the player interacts (mode switch, dialogue, the model seam) | `layers/npc/` |
 | NPC data model (personality, body, allowed actions, memory, voice design) | `layers/npc/` |
 | Turning an NPC line into speech, or a spoken player turn into text (TTS/STT, emotion tags) | `layers/voice/` |

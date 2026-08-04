@@ -78,28 +78,54 @@ export function createSurfaceMaterials({ paintSurface, wet = 0, document: doc = 
     },
 
     /**
-     * A building, as the six materials of its box: its own facade on all four sides (each scaled to
-     * that side's width, so the bays stay the same size), and a plain roof.
+     * A building, as the six materials of its box: a facade painted to fit each wall exactly (one
+     * sheet for the two wide sides, one for the two narrow ones, each a whole number of bays over
+     * that wall and one row per storey), and a plain roof. Nothing tiles, so no window is ever cut
+     * in half and no two buildings wear the same front.
      */
     block(block) {
       const { x: width, y: height, z: depth } = block.size;
       const floors = block.floors ?? Math.max(1, Math.round((height - 1) / 3.2));
-      const plan = planFor(`facade:${block.id}`, "facade", {
-        seed: block.id,
-        metresWide: Math.max(width, depth),
-        floors,
-        storeyHeight: height / floors,
-        program: block.program,
-      });
+      const sheet = (key, metresWide) =>
+        planFor(`facade:${block.id}${key}`, "facade", {
+          seed: `${block.id}${key}`,
+          metresWide,
+          floors,
+          storeyHeight: height / floors,
+          program: block.program,
+        });
+      // Painted at its own size and stretched onto the wall, so the bays land on the wall's edges.
+      const fitted = (plan) => materialFor(plan, plan.metres[0], plan.metres[1]);
+      const front = sheet("", width);
+      const side = sheet(":side", depth);
       const roof = new THREE.MeshStandardMaterial({ color: 0x24272d, roughness: 0.95, metalness: 0.05 });
-      return [
-        materialFor(plan, depth, height), // +x
-        materialFor(plan, depth, height), // -x
-        roof,
-        roof,
-        materialFor(plan, width, height), // +z
-        materialFor(plan, width, height), // -z
-      ];
+      return [fitted(side), fitted(side), roof, roof, fitted(front), fitted(front)];
+    },
+
+    /**
+     * A cartel: the six materials of its board, with the name lettered on the faces you read it
+     * from. A flat sign is read off its front; a blade sign, which stands out at right angles to the
+     * wall, off both its sides.
+     */
+    sign(part) {
+      const [across, up, out] = part.size;
+      const blade = part.orientation === "blade";
+      const plan = planFor(`sign:${part.text}:${part.colour}:${blade}`, "sign", {
+        text: part.text ?? "",
+        colour: part.colour,
+        metresWide: blade ? out : across,
+        metresTall: up,
+      });
+      const face = () => materialFor(plan, plan.metres[0], plan.metres[1]);
+      const edge = new THREE.MeshStandardMaterial({
+        color: 0x14171c,
+        emissive: new THREE.Color(part.colour ?? "#ddc87e"),
+        emissiveIntensity: 0.35,
+        roughness: 0.6,
+      });
+      return blade
+        ? [face(), face(), edge, edge, edge, edge]
+        : [edge, edge, edge, edge, face(), face()];
     },
 
     /** What colour a building burns over its door, once its facade has been painted. */

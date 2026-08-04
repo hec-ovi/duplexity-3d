@@ -8,6 +8,9 @@
 // ASSET_LOAD_FAILED contract: never crash the scene. asset-registry is injected, never imported.
 
 import * as THREE from "three";
+import { Reflector } from "three/addons/objects/Reflector.js";
+import { buildDoorway } from "./doorways.js";
+import { buildFacadeParts } from "./facade-parts.js";
 
 const KERB = 0.14; // how far a pavement stands proud of the road
 const FLOOR_T = 0.2;
@@ -49,6 +52,46 @@ function glowing(color, emissiveIntensity) {
   });
 }
 
+// Standing water: a mirror laid under the road, with the asphalt over it thinned down so what comes
+// back through is the lamps and the signs. A bare mirror would be a second city; this is a wet
+// street. The wetter it is, the more of it you see.
+function wetRoad(zone, wet, roadMat) {
+  const group = new THREE.Group();
+  const plane = new THREE.PlaneGeometry(zone.size.x, zone.size.z);
+  plane.rotateX(-Math.PI / 2);
+  const grey = Math.round(30 + wet * 55);
+  const mirror = new Reflector(plane, {
+    textureWidth: 1024,
+    textureHeight: 1024,
+    color: (grey << 16) | (grey << 8) | grey,
+    clipBias: 0.003,
+  });
+  group.add(mirror);
+
+  if (roadMat) {
+    roadMat.transparent = true;
+    roadMat.opacity = Math.max(0.25, 1 - wet * 0.7);
+    const film = new THREE.Mesh(plane.clone(), roadMat);
+    film.position.y = 0.01;
+    group.add(film);
+  }
+  group.userData = { reflective: true };
+  return group;
+}
+
+// Which wall of a mass its front door is on, and where along that wall it sits, in the frame the
+// facade box works in. Returns null for a building with no way in.
+function doorOn(block, portals = []) {
+  const portal = portals.find((p) => p.blockId === block.id);
+  if (!portal) return null;
+  const dx = portal.center.x - block.center.x;
+  const dz = portal.center.z - block.center.z;
+  if (portal.axis === "x") {
+    return dx >= 0 ? { face: "east", along: -dz } : { face: "west", along: dz };
+  }
+  return dz >= 0 ? { face: "north", along: dx } : { face: "south", along: -dx };
+}
+
 // Look up an asset's [w,h,d] from the registry, degrading to `fallback` (and warning) when the
 // registry is absent or does not have the id. Returns { size, placeholder }.
 function sizeFor(registry, ref, fallback, warn) {
@@ -74,13 +117,15 @@ function sizeFor(registry, ref, fallback, warn) {
  * @param {object} [opts.registry] asset-registry contract ({ get, query }); optional
  * @param {object} [opts.materials] surface material cache (surface-materials.js); optional. Absent,
  *   everything is a flat colour, which is what a head-less test sees.
+ * @param {Function} [opts.dressFacade] injected facade.dressFacade; optional. Absent, buildings are
+ *   bare masses with nothing bolted to them.
  * @param {(msg:string)=>void} [opts.warn] warning sink (default console.warn)
  * @returns {THREE.Group}
  */
-export function buildInstanceObject3D(model, { registry, materials, warn = console.warn } = {}) {
+export function buildInstanceObject3D(model, { registry, materials, dressFacade, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
-  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, lights: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
+  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, doors: 0, parts: 0, lights: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
 
   const floorMat = standard(COLORS.floor);
   const floorAltMat = standard(COLORS.floorAlt);
@@ -121,19 +166,28 @@ export function buildInstanceObject3D(model, { registry, materials, warn = conso
   }
 
   // What the ground IS, under your feet: roadway, pavement, square. A pavement stands a kerb proud of
-  // the road so the two read apart at a glance and from any angle.
+  // the road so the two read apart at a glance and from any angle. A wet road is a mirror instead of
+  // a surface: standing water is what makes a lit street read as a lit street.
+  const wet = model.rules?.wet ?? 0;
   for (const z of model.zones ?? []) {
     const lift = z.kind === "sidewalk" ? KERB : 0.01;
-    const mat = materials?.ground(z.kind, z.size.x, z.size.z) ?? zoneMat[z.kind] ?? zoneMat.plaza;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(z.size.x, lift, z.size.z), mat);
-    mesh.position.set(z.center.x, z.center.y + lift / 2, z.center.z);
+    const mesh =
+      z.kind === "road" && wet > 0
+        ? wetRoad(z, wet, materials?.ground(z.kind, z.size.x, z.size.z))
+        : new THREE.Mesh(
+            new THREE.BoxGeometry(z.size.x, lift, z.size.z),
+            materials?.ground(z.kind, z.size.x, z.size.z) ?? zoneMat[z.kind] ?? zoneMat.plaza
+          );
+    if (!mesh.userData.reflective) mesh.position.set(z.center.x, z.center.y + lift / 2, z.center.z);
+    else mesh.position.set(z.center.x, z.center.y + 0.012, z.center.z);
     mesh.name = `zone:${z.id}`;
-    mesh.userData = { kind: "zone", zone: z.kind };
+    mesh.userData = { ...mesh.userData, kind: "zone", zone: z.kind };
     group.add(mesh);
     counts.zones++;
   }
 
-  // Buildings on a street: one mass each, drawn from the ground up.
+  // Buildings on a street: one mass each, drawn from the ground up, then dressed with the small
+  // things bolted to it (balconies, an awning, the cartel that says what the place is).
   for (const b of model.blocks ?? []) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), materials?.block(b) ?? blockMat);
     mesh.position.set(b.center.x, b.center.y, b.center.z);
@@ -141,6 +195,36 @@ export function buildInstanceObject3D(model, { registry, materials, warn = conso
     mesh.userData = { kind: "block", assetRef: b.assetRef };
     group.add(mesh);
     counts.blocks++;
+
+    if (!dressFacade) continue;
+    const dressed = dressFacade({
+      id: b.id,
+      seed: b.id,
+      size: { w: b.size.x, h: b.size.y, d: b.size.z },
+      floors: b.floors ?? undefined,
+      storeyHeight: b.floors ? b.size.y / b.floors : undefined,
+      program: b.program ?? undefined,
+      door: doorOn(b, model.portals),
+    });
+    const parts = buildFacadeParts(dressed.parts, {
+      x: b.center.x,
+      y: b.center.y - b.size.y / 2,
+      z: b.center.z,
+    }, { signMaterial: materials ? (part) => materials.sign(part) : undefined });
+    parts.name = `dressing:${b.id}`;
+    group.add(parts);
+    counts.parts += dressed.parts.length;
+  }
+
+  // Doors. On a building's face there is nothing cut out, so the whole door is built: a surround, a
+  // leaf set back in it, a handle and a step. An interior doorway is a real hole, so it gets the
+  // surround alone.
+  const byBlock = new Map((model.blocks ?? []).map((b) => [b.id, b]));
+  for (const portal of model.portals ?? []) {
+    if (portal.roomB === "EXIT" && !portal.blockId) continue; // the city gate is a gap in the boundary
+    const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY);
+    group.add(door);
+    counts.doors++;
   }
 
   // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is

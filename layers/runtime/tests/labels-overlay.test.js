@@ -34,17 +34,30 @@ describe("runtime - labels overlay", () => {
     overlay.dispose();
   });
 
-  it("shows what an NPC says, and stops showing it when they stop", () => {
+  // A line that follows a walking NPC is hard to read and ends up in your face. Speech goes in one
+  // panel, in the same place every time, like any other piece of UI.
+  it("puts what an NPC says in the dialogue panel, and takes it down when they stop", () => {
     const { container, overlay } = mount();
     const entry = { id: "npc-1", name: "vendor", position: at(5) };
 
     overlay.sync([{ ...entry, says: "Evening." }], {}, view());
-    const says = container.querySelector(".dx-says");
-    expect(says.textContent).toBe("Evening.");
-    expect(says.style.display).not.toBe("none");
+    const panel = container.querySelector(".dx-dialogue");
+    expect(panel.style.display).not.toBe("none");
+    expect(panel.querySelector(".dx-who").textContent).toBe("vendor");
+    expect(panel.querySelector(".dx-said").textContent).toBe("Evening.");
+    // and the tag over their head is only their name, whatever they are saying
+    expect(container.querySelector(".dx-label").textContent).toBe("vendor");
 
     overlay.sync([entry], {}, view());
-    expect(container.querySelector(".dx-says").style.display).toBe("none");
+    expect(panel.style.display).toBe("none");
+    overlay.dispose();
+  });
+
+  it("shows a line from someone you cannot see, since the panel is not attached to them", () => {
+    const { container, overlay } = mount();
+    overlay.sync([{ id: "far", name: "lookout", says: "Over here.", position: at(90) }], {}, view());
+    expect(container.querySelector(".dx-label").style.display).toBe("none");
+    expect(container.querySelector(".dx-dialogue").style.display).not.toBe("none");
     overlay.dispose();
   });
 

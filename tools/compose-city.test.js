@@ -142,13 +142,40 @@ describe("a generated city is a valid, connected, winnable level", () => {
 
     const { link } = transits[0];
     run = enterInstance(run, map, link.instanceId);
-    rt.load(adventure, link.instanceId, { spawnRoomId: link.spawnRoomId });
+    rt.load(adventure, link.instanceId, link);
     expect(rt.getPlayer().currentRoom).toBe(link.spawnRoomId);
 
     // inside, the blueprint shows the room we are standing in and nothing we have not seen
     const plan = rt.blueprint();
     expect(plan.rooms.map((r) => r.id)).toEqual([link.spawnRoomId]);
     expect(plan.instanceId).toBe(link.instanceId);
+  });
+
+  // The way out of a building used to land you in the middle of the room it named, which on open
+  // ground is the middle of the whole city: you came out somewhere round the back of a building you
+  // had never seen. A door says exactly where it puts you.
+  it("comes out of the front door it went in by, facing the street", () => {
+    const { adventure, lots } = city();
+    const byId = new Map(adventure.instances.map((i) => [i.id, i]));
+    const street = adventure.instances[0];
+
+    for (const lot of lots) {
+      const way = byId.get(lot.floorInstanceIds[0]).portals.find((p) => p.link?.kind === "leave");
+      const door = street.portals.find((p) => p.id === lot.doorPortalId);
+      const mass = street.rooms[0].blocks.find((b) => b.id === door.blockId);
+
+      expect(way.link.spawnAt).toEqual(lot.returnAt);
+      // it puts you outside the building, not inside it, and within a stride of its door
+      const [sx, , sz] = way.link.spawnAt;
+      expect(Math.abs(sx - mass.position[0]) > mass.size[0] / 2 || Math.abs(sz - mass.position[2]) > mass.size[2] / 2).toBe(true);
+      expect(Math.hypot(sx - door.position[0], sz - door.position[2])).toBeLessThan(2.5);
+
+      const rt = createRuntime();
+      rt.load(adventure, street.id, way.link);
+      expect(rt.getPlayer().position.x).toBeCloseTo(sx, 6);
+      expect(rt.getPlayer().position.z).toBeCloseTo(sz, 6);
+      expect(rt.getPlayer().yaw).toBeCloseTo(way.link.facing, 6);
+    }
   });
 
   it("populates every instance with a cast that lives in its rooms", () => {

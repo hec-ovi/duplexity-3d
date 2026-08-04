@@ -5,8 +5,10 @@
 // font atlas and a worker to render at all. A div sized in pixels is always legible, always the same
 // size, wraps like text, and can be styled with CSS.
 //
-// Each entry is projected from its world position to a screen position once a frame. Anything behind
-// the camera, or too far to read, is hidden.
+// A NAME hangs over whoever it belongs to, small and quiet, so you can tell people apart. What
+// someone SAYS goes in one panel at the bottom of the screen, like any other piece of UI: a line
+// that follows a walking NPC around is hard to read and ends up in your face when they stand next
+// to you.
 
 const MAX_DISTANCE = 28; // metres past which a name is not worth showing
 const STYLE_ID = "duplexity-labels-style";
@@ -14,11 +16,14 @@ const STYLE_ID = "duplexity-labels-style";
 const CSS = `
 .dx-labels { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 3; }
 .dx-label { position: absolute; transform: translate(-50%, -100%); text-align: center;
-  font: 13px/1.35 system-ui, sans-serif; color: #eef2f6; text-shadow: 0 1px 3px #000, 0 0 2px #000;
-  white-space: nowrap; }
-.dx-label .dx-says { display: block; max-width: 22ch; margin: 0 auto 4px; padding: 5px 9px;
-  background: rgba(12, 16, 22, 0.85); border: 1px solid rgba(159, 180, 194, 0.35); border-radius: 8px;
-  color: #f2f5f8; white-space: normal; text-align: left; }
+  font: 12px/1.3 system-ui, sans-serif; color: #d7dee6; text-shadow: 0 1px 3px #000, 0 0 2px #000;
+  white-space: nowrap; opacity: 0.82; }
+.dx-dialogue { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: min(560px, 76%); padding: 10px 14px; border-radius: 10px;
+  background: rgba(10, 13, 18, 0.86); border: 1px solid rgba(159, 180, 194, 0.28);
+  font: 14px/1.45 system-ui, sans-serif; color: #f2f5f8; display: none; }
+.dx-dialogue .dx-who { display: block; margin-bottom: 3px; font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #9fb4c2; }
 `;
 
 function ensureStyle(doc) {
@@ -42,20 +47,25 @@ export function createLabelsOverlay(container, { document: doc = globalThis.docu
   root.className = "dx-labels";
   container.appendChild(root);
 
-  const nodes = new Map(); // id -> { el, name, says }
+  const nodes = new Map(); // id -> { el, name }
+
+  // One panel, always in the same place: whoever spoke last, and what they said.
+  const dialogue = doc.createElement("div");
+  dialogue.className = "dx-dialogue";
+  const who = doc.createElement("span");
+  who.className = "dx-who";
+  const said = doc.createElement("span");
+  said.className = "dx-said";
+  dialogue.append(who, said);
+  root.appendChild(dialogue);
 
   function nodeFor(id) {
     let node = nodes.get(id);
     if (node) return node;
     const el = doc.createElement("div");
     el.className = "dx-label";
-    const says = doc.createElement("span");
-    says.className = "dx-says";
-    const name = doc.createElement("span");
-    name.className = "dx-name";
-    el.append(says, name);
     root.appendChild(el);
-    node = { el, name, says };
+    node = { el };
     nodes.set(id, node);
     return node;
   }
@@ -67,7 +77,9 @@ export function createLabelsOverlay(container, { document: doc = globalThis.docu
    */
   function sync(entries, camera, view) {
     const live = new Set();
+    let speaking = null;
     for (const entry of entries) {
+      if (entry.says) speaking = entry;
       const p = view.project(entry.position, entry.height ?? 1.8, camera);
       const node = nodeFor(entry.id);
       live.add(entry.id);
@@ -78,15 +90,19 @@ export function createLabelsOverlay(container, { document: doc = globalThis.docu
       node.el.style.display = "";
       node.el.style.left = `${p.x * view.width}px`;
       node.el.style.top = `${p.y * view.height}px`;
-      node.name.textContent = entry.name;
-      node.says.textContent = entry.says ?? "";
-      node.says.style.display = entry.says ? "" : "none";
+      node.el.textContent = entry.name;
     }
     for (const [id, node] of nodes) {
       if (!live.has(id)) {
         node.el.remove();
         nodes.delete(id);
       }
+    }
+
+    dialogue.style.display = speaking ? "" : "none";
+    if (speaking) {
+      who.textContent = speaking.name;
+      said.textContent = speaking.says;
     }
   }
 

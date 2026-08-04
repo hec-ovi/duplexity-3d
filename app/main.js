@@ -9,6 +9,7 @@ import { createApp } from "../layers/runtime/src/app.js";
 import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { paintSurface } from "../layers/surfaces/src/index.js";
+import { dressFacade } from "../layers/facade/src/index.js";
 import {
   buildWorldMap,
   createProgress,
@@ -92,6 +93,7 @@ const app = createApp({
   instanceId: worldMap.entry,
   registry: createRegistry(),
   paintSurface, // roads, pavements, concrete and every building's outside
+  dressFacade, // balconies, awnings and the cartel over each door
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
   onRoomChange: (_prev, next) => {
@@ -99,7 +101,7 @@ const app = createApp({
   },
   onTransit: ({ link }) => {
     run = enterInstance(run, worldMap, link.instanceId);
-    app.goTo(link.instanceId, { spawnRoomId: link.spawnRoomId });
+    app.goTo(link.instanceId, link); // the link says where to arrive, and which way to be looking
     showPlace();
   },
   // Redrawn each frame, so the overlay follows the player and reveals each room as it is walked into.

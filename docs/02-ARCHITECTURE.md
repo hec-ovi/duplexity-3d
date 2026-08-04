@@ -10,11 +10,12 @@ a code import.
 | Layer | Side | LLM? | Single responsibility |
 |---|---|---|---|
 | `ux-shell` | frontend | no | App chrome: menus, adventure browser, new/import/export, HUD frame. Isolated from the 3D canvas. |
-| `runtime` | frontend | no | Load and PLAY one instance in three.js: render, move, pathfind, animate, speech bubbles, goal checks, progression transitions. |
+| `runtime` | frontend | no | Load and PLAY one instance in three.js: render, move, pathfind, animate, light, lay names and speech over the canvas, goal checks, progression transitions. |
 | `interviewer` | backend | yes (skippable) | Turn player preferences (or nothing) into a **creative brief**. |
 | `narrator` | backend | yes + graph | Plan the **Adventure** from the brief (instances, goals, progression graph, NPC rosters). Own play-time instance init + interaction history. |
 | `scenario-creator` | backend | yes, structured, per-instance | Turn one instance spec into a geometrically valid 3D **layout** (rooms, portals, objects, spawns). Owns the geometry validator every generator is held to. |
 | `surfaces` | frontend | no | Paint what the city is made of: asphalt, paving, concrete, and a whole building's outside (windows, ledges, shopfront, parapet). Draws on a canvas the caller hands it; knows no three.js. |
+| `facade` | frontend | no | Dress one building: balconies, an awning, the cartel over its door, and what the place is called. Plain boxes in the building's own frame; knows no three.js. |
 | `city-planner` | backend | no | Lay one outdoor street level: open ground, a block lattice with premises on it, a front door per building you can enter, the entry point, the locked exit gate, and a `LotPlan` per building. |
 | `building-planner` | backend | no | Turn one `LotPlan` into the floors behind its door: rooms, interior doors, a stairwell, and a way back out. A house is a one-floor building. |
 | `map-state` | shared | no | The run's ledger: derive the world map from the Adventure, track what has been entered, cleared and seen, and decide what is open (including the exit gate). |

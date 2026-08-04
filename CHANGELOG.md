@@ -2,6 +2,26 @@
 
 What the project does now, newest first.
 
+## 0.7 - Places with names on them
+
+- `facade` is a new box: give it the shape of a building and it returns what is bolted to it, in the
+  building's own frame. Balconies on the storeys above the street, an awning over a shopfront, and
+  the cartel over the door with the name of the place lettered on it (MARU RECORDS, KESTREL & CO). A
+  tall building also gets a blade sign at right angles to the wall, so it reads from up the street.
+- A door is a door: a surround standing proud of the wall, a leaf set back in it, a handle and a
+  step. A door on a building's face has nothing cut out of it, so it is built rather than carved; an
+  interior doorway is a real hole and gets the surround alone.
+- You come out of the front door you went in by. A `LINK` now carries `spawnAt` and `facing`, so
+  leaving a building puts you on the pavement outside its own door, looking at the street. It used to
+  drop you in the middle of the room it named, which on open ground is the middle of the whole city.
+- A building's front is painted to fit its own walls: one sheet over the wide sides, one over the
+  narrow ones, a whole number of bays across each and one row per storey. Nothing tiles, so no window
+  is cut in half and no two buildings wear the same front.
+- A wet road is a mirror laid under the asphalt with the asphalt thinned over it, so what comes back
+  up the street is the lamps and the signs rather than a second city.
+- Names hang over NPCs, small and quiet. What someone says goes in one panel at the bottom of the
+  screen, in the same place every time, so a line is readable whether or not you can see who said it.
+
 ## 0.6 - Night
 
 - The city is lit. A lamp stands on each side of every block, a sign burns over every front door, and

@@ -286,6 +286,7 @@ export function buildSceneModel(instance) {
     axis: p.axis,
     center: vec3(p.position),
     size: p.size,
+    blockId: p.blockId ?? null, // set when the door is on a building's face rather than in a wall
     link: p.link ?? null,
     lock: p.lock ?? null,
   }));

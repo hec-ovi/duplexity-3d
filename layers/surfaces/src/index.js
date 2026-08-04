@@ -9,6 +9,7 @@
 import { createRng, hashString } from "./rng.js";
 import { paintConcrete, paintRoad, paintSlabs } from "./ground.js";
 import { paintFacadeAlbedo, paintFacadeEmissive, planFacade } from "./facade.js";
+import { paintSignAlbedo, paintSignEmissive, planSign } from "./sign.js";
 
 const TILE = 256; // pixels per ground tile
 
@@ -20,7 +21,7 @@ const GROUND = {
   concrete: { metres: 4, roughness: 0.95, metalness: 0 },
 };
 
-export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "facade"];
+export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "facade", "sign"];
 
 export class UnknownSurfaceError extends Error {
   constructor(kind) {
@@ -55,6 +56,9 @@ function contextFor(ctxFor, map, width, height) {
  * @param {number} [opts.litRatio]            facade: share of windows with a light on (default 0.45)
  * @param {string} [opts.program]             facade: what the building is for
  * @param {number} [opts.wet]                 road: 0 dry (default) to 1 soaked
+ * @param {string} [opts.text]                sign: what it says
+ * @param {string} [opts.colour]              sign: what colour it burns
+ * @param {number} [opts.metresTall]          sign: how tall the board is
  * @returns {object} SurfacePlan (schema: schema/surface-plan.json)
  */
 export function paintSurface(kind, ctxFor, opts = {}) {
@@ -85,6 +89,28 @@ export function paintSurface(kind, ctxFor, opts = {}) {
       lit: plan.windows.filter((w) => w.lit).length,
       // What colour this place burns over its door, so a light put there can match it.
       ...(plan.sign.lit ? { signColour: plan.sign.colour } : {}),
+    };
+  }
+
+  if (kind === "sign") {
+    const plan = planSign({
+      text: opts.text ?? "",
+      colour: opts.colour ?? "#ddc87e",
+      metresWide: opts.metresWide ?? 2,
+      metresTall: opts.metresTall ?? 0.7,
+    });
+    const albedo = contextFor(ctxFor, "albedo", plan.width, plan.height);
+    paintSignAlbedo(albedo, plan);
+    const emissive = contextFor(ctxFor, "emissive", plan.width, plan.height);
+    paintSignEmissive(emissive, plan);
+
+    return {
+      kind,
+      pixels: [plan.width, plan.height],
+      metres: plan.metres,
+      maps: { albedo, emissive },
+      material: { roughness: 0.5, metalness: 0.1, emissiveIntensity: 0.95 },
+      signColour: plan.colour,
     };
   }
 

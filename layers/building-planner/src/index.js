@@ -166,7 +166,17 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, qu
       roomB: goesBack ? "LINK" : "EXIT",
       ...faceOpening(arrival, outerFace(at, arrival, ["south", "west"]), WAY_OUT),
       ...(goesBack
-        ? { link: { instanceId: lot.returnInstanceId, spawnRoomId: lot.returnRoomId, kind: "leave" } }
+        ? {
+            link: {
+              instanceId: lot.returnInstanceId,
+              spawnRoomId: lot.returnRoomId,
+              // Out through the front, onto the pavement in front of this building, looking away
+              // from it. Without the exact spot you land in the middle of whatever room you named.
+              ...(lot.returnAt ? { spawnAt: lot.returnAt } : {}),
+              ...(lot.returnFacing === undefined ? {} : { facing: lot.returnFacing }),
+              kind: "leave",
+            },
+          }
         : {}),
     });
   } else {

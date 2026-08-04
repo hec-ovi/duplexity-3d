@@ -1,0 +1,55 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/facade/facade-parts.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FacadeParts",
+  "description": "What is bolted to one building, in ITS OWN frame: origin in the middle of its footprint, on the ground. Add the building's position and turn each part to the way it faces.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": ["string", "null"],
+      "description": "What the place is called, and what its cartel says. Null where a place has no sign (a house)."
+    },
+    "parts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/part" }
+    }
+  },
+  "required": ["name", "parts"],
+  "additionalProperties": false,
+  "$defs": {
+    "part": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["balcony", "awning", "sign"] },
+        "position": {
+          "type": "array",
+          "description": "Middle of the part, in the building's frame.",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "size": {
+          "type": "array",
+          "description": "[across the wall, up, out from the wall] in metres.",
+          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "facing": {
+          "type": "number",
+          "description": "Radians. Turn the part by this and its front points out of the wall it is on."
+        },
+        "rail": { "type": "number", "description": "balcony: how high the rail round it stands." },
+        "colour": { "type": "string", "description": "awning, sign: a CSS colour." },
+        "text": { "type": "string", "description": "sign: what it says." },
+        "orientation": {
+          "type": "string",
+          "enum": ["flat", "blade"],
+          "description": "sign: flat against the wall, or out at right angles so it reads down the street."
+        }
+      },
+      "required": ["kind", "position", "size", "facing"],
+      "additionalProperties": false
+    }
+  }
+}

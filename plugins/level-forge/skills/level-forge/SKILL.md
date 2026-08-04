@@ -232,6 +232,7 @@ reading its code.
 | Kits and generated assets | `layers/asset-registry/`, `layers/asset-gen/` |
 | Rendering, camera, collision, the blueprint overlay | `layers/runtime/` |
 | What things are made of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
+| What is bolted to a building: balconies, awnings, the cartel over the door | `layers/facade/` |
 | The command line itself | `tools/` |
 
 `docs/INDEX.md` is the full dispatcher. Rules that hold everywhere:

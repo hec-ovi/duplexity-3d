@@ -189,6 +189,7 @@ export function createRuntime(deps = {}) {
   const api = {
     // `opts.spawnRoomId` drops the player in the centre of that room instead of the instance's own
     // spawn: the far side of a door they just walked through (a street, a stair landing).
+    // `opts.spawnAt` / `opts.facing` place them exactly, which is what a front door onto a street uses.
     load(adventure, instanceId, opts = {}) {
       const instance = adventure.instances?.find((i) => i.id === instanceId);
       if (!instance || !instance.rooms?.length || !instance.spawn || !Array.isArray(instance.npcs)) {
@@ -231,16 +232,20 @@ export function createRuntime(deps = {}) {
         seqProgress: new Map(), // per-sequence-goal step index (ordered composites)
         goalMet: false,
       };
+      // Where you land. A door can name the exact spot (`spawnAt`), which is the only thing that
+      // works on open ground: the middle of a whole street is nowhere near the door you came out of.
       const arrival = opts.spawnRoomId
         ? model.rooms.find((r) => r.id === opts.spawnRoomId)
         : null;
       const spawn = model.spawn;
-      const at = arrival
-        ? { x: arrival.center.x, z: arrival.center.z }
-        : { x: spawn.position.x, z: spawn.position.z };
+      const at = opts.spawnAt
+        ? { x: opts.spawnAt[0], z: opts.spawnAt[2] }
+        : arrival
+          ? { x: arrival.center.x, z: arrival.center.z }
+          : { x: spawn.position.x, z: spawn.position.z };
       player = {
         position: { x: at.x, y: model.groundY, z: at.z },
-        yaw: spawn.facing,
+        yaw: opts.facing ?? spawn.facing,
         currentRoom: roomAt(model, at.x, at.z),
       };
       if (player.currentRoom) scene.visitedRooms.add(player.currentRoom);

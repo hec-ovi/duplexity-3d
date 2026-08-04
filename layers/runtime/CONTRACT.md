@@ -2,17 +2,22 @@
 
 ## Purpose
 Load and PLAY one instance in the browser with three.js. It renders, moves the player and NPCs,
-pathfinds, animates, draws in-scene speech bubbles and labels, checks goals locally, and triggers
+pathfinds, animates, lays names and speech over the canvas as HTML, checks goals locally, and triggers
 progression. It runs no LLM. It is the whole play-time engine minus the single interaction call.
 
 ## Inputs (params in)
 - `load(Adventure, instanceId, opts?)` - builds the scene from the Adventure document and
   `asset-registry`. Consumes the Adventure schema (owned by persistence) and the `Instance` within it.
   `opts.spawnRoomId` starts the player in that room instead of the instance spawn: the far side of a
-  door they just walked through.
+  door they just walked through. `opts.spawnAt` / `opts.facing` place them exactly, which is what
+  coming out of a building onto open ground needs: the middle of a whole street is nowhere near the
+  door you came out of.
 - player input - local (keyboard/mouse/touch/gamepad); never leaves the client.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
+- `deps.dressFacade(building) -> { name, parts }` - injected facade dresser, normally `facade`.
+  Given one, every building gets its balconies, its awning and the cartel over its door built from
+  the parts it returns. Absent, buildings are bare masses.
 - `deps.paintSurface(kind, ctxFor, opts) -> SurfacePlan` - injected surface painter, normally
   `surfaces`. Given one, the scene is textured: the road, the pavement, interior concrete, and every
   building wrapped in a facade of its own, each repeated at its true size in metres. Absent, every
@@ -31,14 +36,26 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   the next instance id (or done) and the runtime transitions.
 - `onTransit({ portalId, from, fromRoom, link })` - the player walked into an open door whose far side
   is another instance (a street door, a stairwell). Reported ONCE per door; the host loads
-  `link.instanceId` with `opts.spawnRoomId = link.spawnRoomId`. The runtime plays one instance at a
-  time and never loads the next one itself.
+  `link.instanceId` passing the `link` itself as the load options, since it carries where to arrive
+  (`spawnRoomId`, `spawnAt`) and which way to be looking (`facing`). The runtime plays one instance at
+  a time and never loads the next one itself.
 - `blueprint()` - the floor plan for the map overlay: `{ instanceId, label, mapKind, floor, player,
   rooms[], blocks[], doors[] }`, in world XZ metres. Each door carries its `kind`, its `to` instance,
   and whether it is `open` right now; `blocks[]` are the buildings standing on open ground. The
   overlay it feeds (`src/blueprint-hud.js`) keeps the player centred at a scale taken from the room
   they are IN, so discovering a room slides the map instead of rescaling it.
 - `getVisitedRooms()` - the rooms walked into so far, in first-entry order.
+
+## What it builds that the level does not describe
+A door on a building's face has nothing cut out of it: the mass is solid and what is inside is
+another instance. So the door is BUILT, not carved: a surround standing proud of the wall, a leaf set
+back in it, a handle and a step. An interior doorway is a real hole, so it gets the surround alone. A
+wet road is a mirror laid under the asphalt with the asphalt thinned over it, so what comes back is
+the lamps and the signs rather than a second city.
+
+Names and speech are HTML over the canvas, never glyphs in the scene. A NAME hangs over whoever it
+belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in the
+same place every time, so a line is readable whether or not you can see who said it.
 
 ## How it lights a place
 The level says where light STANDS (`room.lights[]`: a lamp on the pavement, a sign over a door, a
@@ -49,7 +66,7 @@ still there to look at, as glowing geometry that costs nothing. Outdoors is nigh
 end of the street fades into; indoors is the room's own lamps over a dim fill. The renderer tone maps
 (ACES) and blooms over what is brighter than the scene, so a sign glows into the air around it.
 
-The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, { spawnRoomId })`
+The browser shell (`src/app.js`) adds two host hooks on top: `goTo(instanceId, link)`
 rebuilds the scene in another instance (disposing the one it leaves), and `onFrame(dt)` fires after
 every tick so a host can draw a HUD outside the 3D scene. `src/blueprint-hud.js` is that HUD: it draws
 a `blueprint()` onto a 2D canvas context.
@@ -57,8 +74,8 @@ a `blueprint()` onto a 2D canvas context.
 ## Responsibilities (all local, no backend)
 Rendering, camera, controls, collision, portal traversal between rooms, NPC deterministic mode
 behavior (idle/wander/patrol/move_to/follow/guard/flee/attack/talk), navmesh pathfinding, animation
-state machine, billboarded speech bubbles + name labels, HUD readouts, goal evaluation each tick,
-positional audio.
+state machine, the name tags and the dialogue panel over the canvas, HUD readouts, goal evaluation
+each tick, positional audio.
 
 ## Errors
 - `ASSET_LOAD_FAILED` - a referenced asset id could not load; substitute a placeholder and warn (do
@@ -79,8 +96,8 @@ positional audio.
 
 ## Dependencies (contracts only)
 - Adventure schema + `Instance` (persistence), `InteractionResult` + `selfContext` schemas (npc),
-  `asset-registry` (load assets by id), `surfaces` (`paintSurface`, injected). It imports no backend
-  code and no other layer's `src/`.
+  `asset-registry` (load assets by id), `surfaces` (`paintSurface`) and `facade` (`dressFacade`),
+  both injected. It imports no backend code and no other layer's `src/`.
 
 ## How to modify this blackbox safely
 Swap the render approach, controls, pathfinding lib, animation, or bubble library inside this

@@ -20,6 +20,7 @@ const SKY = 60; // how high the invisible limit reaches, metres: taller than any
 const STOREY = 3.2; // a building's mass grows this much per floor it holds
 const PARAPET = 1; // and carries this much past its top floor
 const DOOR = [2, 3];
+const STEP_OUT = 1.8; // how far in front of its own door the way out of a building leaves you
 const GATE = [6, 4];
 const GROUND_ROOM = "ground";
 
@@ -100,6 +101,9 @@ export function createStreets(spec, assetQuery, opts = {}) {
       link: { instanceId: floorInstanceIds[0], spawnRoomId: "entry", kind: "enter" },
     });
     doors.push({ id: doorPortalId, blockId, position: opening.position, face: p.face });
+    // Where the way out puts you: on the pavement in front of this door, looking away from it.
+    const [ox, , oz] = opening.position;
+    const returnAt = [ox + p.face.dx * STEP_OUT, 0, oz + p.face.dz * STEP_OUT];
 
     lots.push({
       lotId: p.id,
@@ -112,6 +116,8 @@ export function createStreets(spec, assetQuery, opts = {}) {
       returnInstanceId: spec.id,
       returnRoomId: GROUND_ROOM,
       doorPortalId,
+      returnAt,
+      returnFacing: Math.atan2(-p.face.dx, -p.face.dz),
       footprint: p.footprint,
       ...(p.quest ? { quest: p.quest } : {}),
     });

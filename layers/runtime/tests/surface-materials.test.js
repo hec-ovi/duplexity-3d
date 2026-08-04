@@ -59,7 +59,7 @@ describe("surface materials", () => {
     expect(painter.asked.map((a) => a.opts.seed)).toEqual(["pavement", "plaza"]);
   });
 
-  it("wraps a building in its own facade: four sides that glow, a plain roof", () => {
+  it("wraps a building in a facade painted to fit its own walls, and a plain roof", () => {
     const { painter, materials } = make();
     const faces = materials.block({
       id: "mass-ashgate-b1",
@@ -69,12 +69,16 @@ describe("surface materials", () => {
     });
 
     expect(faces).toHaveLength(6);
+    // one sheet for the wide walls, one for the narrow ones, each painted to that wall's frontage
+    expect(painter.asked.map((a) => a.opts.metresWide)).toEqual([12, 6]);
     expect(painter.asked[0].opts).toMatchObject({ seed: "mass-ashgate-b1", floors: 6, program: "office" });
-    expect(painter.asked[0].opts.metresWide).toBe(12); // the widest frontage
 
     const [px, , roof] = faces;
-    expect(px.map.repeat.x).toBeCloseTo(6 / 12, 6); // the narrow side, scaled to itself
-    expect(faces[4].map.repeat.x).toBeCloseTo(12 / 12, 6); // the wide side
+    // nothing tiles: a wall wears one whole sheet, so no window is ever cut in half
+    expect(px.map.repeat.x).toBeCloseTo(1, 6);
+    expect(px.map.repeat.y).toBeCloseTo(1, 6);
+    expect(faces[4].map.repeat.x).toBeCloseTo(1, 6);
+    expect(faces[4].map).not.toBe(px.map); // and the two sides are not the same sheet
     expect(px.emissiveMap).toBeTruthy();
     expect(px.emissiveIntensity).toBeCloseTo(1.4, 6);
     expect(roof.map).toBeFalsy();

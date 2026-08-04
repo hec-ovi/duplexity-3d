@@ -91,6 +91,14 @@
           "type": "string",
           "description": "Room to arrive in on the far side. Omitted means that instance's own spawn."
         },
+        "spawnAt": {
+          "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json",
+          "description": "Exact point to arrive at, in the far side's coordinates. Omitted means the middle of the arrival room, which is only useful when that room is small. Coming out of a building onto open ground, this is the pavement outside its own front door."
+        },
+        "facing": {
+          "type": "number",
+          "description": "Which way to be looking on arrival, in radians. Omitted keeps the instance's own spawn facing."
+        },
         "kind": {
           "type": "string",
           "enum": [

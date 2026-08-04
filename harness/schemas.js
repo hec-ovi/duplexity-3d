@@ -89,6 +89,9 @@ export const SCHEMA_ID = {
   surfaces: {
     surfacePlan: `${BASE}/surfaces/surface-plan.json`,
   },
+  facade: {
+    facadeParts: `${BASE}/facade/facade-parts.json`,
+  },
 };
 
 function collectSchemaFiles() {
