@@ -110,6 +110,59 @@ describe("scenario-creator - the validator rejects broken geometry (adversarial 
     expect(report.ok).toBe(false);
   });
 
+  it("holds a one-sided door (EXIT, or LINK into another instance) to the wall it does have", () => {
+    // One room, 6x6 at the origin: its west wall is x=-3. A door leading somewhere else still has to
+    // sit on that wall, and still has to be a hole the runtime can cut.
+    const mk = (roomB, x, extra = {}) => ({
+      id: "x",
+      theme: "t",
+      rooms: [{ id: "a", position: [0, 0, 0], size: [6, 3, 6], floorKit: "f", wallKit: "w" }],
+      portals: [
+        { id: "p1", roomA: "a", roomB, position: [x, 0, 0], axis: "x", size: [1.5, 2.4], ...extra },
+      ],
+      spawn: { position: [0, 0, 0], facing: 0 },
+    });
+    const link = { link: { instanceId: "other", kind: "enter" } };
+
+    expect(validateLayout(mk("LINK", -3, link)).ok).toBe(true);
+    expect(validateLayout(mk("EXIT", -3)).ok).toBe(true);
+    // floating off the wall: rejected the same way a room-to-room portal would be.
+    expect(
+      validateLayout(mk("LINK", -1, link)).checks.find((c) => c.name === "portals_aligned").ok
+    ).toBe(false);
+    // it joins no rooms, so it can never stand in for connectivity.
+    expect(validateLayout(mk("LINK", -3, link)).checks.find((c) => c.name === "full_connectivity").ok).toBe(true);
+  });
+
+  it("rejects a one-sided door put on an interior wall, where only one side would be cut open", () => {
+    // Two rooms sharing the wall at x=3. A door leading to another instance placed THERE would be
+    // cut out of one room's wall and not the other's, since shared walls are deduped by geometry.
+    const bad = {
+      id: "x",
+      theme: "t",
+      rooms: [
+        { id: "a", position: [0, 0, 0], size: [6, 3, 6], floorKit: "f", wallKit: "w" },
+        { id: "b", position: [6, 0, 0], size: [6, 3, 6], floorKit: "f", wallKit: "w" },
+      ],
+      portals: [
+        { id: "join", roomA: "a", roomB: "b", position: [3, 0, 0], axis: "x", size: [1.5, 2.4] },
+        {
+          id: "stairs",
+          roomA: "a",
+          roomB: "LINK",
+          position: [3, 0, 2],
+          axis: "x",
+          size: [1.2, 2.4],
+          link: { instanceId: "floor-2", kind: "stairs_up" },
+        },
+      ],
+      spawn: { position: [0, 0, 0], facing: 0 },
+    };
+    const report = validateLayout(bad);
+    expect(report.checks.find((c) => c.name === "one_sided_portals_outer").ok).toBe(false);
+    expect(report.ok).toBe(false);
+  });
+
   it("rejects a degenerate zero-width portal the runtime would leave sealed", () => {
     // The shared wall is x=3 and the plane/span/height are all fine, but a width <= the runtime's
     // cut gate (subtractOpenings' 1e-3 EPS) means the doorway is never actually cut: a solid wall.

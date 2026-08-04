@@ -1,0 +1,34 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/city-planner/city-spec.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CitySpec",
+  "description": "What street level to build. Everything but id and theme has a default, so the smallest useful spec is { id, theme }.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "description": "Instance id of the street level." },
+    "theme": { "type": "string", "description": "Kit theme, resolved against asset-registry." },
+    "label": { "type": "string", "description": "Name shown on the map overlay." },
+    "sizeHint": {
+      "type": "string",
+      "enum": ["small", "medium", "large"],
+      "description": "How much road: 3, 5 or 7 segments plus side streets. Default medium."
+    },
+    "lots": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many front doors to place. Default: one per two segments, at least one."
+    },
+    "floorsPerLot": {
+      "type": "array",
+      "description": "Floor count per lot, in order. Short lists repeat their last value; omitted means every lot is a single floor.",
+      "items": { "type": "integer", "minimum": 1 }
+    },
+    "exit": {
+      "type": "boolean",
+      "description": "Place the locked exit gate. Default true. False builds a street with no way to win."
+    },
+    "seed": { "type": "integer" }
+  },
+  "required": ["id", "theme"],
+  "additionalProperties": false
+}

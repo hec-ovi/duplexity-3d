@@ -82,6 +82,10 @@ export const SCHEMA_ID = {
     worldMap: `${BASE}/map-state/world-map.json`,
     mapProgress: `${BASE}/map-state/map-progress.json`,
   },
+  cityPlanner: {
+    citySpec: `${BASE}/city-planner/city-spec.json`,
+    lotPlan: `${BASE}/city-planner/lot-plan.json`,
+  },
 };
 
 function collectSchemaFiles() {

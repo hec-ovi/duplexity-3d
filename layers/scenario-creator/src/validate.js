@@ -4,6 +4,10 @@
 // hand-built broken fixtures (overlapping rooms, unaligned portals, unreachable goal).
 
 const EPS = 1e-4;
+// Portals with only ONE room behind them: the far side is outside the level ("EXIT") or is another
+// instance entirely ("LINK": a street door, a stairwell). They are held to the same wall-alignment
+// rule on the room they DO have, and they join no rooms for connectivity.
+const ONE_SIDED = new Set(["EXIT", "LINK"]);
 // The runtime seals (does not cut) any doorway whose opening width is <= its own EPS: see
 // scene-model.subtractOpenings, which skips an opening with `ob - oa <= 1e-3`. The validator must
 // reject an opening the runtime cannot cut, or it would pass a layout with a sealed doorway.
@@ -72,7 +76,7 @@ function roomOf(boxes, x, z) {
 function reachableRooms(instance, startRoom) {
   const adj = new Map((instance.rooms ?? []).map((r) => [r.id, []]));
   for (const p of instance.portals ?? []) {
-    if (p.roomB === "EXIT") continue;
+    if (ONE_SIDED.has(p.roomB)) continue;
     if (adj.has(p.roomA) && adj.has(p.roomB)) {
       adj.get(p.roomA).push(p.roomB);
       adj.get(p.roomB).push(p.roomA);
@@ -122,7 +126,7 @@ export function validateLayout(instance) {
   checks.push(mkCheck("no_room_overlap", overlapOk, overlapDetail));
 
   // every portal names real rooms (or EXIT).
-  const refOk = portals.every((p) => ids.has(p.roomA) && (p.roomB === "EXIT" || ids.has(p.roomB)));
+  const refOk = portals.every((p) => ids.has(p.roomA) && (ONE_SIDED.has(p.roomB) || ids.has(p.roomB)));
   checks.push(mkCheck("portals_reference_rooms", refOk));
 
   // every portal opening lies on a wall face of BOTH rooms it joins (or the one room + EXIT).
@@ -131,7 +135,7 @@ export function validateLayout(instance) {
   let alignedDetail;
   for (const p of portals) {
     const a = boxById.get(p.roomA);
-    const bOk = p.roomB === "EXIT" || (boxById.get(p.roomB) && openingOnRoom(p, boxById.get(p.roomB)));
+    const bOk = ONE_SIDED.has(p.roomB) || (boxById.get(p.roomB) && openingOnRoom(p, boxById.get(p.roomB)));
     if (!a || !openingOnRoom(p, a) || !bOk) {
       alignedOk = false;
       alignedDetail = `portal ${p.id ?? "?"} is not aligned on both room walls`;
@@ -139,6 +143,22 @@ export function validateLayout(instance) {
     }
   }
   checks.push(mkCheck("portals_aligned", alignedOk));
+
+  // A one-sided portal has to sit on an OUTER wall. On a wall shared with another room, the runtime
+  // would cut the doorway out of one room's wall and not the other's (shared walls are deduped by
+  // geometry, so whichever piece was built first wins), leaving a hole that depends on build order.
+  let outerOk = true;
+  let outerDetail;
+  for (const p of portals) {
+    if (!ONE_SIDED.has(p.roomB)) continue;
+    const clash = boxes.find((b) => b.id !== p.roomA && openingOnRoom(p, b));
+    if (clash) {
+      outerOk = false;
+      outerDetail = `portal ${p.id ?? "?"} leads out of the level but sits on the wall shared with ${clash.id}`;
+      break;
+    }
+  }
+  checks.push(mkCheck("one_sided_portals_outer", outerOk, outerDetail));
 
   // every room is reachable from the spawn room through portals.
   const spawnRoom = instance.spawn

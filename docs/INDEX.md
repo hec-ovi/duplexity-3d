@@ -27,6 +27,8 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | NPC data model (personality, body, allowed actions, memory, voice design) | `layers/npc/` |
 | Turning an NPC line into speech, or a spoken player turn into text (TTS/STT, emotion tags) | `layers/voice/` |
 | How rooms/doors/positions are laid out and validated | `layers/scenario-creator/` |
+| Streets, blocks, front doors, the entry point and the exit gate | `layers/city-planner/` |
+| Floors behind a door, room mixes, stairwells, houses | `layers/building-planner/` |
 | How many instances, goals, progression graph, adventure planning | `layers/narrator/` |
 | What the run has unlocked/cleared, whether the exit gate opens, what the map overlay may reveal | `layers/map-state/` |
 | The onboarding interview / creative brief / skip flow | `layers/interviewer/` |
@@ -39,10 +41,13 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The `POST /adventure` author, `POST /interaction` brain, or `GET/POST` export/import routes | `server/` (backend composition root) |
 | The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
 
-`app/` and `server/` are the two composition roots. They live OUTSIDE `layers/` and are the only
+| Generating a level from the command line (the agent-facing toolkit) | `tools/` |
+
+`app/`, `server/` and `tools/` are the composition roots. They live OUTSIDE `layers/` and are the only
 places allowed to import several layers at once (the isolation checker does not scan them): `app/`
 wires the play-time browser slice, `server/` wires the backend HTTP API (author-time `POST /adventure`
-plus play-time `POST /interaction`, over one shared store).
+plus play-time `POST /interaction`, over one shared store), and `tools/` wires the level generators
+behind one command line.
 
 ## The rule you carry into any folder
 

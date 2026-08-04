@@ -11,6 +11,10 @@ sandboxed to its instance's theme and domain (its own context, its own agent).
   - `InstanceSpec` (from narrator): `{ id, theme, sizeHint, mood, goalSpec, npcRoster[], connectionHints }`.
     schema: `schema/instance-spec.json`
   - `assetQuery` is a handle to `asset-registry.query` (dependency-injected; not an internal import).
+- `validateLayout(instance) -> ValidationReport` - the geometry proof on its own, for any layout from
+  anywhere (a city street, a building floor, a hand-authored fixture). This layer owns what "a correct
+  map" means, so every generator is held to the same bar rather than writing its own checks. It is
+  robust to partial input: a missing spawn or goal is simply not checked.
   - `opts` (all optional): `graphGen(spec, seed) -> RoomGraph` is the abstract-graph generator (the
     LLM stand-in), injected the same way; it defaults to a deterministic stand-in and Phase 5/6 wires
     a grammar-constrained local model in here. `seed` (default: hash of the instance id) and
@@ -55,7 +59,9 @@ this same `RoomGraph -> Instance` seam; the grid solver is the valid-by-construc
 ## Invariants this layer will never break
 - No two rooms overlap.
 - Every room is reachable from `spawn` through portals (full connectivity).
-- Every portal is aligned on a wall of BOTH rooms it connects and is walkable (no blocking prop).
+- Every portal is aligned on a wall of BOTH rooms it connects and is walkable (no blocking prop). A
+  one-sided portal (`roomB` is `"EXIT"` or `"LINK"`, the latter leading to another instance) is held
+  to the same alignment on the one room it has, and joins no rooms for connectivity.
 - The goal is satisfiable: its target room/item/NPC location is reachable from spawn.
 - Output validates against `instance.json`; an invalid layout is never returned.
 
