@@ -12,6 +12,7 @@ import { paintFacadeAlbedo, paintFacadeEmissive, planFacade } from "./facade.js"
 import { paintSignAlbedo, paintSignEmissive, planSign } from "./sign.js";
 import { paintWindowAlbedo, paintWindowEmissive, planWindow } from "./window.js";
 import { paintAdvertAlbedo, paintAdvertEmissive, planAdvert } from "./advert.js";
+import { paintTowerAlbedo, paintTowerEmissive, planTower } from "./tower.js";
 import MANIFEST from "../materials/manifest.json" with { type: "json" };
 
 const TILE = 256; // pixels per ground tile
@@ -27,7 +28,7 @@ const GROUND = {
   ceiling: { metres: 2.4, roughness: 0.96, metalness: 0 },
 };
 
-export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "window", "advert", "sign"];
+export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "tower", "window", "advert", "sign"];
 
 /**
  * The photographed material for a surface, if one is catalogued: a set of map FILE NAMES relative to
@@ -122,6 +123,22 @@ export function paintSurface(kind, ctxFor, opts = {}) {
       lit: plan.windows.filter((w) => w.lit).length,
       // What colour this place burns over its door, so a light put there can match it.
       ...(plan.sign.lit ? { signColour: plan.sign.colour } : {}),
+    };
+  }
+
+  if (kind === "tower") {
+    const plan = planTower({ litRatio: opts.litRatio ?? 0.4 }, rng);
+    const albedo = contextFor(ctxFor, "albedo", plan.width, plan.height);
+    paintTowerAlbedo(albedo, plan, rng);
+    const emissive = contextFor(ctxFor, "emissive", plan.width, plan.height);
+    paintTowerEmissive(emissive, plan);
+    return {
+      kind,
+      pixels: [plan.width, plan.height],
+      // one sheet is this many storeys tall and this many windows wide, in metres
+      metres: [(opts.storeyHeight ?? 3.2) * 1.1 * 10, (opts.storeyHeight ?? 3.2) * plan.storeys],
+      maps: { albedo, emissive },
+      material: { roughness: 0.8, metalness: 0.05, emissiveIntensity: 0.75 },
     };
   }
 

@@ -10,6 +10,16 @@
 import * as THREE from "three";
 
 const ZONE_SURFACE = { road: "road", sidewalk: "pavement", plaza: "plaza" };
+
+// FNV-1a, so a tower always draws the same one of the few sheets.
+function hash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < String(str).length; i++) {
+    h ^= String(str).charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h | 0;
+}
 const ANISOTROPY = 4;
 
 /**
@@ -103,8 +113,8 @@ export function createSurfaceMaterials({
   }
 
   // One material for a surface covering `spanX` by `spanY` metres, repeating at its own scale.
-  function materialFor(plan, spanX, spanY, tint) {
-    const [mx, my] = plan.metres;
+  function materialFor(plan, spanX, spanY, tint, over) {
+    const [mx, my] = over ?? plan.metres;
     const material = new THREE.MeshStandardMaterial({
       color: tint ?? 0xffffff,
       map: textureOf(plan.maps.albedo, spanX / mx, spanY / my),
@@ -203,6 +213,17 @@ export function createSurfaceMaterials({
       });
       if (!windowMats.has(key)) windowMats.set(key, materialFor(plan, plan.metres[0], plan.metres[1]));
       return windowMats.get(key);
+    },
+
+    /**
+     * A tower in the skyline: its whole front on one sheet, windows painted in. Up close a window is
+     * its own object; at three hundred metres that is thousands of objects nobody can see.
+     */
+    tower(far) {
+      const variant = Math.abs(hash(far.id)) % 4;
+      const plan = planFor(`tower:${variant}`, "tower", { seed: `tower-${variant}`, litRatio: 0.42 });
+      const [mx, my] = plan.metres;
+      return materialFor(plan, Math.max(far.size.x, far.size.z), far.size.y, undefined, [mx, my]);
     },
 
     /** A holo advert: a lit panel, read off its front. */

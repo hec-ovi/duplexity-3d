@@ -141,7 +141,7 @@ function sizeFor(registry, ref, fallback, warn) {
 export function buildInstanceObject3D(model, { registry, materials, dressFacade, warn = console.warn } = {}) {
   const group = new THREE.Group();
   group.name = `instance:${model.instanceId}`;
-  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, doors: 0, parts: 0, lights: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
+  const counts = { floors: 0, walls: 0, blocks: 0, zones: 0, doors: 0, parts: 0, lights: 0, skyline: 0, objects: 0, items: 0, npcs: 0, placeholders: 0 };
 
   const floorMat = standard(COLORS.floor);
   const floorAltMat = standard(COLORS.floorAlt);
@@ -153,6 +153,9 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     plaza: standard(COLORS.plaza),
   };
   const bandMat = standard(COLORS.band);
+  // Every building's parts, gathered in world metres and built in ONE pass at the end, so a window
+  // on one building and the same window on another are drawn together.
+  const cityParts = [];
   const objectMat = standard(COLORS.object);
   const itemMat = standard(COLORS.item, 0x6b5410);
 
@@ -254,13 +257,12 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     }
     counts.blocks++;
     if (!dressed) continue;
-    const parts = buildFacadeParts(dressed.parts, foot, {
-      signMaterial: materials ? (part) => materials.sign(part) : undefined,
-      windowMaterial: materials ? (part) => materials.window(part) : undefined,
-      advertMaterial: materials ? (part) => materials.advert(part) : undefined,
-    });
-    parts.name = `dressing:${b.id}`;
-    group.add(parts);
+    for (const part of dressed.parts) {
+      cityParts.push({
+        ...part,
+        position: [foot.x + part.position[0], foot.y + part.position[1], foot.z + part.position[2]],
+      });
+    }
     counts.parts += dressed.parts.length;
   }
 
@@ -286,34 +288,28 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
 
   // The city past the last block: masses you can see and never reach, wearing windows and the odd
   // advert so the skyline is lit rather than a row of silhouettes.
+  // The skyline: one mesh each, wearing one sheet with its windows painted into it. Dressing these
+  // the way a building on the street is dressed is tens of thousands of objects nobody can see.
   for (const far of model.skyline ?? []) {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(far.size.x, far.size.y, far.size.z),
-      materials?.block(far) ?? blockMat
+      materials?.tower(far) ?? blockMat
     );
     mesh.position.set(far.center.x, far.center.y, far.center.z);
     mesh.name = `skyline:${far.id}`;
+    mesh.userData = { kind: "skyline" };
     group.add(mesh);
-    counts.blocks++;
-    if (!dressFacade) continue;
-    const dressed = dressFacade({
-      id: far.id,
-      seed: far.id,
-      size: { w: far.size.x, h: far.size.y, d: far.size.z },
-      floors: far.floors ?? undefined,
-      storeyHeight: far.floors ? far.size.y / far.floors : undefined,
-      program: "office",
-    });
-    const parts = buildFacadeParts(dressed.parts, {
-      x: far.center.x,
-      y: far.center.y - far.size.y / 2,
-      z: far.center.z,
-    }, {
-      windowMaterial: materials ? (part) => materials.window(part) : undefined,
-      advertMaterial: materials ? (part) => materials.advert(part) : undefined,
-    });
-    parts.name = `skyline-parts:${far.id}`;
-    group.add(parts);
+    counts.skyline++;
+  }
+
+  if (cityParts.length) {
+    group.add(
+      buildFacadeParts(cityParts, {
+        signMaterial: materials ? (part) => materials.sign(part) : undefined,
+        windowMaterial: materials ? (part) => materials.window(part) : undefined,
+        advertMaterial: materials ? (part) => materials.advert(part) : undefined,
+      })
+    );
   }
 
   // Lamps and signs. Only their glow is drawn here; which of them are real lights at any moment is
@@ -404,7 +400,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // Everything solid throws a shadow and takes one; the glowing bits do neither, since a lamp head
   // casting its own shadow only ever looks wrong.
   group.traverse((node) => {
-    if (!node.isMesh || node.userData.kind === "light") return;
+    if (!node.isMesh || node.userData.kind === "light" || node.userData.kind === "skyline") return;
     node.castShadow = true;
     node.receiveShadow = true;
   });
