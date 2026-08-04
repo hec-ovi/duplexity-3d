@@ -102,7 +102,16 @@ function insideBlock(blocks, x, z) {
   });
 }
 
-function spawnInRoom(room, index) {
+const CLEAR_OF_PLAYER = 2.5; // metres: nobody is standing in your face when you walk in
+
+// Is this spot far enough from where the player arrives? Standing on top of them fills the screen
+// with a body and makes a small room unreadable.
+function clearOfArrival(x, z, arrival) {
+  if (!arrival) return true;
+  return Math.hypot(x - arrival[0], z - arrival[2]) >= CLEAR_OF_PLAYER;
+}
+
+function spawnInRoom(room, index, arrival) {
   const p = room?.position;
   if (!Array.isArray(p)) return { position: [0, 0, 0], facing: 0 };
   const [w, , d] = room.size ?? [];
@@ -119,7 +128,7 @@ function spawnInRoom(room, index) {
       const t = index * 32 + k + 1;
       const x = zx + (frac(t * R2_X) - 0.5) * zw;
       const z = zz + (frac(t * R2_Y) - 0.5) * zd;
-      if (!insideBlock(room.blocks, x, z)) {
+      if (!insideBlock(room.blocks, x, z) && clearOfArrival(x, z, arrival)) {
         return { position: [x, p[1], z], facing: frac(t * R2_X) * Math.PI * 2 };
       }
     }
@@ -131,7 +140,7 @@ function spawnInRoom(room, index) {
     const t = index * 32 + k + 1;
     const x = p[0] + (frac(t * R2_X) - 0.5) * spanX;
     const z = p[2] + (frac(t * R2_Y) - 0.5) * spanZ;
-    if (!insideBlock(room.blocks, x, z)) {
+    if (!insideBlock(room.blocks, x, z) && clearOfArrival(x, z, arrival)) {
       return { position: [x, p[1], z], facing: frac(t * R2_X) * Math.PI * 2 };
     }
   }
@@ -199,7 +208,7 @@ export function authorNpcs(instanceContext, rosterSpec, deps = {}) {
       allowedModes,
       bodyRef: body.bodyRef,
       homeRoom: home?.id ?? "room-1",
-      spawn: spawnInRoom(home, i),
+      spawn: spawnInRoom(home, i, instanceContext?.spawn?.position),
       voiceDesign,
       traits: [],
       startMode: startModeFor(disposition, allowedModes),

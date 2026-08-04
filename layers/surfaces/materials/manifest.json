@@ -1,0 +1,57 @@
+{
+  "note": "Photographed materials this layer can use instead of painting one. Every entry is CC0 (public domain) from Poly Haven, fetched by `npm run textures` into the app's public folder. Without them the painted canvas surfaces are used, so the project runs either way.",
+  "source": "https://polyhaven.com",
+  "licence": "CC0-1.0",
+  "resolution": "1k",
+  "materials": {
+    "road": {
+      "slug": "asphalt_02",
+      "metres": 3,
+      "roughness": 0.92,
+      "metalness": 0.02,
+      "credit": "Poly Haven - asphalt_02 (CC0)"
+    },
+    "pavement": {
+      "slug": "concrete_pavement",
+      "metres": 1.8,
+      "roughness": 0.9,
+      "metalness": 0.02,
+      "credit": "Poly Haven - concrete_pavement (CC0)"
+    },
+    "plaza": {
+      "slug": "concrete_pavement",
+      "metres": 2.8,
+      "roughness": 0.9,
+      "metalness": 0.02,
+      "credit": "Poly Haven - concrete_pavement (CC0)"
+    },
+    "floor": {
+      "slug": "floor_tiles_06",
+      "metres": 3,
+      "roughness": 0.55,
+      "metalness": 0.04,
+      "credit": "Poly Haven - floor_tiles_06 (CC0)"
+    },
+    "wall": {
+      "slug": "painted_plaster_wall",
+      "metres": 2,
+      "roughness": 0.95,
+      "metalness": 0,
+      "credit": "Poly Haven - painted_plaster_wall (CC0)"
+    },
+    "ceiling": {
+      "slug": "ceiling_interior",
+      "metres": 2,
+      "roughness": 0.96,
+      "metalness": 0,
+      "credit": "Poly Haven - ceiling_interior (CC0)"
+    },
+    "concrete": {
+      "slug": "concrete_wall_008",
+      "metres": 2.7,
+      "roughness": 0.94,
+      "metalness": 0.02,
+      "credit": "Poly Haven - concrete_wall_008 (CC0)"
+    }
+  }
+}

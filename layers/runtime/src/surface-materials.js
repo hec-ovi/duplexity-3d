@@ -19,11 +19,64 @@ const ANISOTROPY = 4;
  * @param {Document} [deps.document]
  * @returns {object|null} the cache, or null when there is nothing to paint with
  */
-export function createSurfaceMaterials({ paintSurface, wet = 0, document: doc = globalThis.document } = {}) {
+export function createSurfaceMaterials({
+  paintSurface,
+  photoSurface,
+  textureBase,
+  wet = 0,
+  document: doc = globalThis.document,
+} = {}) {
   if (typeof paintSurface !== "function" || typeof doc?.createElement !== "function") return null;
 
   const plans = new Map(); // painted once per key, reused at every size it is needed
+  const loaded = new Map(); // one loaded image per file, however many surfaces are cut from it
   const textures = [];
+  const loader = textureBase ? new THREE.TextureLoader() : null;
+
+  // A photographed material, if one is catalogued for this surface and the files are there. The
+  // images are loaded once and cloned per surface, so each keeps its own repeat.
+  function photoFor(kind) {
+    if (!loader || typeof photoSurface !== "function") return null;
+    return photoSurface(kind);
+  }
+
+  function imageFor(file) {
+    if (!loaded.has(file)) loaded.set(file, loader.load(`${textureBase}/${file}`));
+    return loaded.get(file);
+  }
+
+  function mapped(file, repeatX, repeatY, colour) {
+    const texture = imageFor(file).clone();
+    texture.needsUpdate = true;
+    if (colour) texture.colorSpace = THREE.SRGBColorSpace; // albedo is colour; the rest is data
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    texture.anisotropy = ANISOTROPY;
+    textures.push(texture);
+    return texture;
+  }
+
+  function photoMaterial(photo, spanX, spanY, tint) {
+    const [mx, my] = photo.metres;
+    const repeat = [spanX / mx, spanY / my];
+    const material = new THREE.MeshStandardMaterial({
+      color: tint ?? 0xffffff,
+      map: mapped(photo.maps.albedo, ...repeat, true),
+      roughness: photo.material.roughness,
+      metalness: photo.material.metalness,
+    });
+    if (photo.maps.normal) material.normalMap = mapped(photo.maps.normal, ...repeat);
+    // One image carries ambient occlusion, roughness and metalness, one per channel, which is how
+    // three.js reads them: red, green, blue.
+    if (photo.maps.arm) {
+      const arm = mapped(photo.maps.arm, ...repeat);
+      material.aoMap = arm;
+      material.roughnessMap = arm;
+      material.metalnessMap = arm;
+    }
+    return material;
+  }
 
   const ctxFor = (map, w, h) => {
     const canvas = doc.createElement("canvas");
@@ -69,12 +122,17 @@ export function createSurfaceMaterials({ paintSurface, wet = 0, document: doc = 
     /** Ground you walk on: a floor, a roadway, a pavement. `kind` is a zone kind or "concrete". */
     ground(kind, spanX, spanZ, tint) {
       const surface = ZONE_SURFACE[kind] ?? kind;
+      // Wet asphalt is painted, not photographed: the standing water is what the parameter changes.
+      const photo = surface === "road" && wet > 0 ? null : photoFor(surface);
+      if (photo) return photoMaterial(photo, spanX, spanZ, tint);
       return materialFor(planFor(surface, surface, { seed: surface, wet }), spanX, spanZ, tint);
     },
 
-    /** An interior wall: the same concrete, scaled to the wall rather than to the floor. */
+    /** An interior wall, scaled to the wall rather than to the floor. */
     wall(spanX, spanY, tint) {
-      return materialFor(planFor("concrete", "concrete", { seed: "concrete" }), spanX, spanY, tint);
+      const photo = photoFor("wall");
+      if (photo) return photoMaterial(photo, spanX, spanY, tint);
+      return materialFor(planFor("wall", "wall", { seed: "wall" }), spanX, spanY, tint);
     },
 
     /**

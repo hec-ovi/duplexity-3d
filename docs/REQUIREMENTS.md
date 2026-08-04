@@ -90,3 +90,31 @@ Answers to the three questions that came out of the above:
 > our win is dinamism, but we want the realism as good as possible, if you need specific textures, feel
 > free to check from public domain for this kind of things like concrete, etc. you have green light to
 > research, explore, and implement
+
+## 2026-08-04 (later still) - Doors, interiors, textures, signage
+
+> much better, very... VERY good direction. now render does not have the style i provided yet,
+> lights, etc. the textures of the building are like randomly repeated, doors, etc do not seem real,
+> meaning a door should be a box, like real door, improve texture grid in general respecting this, so
+> each build is special and well textured on its space. think in future each might even have unique
+> textures. when i exit a place i exit like from behind, i should exit from main door. i do not see
+> balconies and the neon texts are not there, like building letters explaining what is each. the UI
+> text of the ncps should not be stick to the player but floating, like a normal ui simple as that.
+> but overall excellent progress. improve light quality, reflections, etc you were able to replicate
+> what i provided as samples in other scenes so is possible for sure.
+
+> rooms are too small, exits are hard to find, i saved some images for guide of how rooms should be,
+> also when i join a place, i appear in front of exit door (which should say exit), and almost like if
+> i have w i exit immediately. It is better overall, but still needs more love, textures, etc.
+> asphalt, etc have no textures, compare the original ones we made are not like that... for buildings
+> balconies, and details check reference: Screenshot From 2026-08-04 12-10-07, for asplhalt texture
+> and material check this Screenshot From 2026-08-04 12-10-00 <thats street, for interior
+> schematic/blueprint: cyberpunk-interiors-3d-models-and-materials-apartments <similar like that,
+> think of a same thing you did? but for places, so... make normal hauses have kichen, living room,
+> bathroom, etc. another interior javier-pintor-apart-7a. thuis is your actual interior: Screenshot
+> From 2026-08-04 13-45-13 <no roof texture, poor spaces, poor lighting, no correct blueprint, etc.
+> Screenshot From 2026-08-04 13-52-02 <letters and top things over them collapse, finx a way to
+> improve that, so it have sense. walls are poorly textured.. make a research of public domain
+> textures for aslphalts, walls, different materials, and use those
+
+> lights turn off and on depending on distance, think it is a bug...

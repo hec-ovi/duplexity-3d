@@ -8,13 +8,14 @@
 
 import * as THREE from "three";
 
-const POOL = 6; // real point lights alive at once
+const POOL = 10; // real point lights alive at once
 const REACH = 24; // metres a pooled light carries
+const FADE = 55; // how fast a light comes up or goes out, in intensity per second
 
 const LOOK = {
   street_lamp: { colour: 0xffd9a8, intensity: 28, height: 4.6 },
   sign: { colour: 0xffc98a, intensity: 12, height: 3.6 },
-  ceiling: { colour: 0xffeed6, intensity: 16, height: 2.7 },
+  ceiling: { colour: 0xffeed6, intensity: 3.2, height: 2.8 },
 };
 
 const NIGHT = {
@@ -27,7 +28,7 @@ const NIGHT = {
 const INDOORS = {
   sky: 0xa9b6cc,
   ground: 0x2a2c33,
-  ambient: 0.9, // the fill under the room's own ceiling lamps, not the light itself
+  ambient: 1.25, // most of an interior is flat fill; the lamps only give it shape
   moon: 0.25,
 };
 
@@ -62,11 +63,14 @@ export function createLightRig(scene, { lights = [], open = false, tintFor } = {
       };
     });
 
+  // Each slot holds one real light, the point it is currently standing in for, and how far up it
+  // has come. A slot never jumps from one lamp to another: it goes out first, then takes the new
+  // one, so walking down a street does not switch lamps on and off in front of you.
   const pool = [];
   for (let i = 0; i < Math.min(POOL, points.length); i++) {
     const lamp = new THREE.PointLight(0xffffff, 0, REACH, 2);
     lamp.name = `pooled-light:${i}`;
-    pool.push(lamp);
+    pool.push({ lamp, point: null, level: 0 });
     added.push(lamp);
   }
   for (const light of added) scene.add(light);
@@ -75,19 +79,36 @@ export function createLightRig(scene, { lights = [], open = false, tintFor } = {
 
   return {
     points,
-    /** Hand the pool to the lights nearest the player. Cheap enough to run every frame. */
-    update(at) {
+    /** Hand the pool to the lights nearest the player, fading each in and out. Runs every frame. */
+    update(at, dt = 1 / 60) {
       if (pool.length === 0) return;
       byDistance.length = 0;
       for (const point of points) byDistance.push([point.position.distanceToSquared(at), point]);
       byDistance.sort((a, b) => a[0] - b[0]);
-      for (let i = 0; i < pool.length; i++) {
-        const nearest = byDistance[i]?.[1];
-        pool[i].intensity = nearest ? nearest.intensity : 0;
-        if (nearest) {
-          pool[i].position.copy(nearest.position);
-          pool[i].color.set(nearest.colour);
+      const wanted = new Set(byDistance.slice(0, pool.length).map(([, point]) => point));
+
+      const held = new Set();
+      for (const slot of pool) {
+        if (slot.point && !wanted.has(slot.point)) slot.point = null; // it is no longer near: go out
+        if (slot.point) held.add(slot.point);
+      }
+      for (const slot of pool) {
+        // A dark slot is free to take on whichever nearby light nothing else is standing in for.
+        if (!slot.point && slot.level <= 0.05) {
+          const taking = byDistance.slice(0, pool.length).find(([, point]) => !held.has(point));
+          if (taking) {
+            slot.point = taking[1];
+            held.add(slot.point);
+            slot.lamp.position.copy(slot.point.position);
+            slot.lamp.color.set(slot.point.colour);
+          }
         }
+        const target = slot.point ? slot.point.intensity : 0;
+        const step = FADE * dt;
+        slot.level = target > slot.level
+          ? Math.min(target, slot.level + step)
+          : Math.max(target, slot.level - step);
+        slot.lamp.intensity = slot.level;
       }
     },
     dispose() {

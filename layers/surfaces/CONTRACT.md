@@ -8,7 +8,7 @@ what a building is for beyond how it should look.
 
 ## Inputs (params in)
 - `paintSurface(kind, ctxFor, opts?) -> SurfacePlan`
-  - `kind`: `road` | `pavement` | `plaza` | `concrete` | `facade` | `sign`.
+  - `kind`: `road` | `pavement` | `plaza` | `floor` | `wall` | `ceiling` | `concrete` | `facade` | `sign`.
   - `ctxFor(map, width, height)`: injected canvas factory. Called once per map the surface needs
     (`albedo`, and `emissive` for a facade) and must return a 2D drawing context of that size. The
     caller owns the canvas; this layer only draws on it.
@@ -27,6 +27,13 @@ what a building is for beyond how it should look.
   `ctxFor` returned, by name. `metres` is how much world ONE TILE covers, so the repeat for a surface
   is its size divided by that. `signColour` is what a shopfront burns over its door, so a light put
   there can match it. schema: [schema/surface-plan.json](schema/surface-plan.json)
+
+- `photoSurface(kind) -> PhotoMaterial|null` - the PHOTOGRAPHED material catalogued for a surface, if
+  there is one: map file names relative to wherever the caller keeps them, how much world one tile
+  covers, and how it takes light. Everything catalogued is CC0 (public domain) from Poly Haven, listed
+  in [materials/manifest.json](materials/manifest.json) and fetched by `npm run textures`. Null means
+  paint it instead, which is what happens when the files have not been fetched.
+- `PHOTO_MATERIALS` - the whole catalogue, for a credits screen or a licence check.
 
 ## Errors
 - `UNKNOWN_SURFACE` - no surface goes by that name.
@@ -47,7 +54,9 @@ what a building is for beyond how it should look.
 None. It is a leaf: give it somewhere to draw and it draws.
 
 ## How to modify this blackbox safely
-Colours live in `src/palette.js` and nowhere else. The ground surfaces are `src/ground.js`, one
+Which photographed material stands in for which surface is `materials/manifest.json`: a slug, how
+big one tile is in the real world, and how it takes light. Nothing else needs to change to swap one.
+Colours for the painted fallbacks live in `src/palette.js` and nowhere else. The ground surfaces are `src/ground.js`, one
 painter each; a building's outside is `src/facade.js`, split into planning (where every window,
 ledge and band goes) and two painters that read that plan. Add a surface by adding a painter, a
 palette entry and a line in `GROUND` or a branch in `paintSurface`. A cartel is `src/sign.js`. Keep `tests/` green: the same

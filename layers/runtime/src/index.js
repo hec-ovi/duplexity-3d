@@ -40,6 +40,39 @@ const DEFAULTS = {
 // How close (m) to a portal's opening counts as walking into it: reaching an EXIT (reach_exit) or
 // stepping through a door that leads to another instance.
 const PORTAL_REACH = 1.5;
+const STAND_CLEAR = 2.4; // metres to keep between an arrival and the door it came through
+const OFF_WALL = 1.3; // and never closer than this to a wall, whatever the nudge asked for
+
+/**
+ * Nudge an arrival away from the doors that leave the room and turn it to look into the place.
+ * Mutates `at`; returns the yaw to use, or null when the room has no way out to face away from.
+ */
+function standInside(model, room, at) {
+  const doors = model.portals.filter(
+    (p) => p.roomA === room.id && (p.roomB === "LINK" || p.roomB === "EXIT")
+  );
+  if (doors.length === 0) return null;
+
+  let inX = 0;
+  let inZ = 0;
+  for (const door of doors) {
+    const dx = at.x - door.center.x;
+    const dz = at.z - door.center.z;
+    const away = Math.hypot(dx, dz) || 1;
+    inX += dx / away;
+    inZ += dz / away;
+    if (away < STAND_CLEAR) {
+      at.x += (dx / away) * (STAND_CLEAR - away);
+      at.z += (dz / away) * (STAND_CLEAR - away);
+    }
+  }
+  // Stand in the room, not against its far wall: a small room simply keeps you near its middle.
+  at.x = Math.min(room.max.x - OFF_WALL, Math.max(room.min.x + OFF_WALL, at.x));
+  at.z = Math.min(room.max.z - OFF_WALL, Math.max(room.min.z + OFF_WALL, at.z));
+
+  const length = Math.hypot(inX, inZ);
+  return length < 1e-6 ? null : Math.atan2(-inX / length, -inZ / length);
+}
 
 export function createRuntime(deps = {}) {
   const cfg = {
@@ -243,9 +276,12 @@ export function createRuntime(deps = {}) {
         : arrival
           ? { x: arrival.center.x, z: arrival.center.z }
           : { x: spawn.position.x, z: spawn.position.z };
+      // Arriving in a room, stand clear of the way out and look into the place, not back at the
+      // door: coming through a front door and walking straight out again is not an entrance.
+      const facingIn = opts.spawnAt || !arrival ? null : standInside(model, arrival, at);
       player = {
         position: { x: at.x, y: model.groundY, z: at.z },
-        yaw: opts.facing ?? spawn.facing,
+        yaw: opts.facing ?? facingIn ?? spawn.facing,
         currentRoom: roomAt(model, at.x, at.z),
       };
       if (player.currentRoom) scene.visitedRooms.add(player.currentRoom);
@@ -290,6 +326,7 @@ export function createRuntime(deps = {}) {
         .filter((r) => seen.has(r.id))
         .map((r) => ({
           id: r.id,
+          name: r.name ?? null,
           min: { ...r.min },
           max: { ...r.max },
           center: { x: r.center.x, z: r.center.z },

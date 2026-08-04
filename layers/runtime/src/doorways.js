@@ -19,8 +19,35 @@ const COLOURS = {
   step: 0x4a4f57,
 };
 
+// What a door says over it, so a way out is something you can see across a room rather than
+// something you have to walk into every wall to find.
+const OVER_DOOR = {
+  EXIT: { text: "EXIT", colour: "#7ce6a0" },
+  leave: { text: "EXIT", colour: "#7ce6a0" },
+  enter: { text: "IN", colour: "#9fd0ff" },
+  stairs_up: { text: "UP", colour: "#ffd9a8" },
+  stairs_down: { text: "DOWN", colour: "#ffd9a8" },
+  elevator_up: { text: "LIFT UP", colour: "#ffd9a8" },
+  elevator_down: { text: "LIFT DOWN", colour: "#ffd9a8" },
+};
+const PLATE = { height: 0.34, depth: 0.08, lift: 0.3 };
+
+/** What the sign over this door should say, if anything. */
+export function signOver(portal) {
+  return OVER_DOOR[portal.roomB === "EXIT" ? "EXIT" : portal.link?.kind] ?? null;
+}
+
 const matte = (color, extra = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.72, metalness: 0.08, ...extra });
+
+// A lit plate, for when there is no painter to letter it: still visible, just wordless.
+const glowing = (colour) =>
+  new THREE.MeshStandardMaterial({
+    color: 0x14171c,
+    emissive: new THREE.Color(colour),
+    emissiveIntensity: 1.1,
+    roughness: 0.6,
+  });
 
 // Which way the door faces: away from the middle of the mass it is on. Sign only, never zero.
 function outward(portal, block) {
@@ -48,9 +75,11 @@ function place(mesh, portal, out, offset, y) {
  * @param {object} portal  scene-model portal (center, axis, size, blockId)
  * @param {object|null} block  the mass it is on, when it is on one
  * @param {number} groundY
+ * @param {object} [deps]
+ * @param {Function} [deps.signMaterial] (part) -> Material[] for the lettered plate over the door
  * @returns {THREE.Group}
  */
-export function buildDoorway(portal, block, groundY = 0) {
+export function buildDoorway(portal, block, groundY = 0, { signMaterial } = {}) {
   const [width, height] = portal.size;
   const { axis } = portal;
   const out = outward(portal, block);
@@ -73,6 +102,28 @@ export function buildDoorway(portal, block, groundY = 0) {
     if (axis === "x") post.position.z += shift;
     else post.position.x += shift;
     group.add(post);
+  }
+
+  // The sign over it, lit, so a way out is something you can see across a room.
+  const says = signOver(portal);
+  if (says) {
+    const plateWidth = Math.max(0.9, says.text.length * 0.3);
+    const part = {
+      kind: "sign",
+      orientation: "flat",
+      size: [plateWidth, PLATE.height, PLATE.depth],
+      text: says.text,
+      colour: says.colour,
+    };
+    // Modelled with its face on +z and then turned, so the lettering ends up pointing out of the wall.
+    const plate = new THREE.Mesh(
+      new THREE.BoxGeometry(plateWidth, PLATE.height, PLATE.depth),
+      signMaterial?.(part) ?? [glowing(says.colour)]
+    );
+    plate.rotation.y = axis === "x" ? out * (Math.PI / 2) : out > 0 ? 0 : Math.PI;
+    place(plate, portal, out, FRAME.proud + PLATE.depth, groundY + height + FRAME.margin + PLATE.lift);
+    plate.name = `doorway:${portal.id}:sign`;
+    group.add(plate);
   }
 
   if (!solid) return group;

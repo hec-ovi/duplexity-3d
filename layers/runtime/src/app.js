@@ -49,6 +49,8 @@ export function createApp(options = {}) {
     isPortalOpen, // lock oracle (map-state); absent means every portal is open
     onFrame, // called after every tick, for a HUD drawn outside the 3D scene
     paintSurface, // surfaces.paintSurface (injected); absent means flat colours
+    photoSurface, // surfaces.photoSurface (injected): which surfaces have a photographed material
+    textureBase, // where those material files are served from; absent means paint them instead
     dressFacade, // facade.dressFacade (injected); absent means bare masses
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
@@ -103,7 +105,7 @@ export function createApp(options = {}) {
     const open = model.rooms.some((r) => r.open);
     scene.background = open ? sky : indoors;
     scene.fog = new THREE.FogExp2(scene.background.getHex(), open ? HAZE.open : HAZE.indoors);
-    materials = createSurfaceMaterials({ paintSurface, wet: model.rules?.wet });
+    materials = createSurfaceMaterials({ paintSurface, photoSurface, textureBase, wet: model.rules?.wet });
     instanceGroup = buildInstanceObject3D(model, { registry, materials, dressFacade, warn });
     scene.add(instanceGroup);
     rig = createLightRig(scene, {
@@ -223,7 +225,7 @@ export function createApp(options = {}) {
     syncCamera();
     actors.sync(runtime.getNpcs(), camera, clamped);
     syncLabels();
-    rig?.update(camera.position);
+    rig?.update(camera.position, clamped);
     if (composer) composer.render();
     else renderer.render?.(scene, camera);
     onFrame?.(clamped);

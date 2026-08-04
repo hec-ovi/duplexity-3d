@@ -9,19 +9,21 @@
 
 import { FACES, faceOpening, isOuter, partition } from "./floor.js";
 
-const HEIGHT = 3; // storey height, metres
+const HEIGHT = 3.1; // storey height, metres
 const DOOR = [1.4, 2.4]; // interior door
 const WAY_OUT = [1.6, 2.4]; // the street door
 const STAIRS = [1.2, 2.4];
-const MIN_ROOM = 2.5; // a room narrower than this is not worth walking into
+const MIN_ROOM = 3.4; // a room narrower than this is a corridor, not a room
 const TALL = 4; // storeys from which a building has a lift instead of a staircase
 
-// How many rooms a floor gets, as [cols, rows].
+// What a floor is FOR, room by room. The grid is filled left to right, near to far, and the first
+// cell is where you come in, so a name lands on the same room every time. A floor plan you can read
+// is the point: a kitchen is a kitchen, not r-1-0.
 const PROGRAMS = {
-  house: [2, 2],
-  shop: [2, 1],
-  apartments: [2, 2],
-  office: [3, 2],
+  house: { cols: 2, rows: 2, rooms: ["hall", "living room", "kitchen", "bathroom"] },
+  apartments: { cols: 2, rows: 2, rooms: ["landing", "living room", "kitchen", "bedroom"] },
+  shop: { cols: 2, rows: 1, rooms: ["shop floor", "back room"] },
+  office: { cols: 3, rows: 2, rooms: ["reception", "office", "office", "meeting room", "kitchen", "store"] },
 };
 
 export class LotPlanInvalidError extends Error {
@@ -54,7 +56,7 @@ export class LayoutInvalidError extends Error {
  * @param {{width:number, depth:number}} footprint metres
  */
 export function programFits(program, footprint) {
-  const [cols, rows] = PROGRAMS[program] ?? PROGRAMS.house;
+  const { cols, rows } = PROGRAMS[program] ?? PROGRAMS.house;
   return footprint.width / cols >= MIN_ROOM && footprint.depth / rows >= MIN_ROOM;
 }
 
@@ -87,7 +89,7 @@ export function createBuilding(lot, assetQuery, opts = {}) {
   if (!Array.isArray(lot.floorInstanceIds) || lot.floorInstanceIds.length < floors) {
     throw new LotPlanInvalidError("floorInstanceIds does not name every floor");
   }
-  const [cols, rows] = PROGRAMS[lot.program] ?? PROGRAMS.house;
+  const plan = PROGRAMS[lot.program] ?? PROGRAMS.house;
   if (!programFits(lot.program, lot.footprint)) {
     throw new LotPlanInvalidError(`footprint too small for a ${lot.program} floor`);
   }
@@ -99,7 +101,7 @@ export function createBuilding(lot, assetQuery, opts = {}) {
   const instances = [];
   const checks = [];
   for (let f = 0; f < floors; f++) {
-    const instance = buildFloor({ lot, floors, floorIndex: f, cols, rows, floorKit, wallKit, quest, opts });
+    const instance = buildFloor({ lot, floors, floorIndex: f, plan, floorKit, wallKit, quest, opts });
     const report = opts.validateInstance
       ? opts.validateInstance(instance)
       : { ok: true, checks: [{ name: "not_validated", ok: true }] };
@@ -119,7 +121,8 @@ function questFloor(lot, floors) {
   return { index: floor - 1, itemId: lot.quest.itemId };
 }
 
-function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, quest, opts }) {
+function buildFloor({ lot, floors, floorIndex, plan, floorKit, wallKit, quest, opts }) {
+  const { cols, rows, rooms: names } = plan;
   const id = lot.floorInstanceIds[floorIndex];
   const isGround = floorIndex === 0;
   // Every floor is partitioned the same way, so the stairwell sits in the same corner all the way up
@@ -135,8 +138,9 @@ function buildFloor({ lot, floors, floorIndex, cols, rows, floorKit, wallKit, qu
   const vertical = floors >= TALL ? "elevator" : "stairs";
 
   // A room lights itself: there is no street outside it. One lamp overhead, in the middle.
-  const rooms = cells.map((cell) => ({
+  const rooms = cells.map((cell, index) => ({
     id: roomIdFor(cell, arrivalId),
+    name: names[index] ?? names.at(-1),
     position: [cell.centre.x, 0, cell.centre.z],
     size: [cell.size.w, cell.size.h, cell.size.d],
     floorKit,

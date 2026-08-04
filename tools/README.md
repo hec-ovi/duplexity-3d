@@ -25,6 +25,10 @@ Run `node tools/level.js` with no arguments for the full flag list.
 | `map` | nothing: reads an Adventure file's map |
 | `save` / `load` | nothing: keeps an Adventure file under a name, and opens it again |
 
+`node tools/fetch-textures.js` (or `npm run textures`) fetches the CC0 materials the `surfaces` layer
+names, into `app/public/textures`. They are not committed and nothing needs them: without them the
+surfaces are painted on a canvas instead.
+
 Everything is deterministic. The same flags produce the same level, so a seed is a level you can
 share by name.
 

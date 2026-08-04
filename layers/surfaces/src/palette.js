@@ -29,6 +29,24 @@ export const PALETTE = {
     joint: "#484d56",
     stain: "#4f545d",
   },
+  floor: {
+    base: "#5c626c",
+    grain: ["#565c66", "#646a74", "#525862"],
+    joint: "#42474f",
+    stain: "#4e535c",
+  },
+  wall: {
+    base: "#6e737c",
+    grain: ["#686d76", "#757a83", "#636871"],
+    joint: "#5c616a",
+    stain: "#666b74",
+  },
+  ceiling: {
+    base: "#6a6f78",
+    grain: ["#646972", "#71767f", "#5f646d"],
+    joint: "#5a5f68",
+    stain: "#616670",
+  },
   facade: {
     base: "#2c3037",
     grain: ["#282c33", "#31363d", "#24282e"],

@@ -5,8 +5,10 @@
 // to add the building's position and turn them to face the way they say.
 
 const BALCONY = { depth: 1.1, rail: 0.95, slab: 0.14, margin: 0.5 };
-const AWNING = { depth: 1.4, drop: 0.35, height: 3.1 };
-const SIGN = { height: 0.72, drop: 0.14, blade: { width: 0.9 } };
+// A shopfront reads bottom to top: glass, then the awning over it, then the sign on the fascia. The
+// two never share a height, or the sign ends up growing through the awning.
+const AWNING = { depth: 1.3, drop: 0.3, at: 0.6 }; // `at` is a share of the storey
+const SIGN = { height: 0.66, drop: 0.14, at: 0.85, blade: { width: 0.8 } };
 
 /** Where a wall's outward normal points, and how wide that wall is. */
 export function walls({ w, d }) {
@@ -49,16 +51,19 @@ export function balconies(wall, storeyY, bays, rng) {
 /** How many bays of balcony a wall gets, kept low: a facade is not a filing cabinet. */
 export const MAX_BALCONY_BAYS = 4;
 
-/** An awning over a shopfront: a slab tilted out over the pavement. */
-export function awning(wall, along, width, colour) {
+/** An awning over a shopfront: a slab standing out over the pavement, under the sign. */
+export function awning(wall, along, width, storey, colour) {
   return {
     kind: "awning",
-    position: on(wall, along, AWNING.height, AWNING.depth / 2),
+    position: on(wall, along, storey * AWNING.at, AWNING.depth / 2),
     size: [width, AWNING.drop, AWNING.depth],
     facing: facing(wall),
     colour,
   };
 }
+
+/** Where the sign over a shopfront sits: on the fascia, clear above the awning. */
+export const signHeight = (storey) => storey * SIGN.at;
 
 /**
  * A cartel: a board with the name on it. `flat` sits against the wall over the door; `blade` sticks

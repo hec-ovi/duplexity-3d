@@ -7,7 +7,7 @@
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["road", "pavement", "plaza", "concrete", "facade", "sign"]
+      "enum": ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "sign"]
     },
     "pixels": {
       "type": "array",

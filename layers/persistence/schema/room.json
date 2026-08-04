@@ -8,6 +8,10 @@
     "id": {
       "type": "string"
     },
+    "name": {
+      "type": "string",
+      "description": "What the room is for, in words: kitchen, living room, reception. Shown on the floor plan. Omitted means it goes by its id."
+    },
     "position": {
       "$ref": "https://doplexity-3d.dev/schema/persistence/vec3.json"
     },

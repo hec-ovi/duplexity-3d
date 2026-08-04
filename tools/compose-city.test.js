@@ -178,6 +178,44 @@ describe("a generated city is a valid, connected, winnable level", () => {
     }
   });
 
+  // Coming through a front door used to leave you standing a stride from it, facing it, so holding
+  // W walked you straight back out. Arriving means standing in the place, looking into it.
+  it("walks into a building and stands in it, not back on its doorstep", () => {
+    const { adventure, lots } = city();
+    for (const lot of lots) {
+      const ground = adventure.instances.find((i) => i.id === lot.floorInstanceIds[0]);
+      const way = ground.portals.find((p) => p.link?.kind === "leave");
+
+      const rt = createRuntime();
+      rt.load(adventure, ground.id, { spawnRoomId: lot.entryRoomId });
+      const player = rt.getPlayer();
+      expect(player.currentRoom).toBe(lot.entryRoomId);
+
+      // clear of the door, and looking away from it rather than at it
+      const gap = Math.hypot(player.position.x - way.position[0], player.position.z - way.position[2]);
+      expect(gap, `${ground.id} arrives on top of its own way out`).toBeGreaterThan(1.6);
+      const toDoor = Math.atan2(
+        -(way.position[0] - player.position.x),
+        -(way.position[2] - player.position.z)
+      );
+      const apart = Math.abs(((player.yaw - toDoor + Math.PI) % (Math.PI * 2)) - Math.PI);
+      expect(apart, `${ground.id} arrives facing its own way out`).toBeGreaterThan(Math.PI / 2);
+    }
+  });
+
+  it("every floor is rooms you can tell apart, by name", () => {
+    const { adventure } = city();
+    const floors = adventure.instances.filter((i) => i.rules.mapKind !== "street");
+    for (const floor of floors) {
+      for (const room of floor.rooms) {
+        expect(room.name, `${floor.id}/${room.id} has no name`).toMatch(/\S/);
+        // and it is a room, not a corridor: nothing narrower than a person can turn round in
+        expect(Math.min(room.size[0], room.size[2])).toBeGreaterThanOrEqual(3.4);
+      }
+    }
+    expect(floors.some((f) => f.rooms.some((r) => r.name === "kitchen"))).toBe(true);
+  });
+
   it("populates every instance with a cast that lives in its rooms", () => {
     const { adventure } = city();
     for (const instance of adventure.instances) {

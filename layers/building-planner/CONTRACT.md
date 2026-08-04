@@ -24,8 +24,10 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 
 ## Outputs (params out)
 - `instances` - one persistence Instance per floor, ground floor first, ids exactly
-  `LotPlan.floorInstanceIds`. Each carries `rules { mapKind, label, floor }`, and every room carries
-  one `ceiling` light overhead: a room lights itself, since there is no street outside it.
+  `LotPlan.floorInstanceIds`. Each carries `rules { mapKind, label, floor }`. Every room carries one
+  `ceiling` light overhead (a room lights itself, since there is no street outside it) and a `name`
+  saying what it is FOR: a house is a hall, a living room, a kitchen and a bathroom, an office is a
+  reception and the rooms behind it. A floor plan should read as a place, not as four grey squares.
   schema: owned by `persistence` (`instance.json`).
 - `report` - the `ValidationReport` for the whole building (the checks of every floor, merged).
   schema: owned by `scenario-creator`.
@@ -41,8 +43,8 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
 
 ## Errors
 - `NO_ASSET_FOR_KIND` - the theme has no floor or wall kit in the registry.
-- `LOT_PLAN_INVALID` - the brief cannot be built (no floors, a footprint too small for its program,
-  or a quest on a floor above the top of the building).
+- `LOT_PLAN_INVALID` - the brief cannot be built (no floors, a footprint too small for its program -
+  nothing narrower than 3.4m is a room - or a quest on a floor above the top of the building).
 - `LAYOUT_INVALID` - a floor failed the injected geometry validator (a bug here; never returned).
 
 ## Invariants this layer will never break
@@ -61,8 +63,8 @@ coordinate space, laid out like a blueprint, so nothing here has to line up with
   layer's `src/`.
 
 ## How to modify this blackbox safely
-Room mixes live in `PROGRAMS` in `src/index.js` (how many rooms a house, shop, apartments or office
-floor gets); the partition is in `src/floor.js`. Change either without touching the street: the street
+Room mixes live in `PROGRAMS` in `src/index.js`: how many rooms a house, shop, apartments or office
+floor gets, and what each one is called. The partition is in `src/floor.js`. Change either without touching the street: the street
 knows only the ids in the LotPlan. Keep `tests/` green: floors use the promised ids, the ground floor
 holds the entry room and the way out, stairs pair up in both directions, and a three-floor building is
 walkable end to end.

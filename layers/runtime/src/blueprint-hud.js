@@ -79,6 +79,15 @@ export function drawBlueprint(ctx, plan, { width, height, margin = 14, metresPer
     ctx.strokeStyle = room.here ? STYLE.inkHere : STYLE.ink;
     ctx.lineWidth = room.here ? 2 : 1;
     ctx.strokeRect(x, y, w, h);
+
+    // What the room is for, written in it, where there is room to write it. A plan of a flat should
+    // read as kitchen, bathroom, living room, not as four identical squares.
+    if (!room.name || w < 46 || h < 18) continue;
+    ctx.fillStyle = room.here ? STYLE.inkHere : STYLE.label;
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(room.name, x + w / 2, y + h / 2 + 3, w - 6);
+    ctx.textAlign = "left";
   }
 
   // Buildings standing in the open: solid on the plan, because that is what they are on the ground.

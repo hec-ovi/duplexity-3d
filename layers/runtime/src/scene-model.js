@@ -125,6 +125,7 @@ export function buildSceneModel(instance) {
     const [w, h, d] = room.size;
     return {
       id: room.id,
+      name: room.name ?? null, // what the room is for, in words: shown on the floor plan
       floorKit: room.floorKit,
       wallKit: room.wallKit,
       open: Boolean(room.open), // open ground: an edge that stops you, drawn as nothing

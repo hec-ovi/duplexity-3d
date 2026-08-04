@@ -18,8 +18,10 @@ const FLOOR_T = 0.2;
 const COLORS = {
   floor: 0x5b6068,
   floorAlt: 0x6e5a34,
+  floorTint: 0xd9bd82,
   wall: 0x8a8f98,
   block: 0x6d7482,
+  ceiling: 0x4a4f58,
   road: 0x2f333a,
   sidewalk: 0x8d9299,
   plaza: 0x777d86,
@@ -140,23 +142,37 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   const itemMat = standard(COLORS.item, 0x6b5410);
 
   for (const room of model.rooms) {
-    const tint = /gold/i.test(room.floorKit ?? "") ? COLORS.floorAlt : COLORS.floor;
+    // A painted surface already carries its own colour: tinting it again only darkens it. The tint
+    // is for the flat fallback, and for the one kit that asks for a warmer floor.
+    const gold = /gold/i.test(room.floorKit ?? "");
     const mat =
-      materials?.ground("concrete", room.size.x, room.size.z, tint) ??
-      (tint === COLORS.floorAlt ? floorAltMat : floorMat);
+      materials?.ground(room.open ? "plaza" : "floor", room.size.x, room.size.z, gold ? COLORS.floorTint : undefined) ??
+      (gold ? floorAltMat : floorMat);
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(room.size.x, FLOOR_T, room.size.z), mat);
     mesh.position.set(room.center.x, room.floorY - FLOOR_T / 2, room.center.z);
     mesh.name = `floor:${room.id}`;
     mesh.userData = { kind: "floor", room: room.id };
     group.add(mesh);
     counts.floors++;
+
+    // Indoors has a ceiling. Without one a room is a box open to a black sky, and the lamp under it
+    // has nothing to bounce off. Open ground is open: it keeps the sky.
+    if (room.open) continue;
+    const above = new THREE.Mesh(
+      new THREE.BoxGeometry(room.size.x, FLOOR_T, room.size.z),
+      materials?.ground("ceiling", room.size.x, room.size.z) ?? standard(COLORS.ceiling)
+    );
+    above.position.set(room.center.x, room.floorY + room.size.y + FLOOR_T / 2, room.center.z);
+    above.name = `ceiling:${room.id}`;
+    above.userData = { kind: "ceiling", room: room.id };
+    group.add(above);
   }
 
   for (const w of model.walls) {
     // An open room's perimeter still stops you, but there is nothing there to see: the street simply
     // ends. Only walls that render become meshes; the collider stands either way.
     if (w.renders === false) continue;
-    const mat = materials?.wall(Math.max(w.size.x, w.size.z), w.size.y, COLORS.wall) ?? wallMat;
+    const mat = materials?.wall(Math.max(w.size.x, w.size.z), w.size.y) ?? wallMat;
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.size.x, w.size.y, w.size.z), mat);
     mesh.position.set(w.center.x, w.center.y, w.center.z);
     mesh.name = w.id;
@@ -220,9 +236,14 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // leaf set back in it, a handle and a step. An interior doorway is a real hole, so it gets the
   // surround alone.
   const byBlock = new Map((model.blocks ?? []).map((b) => [b.id, b]));
+  const openGround = new Set(model.rooms.filter((r) => r.open).map((r) => r.id));
   for (const portal of model.portals ?? []) {
-    if (portal.roomB === "EXIT" && !portal.blockId) continue; // the city gate is a gap in the boundary
-    const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY);
+    // The city gate is a gap in an open boundary, with no wall to hang a frame on. A front door is
+    // a door wherever it leads, so a house whose way out IS the exit still gets one.
+    if (!portal.blockId && openGround.has(portal.roomA)) continue;
+    const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY, {
+      signMaterial: materials ? (part) => materials.sign(part) : undefined,
+    });
     group.add(door);
     counts.doors++;
   }

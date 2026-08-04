@@ -31,7 +31,7 @@ function populate(instance, count, assetQuery) {
   if (count <= 0) return instance;
   const roles = instance.rules.mapKind === "street" ? ROLES.street : ROLES.indoors;
   const npcs = authorNpcs(
-    { id: instance.id, theme: instance.theme, rooms: instance.rooms, goal: instance.goal },
+    { id: instance.id, theme: instance.theme, rooms: instance.rooms, goal: instance.goal, spawn: instance.spawn },
     { count, roles },
     { assetQuery }
   );

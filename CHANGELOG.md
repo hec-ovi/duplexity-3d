@@ -2,6 +2,27 @@
 
 What the project does now, newest first.
 
+## 0.8 - Rooms you would walk into
+
+- Floors are rooms with names and something to be: a house is a hall, a living room, a kitchen and a
+  bathroom; an office is a reception and the rooms behind it. Nothing narrower than 3.4m counts as a
+  room, city blocks grew to 32m so the premises on them are worth entering, and the floor plan writes
+  each room's name in it.
+- Indoors has a ceiling. A room open to a black sky had nothing for its own lamp to bounce off.
+- Photographed materials, all CC0 from Poly Haven: asphalt, paving, interior floor tiles, plaster
+  walls and ceilings. `npm run textures` fetches them into the app's public folder; the catalogue that
+  names them is committed and the files are not. Without them the painted surfaces stand in, so the
+  project runs either way.
+- Walking into a place puts you IN it, looking into it, clear of the door you came through. It used to
+  leave you a stride from the way out, facing it, so holding forward walked you straight back out.
+- Every door that leaves a place is signed and lit: EXIT, UP, LIFT DOWN. A way out is now something
+  you can see across a room.
+- Lamps come up and go out over about a second, and a slot in the light pool never jumps from one lamp
+  to another: it goes dark first. Walking down a street used to switch lights on and off in front of
+  you.
+- A cast keeps clear of where the player arrives, a shop sign no longer grows through its own awning,
+  and a blade sign stays on the wall it is fixed to and under the parapet.
+
 ## 0.7 - Places with names on them
 
 - `facade` is a new box: give it the shape of a building and it returns what is bolted to it, in the

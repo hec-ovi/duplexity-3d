@@ -261,4 +261,20 @@ describe("npc - deterministic voice-design composer (Phase 6)", () => {
     const descriptions = npcs.map((n) => n.voiceDesign.description);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
+
+  // Two metres from where the player walks in, a body fills the screen and a small room becomes
+  // unreadable. A cast keeps its distance from the door you come through.
+  it("nobody is standing on the spot the player arrives at", () => {
+    const room = { id: "entry", position: [0, 0, 0], size: [9, 3, 9], objects: [], inventory: [] };
+    const npcs = authorNpcs(
+      { id: "f1", theme: "city", rooms: [room], spawn: { position: [0, 0, 0], facing: 0 } },
+      { count: 4, roles: [{ role: "resident", disposition: "neutral" }] },
+      {}
+    );
+    expect(npcs).toHaveLength(4);
+    for (const npc of npcs) {
+      const [x, , z] = npc.spawn.position;
+      expect(Math.hypot(x, z), `${npc.id} is on the doorstep`).toBeGreaterThanOrEqual(2.5);
+    }
+  });
 });

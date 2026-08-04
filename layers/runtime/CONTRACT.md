@@ -9,9 +9,11 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
 - `load(Adventure, instanceId, opts?)` - builds the scene from the Adventure document and
   `asset-registry`. Consumes the Adventure schema (owned by persistence) and the `Instance` within it.
   `opts.spawnRoomId` starts the player in that room instead of the instance spawn: the far side of a
-  door they just walked through. `opts.spawnAt` / `opts.facing` place them exactly, which is what
-  coming out of a building onto open ground needs: the middle of a whole street is nowhere near the
-  door you came out of.
+  door they just walked through. Arriving that way, they are stood clear of the doors that LEAVE that
+  room and turned to look into the place, so walking in and holding forward does not walk you straight
+  back out. `opts.spawnAt` / `opts.facing` place them exactly instead, which is what coming out of a
+  building onto open ground needs: the middle of a whole street is nowhere near the door you came out
+  of.
 - player input - local (keyboard/mouse/touch/gamepad); never leaves the client.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
@@ -22,6 +24,8 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   `surfaces`. Given one, the scene is textured: the road, the pavement, interior concrete, and every
   building wrapped in a facade of its own, each repeated at its true size in metres. Absent, every
   surface is a flat colour and nothing else changes, which is what a head-less test sees.
+- `deps.photoSurface(kind)` + `deps.textureBase` - where a surface has a photographed material and the
+  files are being served, that is used instead of a painted one.
 - `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
   ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
   open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through
@@ -51,7 +55,9 @@ A door on a building's face has nothing cut out of it: the mass is solid and wha
 another instance. So the door is BUILT, not carved: a surround standing proud of the wall, a leaf set
 back in it, a handle and a step. An interior doorway is a real hole, so it gets the surround alone. A
 wet road is a mirror laid under the asphalt with the asphalt thinned over it, so what comes back is
-the lamps and the signs rather than a second city.
+the lamps and the signs rather than a second city. Every door that leaves a place is signed and lit
+(EXIT, UP, LIFT DOWN), so a way out is something you can see across a room. Indoors has a ceiling: a
+room open to a black sky has nothing for its own lamp to bounce off.
 
 Names and speech are HTML over the canvas, never glyphs in the scene. A NAME hangs over whoever it
 belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in the

@@ -35,3 +35,6 @@ tmp/
 
 # Saved cities (generated; keep the spec files, not the output)
 checkpoints/
+
+# Fetched CC0 materials (npm run textures); the manifest is committed, the images are not
+app/public/textures/

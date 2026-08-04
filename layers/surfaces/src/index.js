@@ -10,6 +10,7 @@ import { createRng, hashString } from "./rng.js";
 import { paintConcrete, paintRoad, paintSlabs } from "./ground.js";
 import { paintFacadeAlbedo, paintFacadeEmissive, planFacade } from "./facade.js";
 import { paintSignAlbedo, paintSignEmissive, planSign } from "./sign.js";
+import MANIFEST from "../materials/manifest.json" with { type: "json" };
 
 const TILE = 256; // pixels per ground tile
 
@@ -19,9 +20,39 @@ const GROUND = {
   pavement: { metres: 3.2, roughness: 0.9, metalness: 0.02 },
   plaza: { metres: 3.6, roughness: 0.9, metalness: 0.02 },
   concrete: { metres: 4, roughness: 0.95, metalness: 0 },
+  floor: { metres: 3, roughness: 0.7, metalness: 0.03 },
+  wall: { metres: 3, roughness: 0.95, metalness: 0 },
+  ceiling: { metres: 2.4, roughness: 0.96, metalness: 0 },
 };
 
-export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "facade", "sign"];
+export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", "wall", "ceiling", "facade", "sign"];
+
+/**
+ * The photographed material for a surface, if one is catalogued: a set of map FILE NAMES relative to
+ * wherever the caller keeps them, how much world one tile covers, and how it takes light. Public
+ * domain (CC0); `npm run textures` fetches the files. Null means paint it instead.
+ *
+ * @returns {{ id, slug, metres:[number,number], maps:object, material:object, credit:string }|null}
+ */
+export function photoSurface(kind) {
+  const entry = MANIFEST.materials?.[kind];
+  if (!entry) return null;
+  return {
+    id: kind,
+    slug: entry.slug,
+    metres: [entry.metres, entry.metres],
+    maps: {
+      albedo: `${entry.slug}/albedo.jpg`,
+      normal: `${entry.slug}/normal.jpg`,
+      arm: `${entry.slug}/arm.jpg`,
+    },
+    material: { roughness: entry.roughness, metalness: entry.metalness },
+    credit: entry.credit,
+  };
+}
+
+/** Every photographed material, for a credits screen or a licence check. */
+export const PHOTO_MATERIALS = MANIFEST;
 
 export class UnknownSurfaceError extends Error {
   constructor(kind) {
@@ -120,8 +151,9 @@ export function paintSurface(kind, ctxFor, opts = {}) {
 
   const albedo = contextFor(ctxFor, "albedo", TILE, TILE);
   if (kind === "road") paintRoad(albedo, rng, TILE, wet);
-  else if (kind === "concrete") paintConcrete(albedo, rng, TILE);
-  else paintSlabs(albedo, rng, TILE, kind);
+  else if (kind === "floor") paintSlabs(albedo, rng, TILE, "floor");
+  else if (kind === "pavement" || kind === "plaza") paintSlabs(albedo, rng, TILE, kind);
+  else paintConcrete(albedo, rng, TILE, kind);
 
   return {
     kind,

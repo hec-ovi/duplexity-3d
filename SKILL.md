@@ -34,6 +34,7 @@ Run once per checkout before anything else:
 
 ```bash
 npm install
+npm run textures   # optional: CC0 materials for roads, walls and floors. Without them, surfaces are painted
 ```
 
 <a id="city"></a>

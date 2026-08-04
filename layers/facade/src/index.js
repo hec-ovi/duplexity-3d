@@ -10,7 +10,7 @@
 
 import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
-import { MAX_BALCONY_BAYS, awning, balconies, sign, walls } from "./parts.js";
+import { MAX_BALCONY_BAYS, awning, balconies, sign, signHeight, walls } from "./parts.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
 const AWNING_COLOURS = ["#7d4a52", "#4c5b6b", "#6b5a3c", "#3f5c50"];
@@ -60,15 +60,20 @@ export function dressFacade(building) {
   if (front) {
     const along = building.door.along ?? 0;
     if (program === "shop") {
-      parts.push(awning(front, along, Math.min(front.span - 0.6, 4.2), rng.pick(AWNING_COLOURS)));
+      parts.push(awning(front, along, Math.min(front.span - 0.6, 4.2), storey, rng.pick(AWNING_COLOURS)));
     }
     if (name) {
-      const width = Math.min(front.span - 0.8, Math.max(2.2, name.length * 0.34));
-      parts.push(sign(front, along, storey - 0.55, width, { text: name, colour }));
-      // Something tall enough to be seen down the street gets a second one, out at right angles.
+      const width = Math.min(front.span - 0.8, Math.max(2.2, name.length * 0.3));
+      parts.push(sign(front, along, signHeight(storey), width, { text: name, colour }));
+      // Something tall enough to be seen down the street gets a second one, out at right angles,
+      // hung clear above the shopfront so the two never share a wall.
       if (floors >= 3 && rng.chance(0.55)) {
+        // Kept on the wall it is fixed to, and under the parapet: a sign hanging off the end of a
+        // building, or over the top of it, is a sign nobody built.
+        const blade = Math.min(2, width);
+        const room = front.span / 2 - blade / 2 - 0.3;
         parts.push(
-          sign(front, along + width * 0.75, storey * 1.6, Math.min(2.4, width), {
+          sign(front, Math.max(-room, Math.min(room, along + width * 0.7)), Math.min(storey * 1.75, h - 1.4), blade, {
             text: name.split(" ")[0],
             colour,
             blade: true,

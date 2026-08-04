@@ -6,7 +6,7 @@
 //
 // Pure integers and metres. No assets, no ids beyond the cell index.
 
-export const BLOCK = 24; // a city block, metres square: its pavement plus the premises on it
+export const BLOCK = 32; // a city block, metres square: its pavement plus the premises on it
 export const STREET = 12; // roadway between blocks, and the margin around the whole lattice
 export const LATTICE_BY_SIZE = { small: 2, medium: 3, large: 4 };
 

@@ -27,7 +27,10 @@ play-time. It never renders or moves anything (that is the runtime); it only dec
 
 ## Outputs (params out)
 - `NpcDef` - `{ id, name, persona, knowledge(private), appearance, disposition, relation,
-  allowedModes[], bodyRef, homeRoom, spawn, voiceDesign, traits[], startMode }`. `bodyRef` names an
+  allowedModes[], bodyRef, homeRoom, spawn, voiceDesign, traits[], startMode }`. A cast is scattered
+  over its room (or over the walk zones where a room has them), never inside a building and never
+  within a couple of metres of where the player arrives: a body in your face makes a small room
+  unreadable. `bodyRef` names an
   `asset-registry` character asset and thus its animation clips. schema: `schema/npc-def.json`
 - `InteractionResult` - `{ newMode, target?, utterance?, emote?, memoryDelta? }`, schema-constrained
   so the model physically cannot return an off-contract action. schema: `schema/interaction-result.json`

@@ -111,9 +111,9 @@ export function paintSlabs(ctx, rng, size, kind) {
   ctx.globalAlpha = 1;
 }
 
-/** Poured concrete: no joints, just tone and dirt. Indoors this is the floor and the wall. */
-export function paintConcrete(ctx, rng, size) {
-  const p = PALETTE.concrete;
+/** Poured concrete: no joints, just tone and dirt. Indoors this is the floor, the wall and the ceiling. */
+export function paintConcrete(ctx, rng, size, kind = "concrete") {
+  const p = PALETTE[kind] ?? PALETTE.concrete;
   ctx.fillStyle = p.base;
   ctx.fillRect(0, 0, size, size);
 

@@ -123,3 +123,42 @@ describe("surface materials", () => {
     expect(painted.getObjectByName("floor:ground").material.map).toBeTruthy();
   });
 });
+
+describe("doorways", () => {
+  it("puts a lit sign over the way out, so it can be found from across a room", () => {
+    const model = {
+      instanceId: "f1",
+      rooms: [],
+      walls: [],
+      zones: [],
+      blocks: [],
+      objects: [],
+      items: [],
+      npcs: [],
+      groundY: 0,
+      portals: [
+        { id: "out", roomA: "entry", roomB: "EXIT", axis: "z", center: { x: 0, y: 0, z: -4 }, size: [1.6, 2.4] },
+        { id: "inner", roomA: "entry", roomB: "hall", axis: "x", center: { x: 3, y: 0, z: 0 }, size: [1.4, 2.4] },
+      ],
+    };
+    const group = buildInstanceObject3D(model, {});
+    // the way out is signed; a door between two rooms is not
+    expect(group.getObjectByName("doorway:out:sign")).toBeTruthy();
+    expect(group.getObjectByName("doorway:inner:sign")).toBeFalsy();
+    // and it hangs above the opening, not in it
+    expect(group.getObjectByName("doorway:out:sign").position.y).toBeGreaterThan(2.4);
+  });
+
+  it("letters the sign when there is a painter for it", () => {
+    const { painter, materials } = make();
+    buildInstanceObject3D(
+      {
+        instanceId: "f1",
+        rooms: [], walls: [], zones: [], blocks: [], objects: [], items: [], npcs: [], groundY: 0,
+        portals: [{ id: "out", roomA: "entry", roomB: "EXIT", axis: "z", center: { x: 0, y: 0, z: -4 }, size: [1.6, 2.4] }],
+      },
+      { materials }
+    );
+    expect(painter.asked.some((a) => a.kind === "sign" && a.opts.text === "EXIT")).toBe(true);
+  });
+});

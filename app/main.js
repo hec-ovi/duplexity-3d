@@ -8,7 +8,7 @@
 import { createApp } from "../layers/runtime/src/app.js";
 import { drawBlueprint } from "../layers/runtime/src/blueprint-hud.js";
 import { createRegistry } from "../layers/asset-registry/src/index.js";
-import { paintSurface } from "../layers/surfaces/src/index.js";
+import { paintSurface, photoSurface } from "../layers/surfaces/src/index.js";
 import { dressFacade } from "../layers/facade/src/index.js";
 import {
   buildWorldMap,
@@ -46,6 +46,12 @@ const { adventure } = composeCity({
   seed,
   ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
 });
+
+// The photographed CC0 materials are fetched, not committed (`npm run textures`). Ask once whether
+// they are here; without them the surfaces layer paints its own and the city looks after itself.
+const textureBase = await fetch("textures/manifest.json", { method: "HEAD" })
+  .then((r) => (r.ok ? "textures" : null))
+  .catch(() => null);
 
 const worldMap = buildWorldMap(adventure);
 let run = createProgress(worldMap);
@@ -93,6 +99,8 @@ const app = createApp({
   instanceId: worldMap.entry,
   registry: createRegistry(),
   paintSurface, // roads, pavements, concrete and every building's outside
+  photoSurface,
+  textureBase, // the CC0 materials, when they have been fetched
   dressFacade, // balconies, awnings and the cartel over each door
   onInteraction: cannedBrain,
   isPortalOpen: (portalId) => doorState(worldMap, run, portalId).open,
