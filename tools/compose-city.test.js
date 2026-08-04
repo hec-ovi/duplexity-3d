@@ -31,7 +31,7 @@ const city = () => composeCity(spec);
 
 // Walk the player toward a world point, one 60th of a second at a time, and say whether they got
 // there. At yaw 0 the camera looks down -Z, so this yaw aims "forward" straight at the target.
-function walkTo(rt, x, z, seconds = 20) {
+function walkTo(rt, x, z, seconds = 70) {
   for (let i = 0; i < Math.round(seconds * 60); i++) {
     const p = rt.getPlayer().position;
     const dx = x - p.x;

@@ -30,6 +30,19 @@ const COLORS = {
   npc: { friendly: 0x5fbf6a, neutral: 0xc9c9c9, wary: 0xe0b050, hostile: 0xcc4b4b },
 };
 
+// What a room's floor is made of, by what the room is for. Anything unnamed keeps plain concrete.
+const FLOOR_BY_ROOM = [
+  [/kitchen|bath|utility|cold room|server/i, "floor.tiles"],
+  [/living|bedroom|study|hall|landing/i, "floor.wood"],
+  [/shop|aisle|counter|store|yard|archive|office|reception|meeting/i, "floor.concrete"],
+];
+
+function floorSurface(room) {
+  if (room.open) return "plaza";
+  const match = FLOOR_BY_ROOM.find(([pattern]) => pattern.test(room.name ?? ""));
+  return match ? match[1] : "floor";
+}
+
 const DEFAULT_OBJECT_SIZE = [0.8, 0.8, 0.8];
 const DEFAULT_NPC_SIZE = [0.6, 1.8, 0.6];
 
@@ -146,7 +159,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     // is for the flat fallback, and for the one kit that asks for a warmer floor.
     const gold = /gold/i.test(room.floorKit ?? "");
     const mat =
-      materials?.ground(room.open ? "plaza" : "floor", room.size.x, room.size.z, gold ? COLORS.floorTint : undefined) ??
+      materials?.ground(floorSurface(room), room.size.x, room.size.z, gold ? COLORS.floorTint : undefined) ??
       (gold ? floorAltMat : floorMat);
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(room.size.x, FLOOR_T, room.size.z), mat);
     mesh.position.set(room.center.x, room.floorY - FLOOR_T / 2, room.center.z);
@@ -196,6 +209,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
           );
     if (!mesh.userData.reflective) mesh.position.set(z.center.x, z.center.y + lift / 2, z.center.z);
     else mesh.position.set(z.center.x, z.center.y + 0.012, z.center.z);
+    mesh.receiveShadow = true;
     mesh.name = `zone:${z.id}`;
     mesh.userData = { ...mesh.userData, kind: "zone", zone: z.kind };
     group.add(mesh);
@@ -207,6 +221,8 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   for (const b of model.blocks ?? []) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), materials?.block(b) ?? blockMat);
     mesh.position.set(b.center.x, b.center.y, b.center.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     mesh.name = `block:${b.id}`;
     mesh.userData = { kind: "block", assetRef: b.assetRef };
     group.add(mesh);
@@ -236,6 +252,9 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // leaf set back in it, a handle and a step. An interior doorway is a real hole, so it gets the
   // surround alone.
   const byBlock = new Map((model.blocks ?? []).map((b) => [b.id, b]));
+  const roomNames = new Map(
+    model.rooms.filter((r) => r.name).map((r) => [r.id, { name: r.name, center: r.center }])
+  );
   const openGround = new Set(model.rooms.filter((r) => r.open).map((r) => r.id));
   for (const portal of model.portals ?? []) {
     // The city gate is a gap in an open boundary, with no wall to hang a frame on. A front door is
@@ -243,6 +262,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     if (!portal.blockId && openGround.has(portal.roomA)) continue;
     const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY, {
       signMaterial: materials ? (part) => materials.sign(part) : undefined,
+      names: roomNames,
     });
     group.add(door);
     counts.doors++;
@@ -333,6 +353,13 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     if (placeholder) counts.placeholders++;
   }
 
+  // Everything solid throws a shadow and takes one; the glowing bits do neither, since a lamp head
+  // casting its own shadow only ever looks wrong.
+  group.traverse((node) => {
+    if (!node.isMesh || node.userData.kind === "light") return;
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
   group.userData = { instanceId: model.instanceId, counts };
   return group;
 }

@@ -52,6 +52,27 @@
       "roughness": 0.94,
       "metalness": 0.02,
       "credit": "Poly Haven - concrete_wall_008 (CC0)"
+    },
+    "floor.wood": {
+      "slug": "wood_floor_deck",
+      "metres": 2.4,
+      "roughness": 0.6,
+      "metalness": 0.02,
+      "credit": "Poly Haven - wood_floor_deck (CC0)"
+    },
+    "floor.tiles": {
+      "slug": "floor_tiles_06",
+      "metres": 3,
+      "roughness": 0.55,
+      "metalness": 0.04,
+      "credit": "Poly Haven - floor_tiles_06 (CC0)"
+    },
+    "floor.concrete": {
+      "slug": "concrete_floor_worn_001",
+      "metres": 3.2,
+      "roughness": 0.85,
+      "metalness": 0.02,
+      "credit": "Poly Haven - concrete_floor_worn_001 (CC0)"
     }
   }
 }

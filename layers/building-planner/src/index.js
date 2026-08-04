@@ -13,18 +13,41 @@ const HEIGHT = 3.1; // storey height, metres
 const DOOR = [1.4, 2.4]; // interior door
 const WAY_OUT = [1.6, 2.4]; // the street door
 const STAIRS = [1.2, 2.4];
-const MIN_ROOM = 3.4; // a room narrower than this is a corridor, not a room
+const MIN_ROOM = 4.2; // a room narrower than this is a corridor, not a room
+const ROOM_TARGET = 6.5; // and one about this big is a room you would walk into
+const MOST_CELLS = 4; // a floor is a handful of rooms, never a honeycomb
 const TALL = 4; // storeys from which a building has a lift instead of a staircase
 
-// What a floor is FOR, room by room. The grid is filled left to right, near to far, and the first
-// cell is where you come in, so a name lands on the same room every time. A floor plan you can read
-// is the point: a kitchen is a kitchen, not r-1-0.
+// What a floor is FOR, room by room, in the order the grid is filled: left to right, near to far.
+// The first cell is where you come in, so a name lands on the same room every time. A floor plan you
+// can read is the point: a kitchen is a kitchen, not r-1-0. A list that runs out repeats, numbered.
 const PROGRAMS = {
-  house: { cols: 2, rows: 2, rooms: ["hall", "living room", "kitchen", "bathroom"] },
-  apartments: { cols: 2, rows: 2, rooms: ["landing", "living room", "kitchen", "bedroom"] },
-  shop: { cols: 2, rows: 1, rooms: ["shop floor", "back room"] },
-  office: { cols: 3, rows: 2, rooms: ["reception", "office", "office", "meeting room", "kitchen", "store"] },
+  house: ["hall", "living room", "kitchen", "bathroom", "bedroom", "study", "utility", "store"],
+  apartments: ["landing", "living room", "kitchen", "bathroom", "bedroom", "bedroom", "study", "store"],
+  shop: ["shop floor", "aisle", "counter", "back room", "store", "office", "yard", "cold room"],
+  office: ["reception", "office", "meeting room", "kitchen", "office", "archive", "store", "server room"],
 };
+
+// How many rooms a floor is cut into: enough that each is about ROOM_TARGET across, never smaller
+// than MIN_ROOM, never more than MOST_CELLS a side. The rooms are sized in METRES, so a big premises
+// gets more rooms rather than one enormous one, and a small one is not sliced into corridors.
+function gridFor(footprint) {
+  const along = (metres) =>
+    Math.max(1, Math.min(MOST_CELLS, Math.floor(metres / MIN_ROOM), Math.round(metres / ROOM_TARGET)));
+  return { cols: along(footprint.width), rows: along(footprint.depth) };
+}
+
+// A name per cell, numbered once the list starts repeating: bedroom, then bedroom 2.
+function namesFor(program, count) {
+  const list = PROGRAMS[program] ?? PROGRAMS.house;
+  const used = new Map();
+  return Array.from({ length: count }, (_, i) => {
+    const name = list[i % list.length];
+    const seen = (used.get(name) ?? 0) + 1;
+    used.set(name, seen);
+    return seen === 1 ? name : `${name} ${seen}`;
+  });
+}
 
 export class LotPlanInvalidError extends Error {
   constructor(reason) {
@@ -56,8 +79,7 @@ export class LayoutInvalidError extends Error {
  * @param {{width:number, depth:number}} footprint metres
  */
 export function programFits(program, footprint) {
-  const { cols, rows } = PROGRAMS[program] ?? PROGRAMS.house;
-  return footprint.width / cols >= MIN_ROOM && footprint.depth / rows >= MIN_ROOM;
+  return footprint.width >= MIN_ROOM && footprint.depth >= MIN_ROOM;
 }
 
 // Prefer the indoor piece when the kit distinguishes one, but never require it: a theme with a
@@ -89,10 +111,11 @@ export function createBuilding(lot, assetQuery, opts = {}) {
   if (!Array.isArray(lot.floorInstanceIds) || lot.floorInstanceIds.length < floors) {
     throw new LotPlanInvalidError("floorInstanceIds does not name every floor");
   }
-  const plan = PROGRAMS[lot.program] ?? PROGRAMS.house;
   if (!programFits(lot.program, lot.footprint)) {
     throw new LotPlanInvalidError(`footprint too small for a ${lot.program} floor`);
   }
+  const { cols, rows } = gridFor(lot.footprint);
+  const plan = { cols, rows, rooms: namesFor(lot.program, cols * rows) };
 
   const floorKit = pickKit(assetQuery, "room-floor", lot.theme);
   const wallKit = pickKit(assetQuery, "wall", lot.theme);

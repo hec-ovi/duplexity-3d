@@ -96,13 +96,21 @@ export function paintFacadeAlbedo(ctx, plan, rng) {
   ctx.fillStyle = p.ledge;
   for (let row = 1; row < rows; row++) ctx.fillRect(0, row * rowH - 3, width, 4);
 
-  // A frame deep enough to read as a hole punched in the wall rather than a sticker on it.
+  // A frame deep enough to read as a hole punched in the wall rather than a sticker on it, and
+  // glazing bars across it: a window is panes, not one pale rectangle.
   const frame = Math.max(3, bayW * 0.06);
+  const bar = Math.max(2, frame * 0.5);
   for (const win of plan.windows) {
     ctx.fillStyle = p.frame;
     ctx.fillRect(win.x - frame, win.y - frame, win.w + frame * 2, win.h + frame * 2);
     ctx.fillStyle = p.glass;
     ctx.fillRect(win.x, win.y, win.w, win.h);
+    ctx.fillStyle = p.frame;
+    for (let i = 1; i < 2; i++) ctx.fillRect(win.x + (win.w * i) / 2 - bar / 2, win.y, bar, win.h);
+    for (let i = 1; i < 3; i++) ctx.fillRect(win.x, win.y + (win.h * i) / 3 - bar / 2, win.w, bar);
+    // a sill under it, catching the light
+    ctx.fillStyle = p.ledge;
+    ctx.fillRect(win.x - frame * 1.6, win.y + win.h + frame, win.w + frame * 3.2, Math.max(2, frame * 0.8));
   }
 
   if (plan.shopfront) {
@@ -128,10 +136,16 @@ export function paintFacadeEmissive(ctx, plan) {
   ctx.fillStyle = PALETTE.off;
   ctx.fillRect(0, 0, width, height);
 
+  // Lit windows glow pane by pane, with the bars dark between them, so a lit floor reads as windows
+  // in a building rather than as squares cut out of one.
+  const bar = Math.max(2, Math.max(3, bayW * 0.06) * 0.5);
   for (const win of plan.windows) {
     if (!win.lit) continue;
     ctx.fillStyle = win.colour;
     ctx.fillRect(win.x, win.y, win.w, win.h);
+    ctx.fillStyle = PALETTE.off;
+    for (let i = 1; i < 2; i++) ctx.fillRect(win.x + (win.w * i) / 2 - bar / 2, win.y, bar, win.h);
+    for (let i = 1; i < 3; i++) ctx.fillRect(win.x, win.y + (win.h * i) / 3 - bar / 2, win.w, bar);
   }
 
   if (plan.sign.lit) {

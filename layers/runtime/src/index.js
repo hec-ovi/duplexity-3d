@@ -31,6 +31,9 @@ export class InstanceInvalidError extends Error {
 const DEFAULTS = {
   playerRadius: 0.3,
   moveSpeed: 3.5, // m/s
+  runSpeed: 6.6, // m/s, held down
+  jumpSpeed: 5.0, // m/s upward off the floor
+  gravity: 18, // m/s squared
   pickupRadius: 1.0,
   maxStep: 0.15, // sub-step size (m) to keep fast moves from tunnelling thin walls
   npcSpeed: NPC_DEFAULTS.speed,
@@ -82,6 +85,9 @@ export function createRuntime(deps = {}) {
     maxStep: deps.maxStep ?? DEFAULTS.maxStep,
     npcSpeed: deps.npcSpeed ?? DEFAULTS.npcSpeed,
     npcRadius: deps.npcRadius ?? DEFAULTS.npcRadius,
+    runSpeed: deps.runSpeed ?? DEFAULTS.runSpeed,
+    jumpSpeed: deps.jumpSpeed ?? DEFAULTS.jumpSpeed,
+    gravity: deps.gravity ?? DEFAULTS.gravity,
   };
 
   let scene = null; // play-time summary (npc modes, discovered, goal)
@@ -282,6 +288,8 @@ export function createRuntime(deps = {}) {
       player = {
         position: { x: at.x, y: model.groundY, z: at.z },
         yaw: opts.facing ?? facingIn ?? spawn.facing,
+        velocityY: 0,
+        onGround: true,
         currentRoom: roomAt(model, at.x, at.z),
       };
       if (player.currentRoom) scene.visitedRooms.add(player.currentRoom);
@@ -375,7 +383,24 @@ export function createRuntime(deps = {}) {
       if (!model || !player) throw new InstanceInvalidError(scene?.instanceId);
       scene.elapsed += dt; // survive goals count sim time, never a wall clock
       const from = { x: player.position.x, z: player.position.z };
-      const delta = movementVector(input, player.yaw, cfg.moveSpeed, dt);
+      const delta = movementVector(input, player.yaw, input.run ? cfg.runSpeed : cfg.moveSpeed, dt);
+
+      // Up and down. There is nothing to land on but the floor, so a jump is a hop: you leave it,
+      // gravity brings you back, and you cannot jump again until you are standing on it.
+      const ground = model.groundY;
+      if (input.jump && player.onGround) {
+        player.velocityY = cfg.jumpSpeed;
+        player.onGround = false;
+      }
+      if (!player.onGround) {
+        player.velocityY -= cfg.gravity * dt;
+        player.position.y += player.velocityY * dt;
+        if (player.position.y <= ground) {
+          player.position.y = ground;
+          player.velocityY = 0;
+          player.onGround = true;
+        }
+      }
 
       let pos = from;
       const len = Math.hypot(delta.x, delta.z);

@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { movementVector } from "../src/controls.js";
+import { createRuntime } from "../src/index.js";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const fixture = JSON.parse(
+  readFileSync(join(HERE, "../../persistence/fixtures/adventure.example.json"), "utf8")
+);
 
 describe("controls.movementVector", () => {
   it("moves forward along -Z at yaw 0 (three.js default forward)", () => {
@@ -35,5 +44,50 @@ describe("controls.movementVector", () => {
   it("scales with speed and dt", () => {
     const d = movementVector({ forward: true }, 0, 5, 0.5);
     expect(d.z).toBeCloseTo(-2.5, 6);
+  });
+});
+
+describe("run, jump and gravity", () => {
+  it("holding run covers more ground in the same time", () => {
+    const rt = createRuntime();
+    rt.load(fixture, "inst-001");
+    const start = { ...rt.getPlayer().position };
+    for (let i = 0; i < 30; i++) rt.step(1 / 60, { forward: true });
+
+    const rt2 = createRuntime();
+    rt2.load(fixture, "inst-001");
+    for (let i = 0; i < 30; i++) rt2.step(1 / 60, { forward: true, run: true });
+
+    const from = (r) =>
+      Math.hypot(r.getPlayer().position.x - start.x, r.getPlayer().position.z - start.z);
+    expect(from(rt)).toBeGreaterThan(0);
+    expect(from(rt2)).toBeGreaterThan(from(rt) * 1.4);
+  });
+
+  it("a jump leaves the floor and gravity brings it back", () => {
+    const rt = createRuntime();
+    rt.load(fixture, "inst-001");
+    const ground = rt.getPlayer().position.y;
+
+    rt.step(1 / 60, { jump: true });
+    expect(rt.getPlayer().position.y).toBeGreaterThan(ground);
+
+    let peak = ground;
+    for (let i = 0; i < 120; i++) {
+      rt.step(1 / 60, {});
+      peak = Math.max(peak, rt.getPlayer().position.y);
+    }
+    expect(peak).toBeGreaterThan(ground + 0.5);
+    expect(rt.getPlayer().position.y).toBeCloseTo(ground, 5); // back on the floor
+  });
+
+  it("you cannot jump again in mid air", () => {
+    const rt = createRuntime();
+    rt.load(fixture, "inst-001");
+    rt.step(1 / 60, { jump: true });
+    const rising = rt.getPlayer().position.y;
+    for (let i = 0; i < 6; i++) rt.step(1 / 60, { jump: true });
+    // still one hop: a second jump would have thrown it far higher than gravity allows in 6 frames
+    expect(rt.getPlayer().position.y).toBeLessThan(rising + 0.6);
   });
 });

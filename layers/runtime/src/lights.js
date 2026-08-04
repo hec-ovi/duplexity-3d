@@ -9,6 +9,8 @@
 import * as THREE from "three";
 
 const POOL = 10; // real point lights alive at once
+const CASTERS = 2; // of those, how many throw shadows: the nearest, because they are what you see
+const SHADOW_MAP = 512;
 const REACH = 24; // metres a pooled light carries
 const FADE = 55; // how fast a light comes up or goes out, in intensity per second
 
@@ -21,7 +23,7 @@ const LOOK = {
 const NIGHT = {
   sky: 0x2a3448,
   ground: 0x0e1014,
-  ambient: 0.55, // enough to keep an unlit wall from going pure black
+  ambient: 0.8, // enough to keep an unlit wall off pure black, without washing out the night
   moon: 0.35,
 };
 
@@ -41,13 +43,24 @@ const INDOORS = {
  * @param {boolean} opts.open   outdoors (night) or indoors
  * @param {Function} [opts.tintFor] (light) -> colour override, e.g. a building's own sign colour
  */
-export function createLightRig(scene, { lights = [], open = false, tintFor } = {}) {
+export function createLightRig(scene, { lights = [], open = false, tintFor, extent } = {}) {
   const mood = open ? NIGHT : INDOORS;
   const added = [];
 
   const hemi = new THREE.HemisphereLight(mood.sky, mood.ground, mood.ambient);
   const moon = new THREE.DirectionalLight(0xc8d8ff, mood.moon);
-  moon.position.set(-6, 14, -4);
+  moon.position.set(-40, 90, -30);
+  // One shadow across the whole level, from the moon: what makes a building read as a solid thing
+  // standing on ground rather than a picture of one.
+  if (open) {
+    moon.castShadow = true;
+    moon.shadow.mapSize.set(2048, 2048);
+    const reach = Math.max(40, (extent ?? 120) * 0.6);
+    Object.assign(moon.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach, near: 1, far: 400 });
+    moon.shadow.bias = -0.0008;
+    moon.shadow.normalBias = 0.03;
+    moon.shadow.camera.updateProjectionMatrix();
+  }
   added.push(hemi, moon);
 
   // Where each authored light actually burns, and what colour, worked out once.
@@ -70,6 +83,14 @@ export function createLightRig(scene, { lights = [], open = false, tintFor } = {
   for (let i = 0; i < Math.min(POOL, points.length); i++) {
     const lamp = new THREE.PointLight(0xffffff, 0, REACH, 2);
     lamp.name = `pooled-light:${i}`;
+    // Only the first few throw shadows: a point light shadow is six renders, and past the nearest
+    // couple nobody can tell.
+    if (i < CASTERS) {
+      lamp.castShadow = true;
+      lamp.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
+      lamp.shadow.bias = -0.004;
+      lamp.shadow.camera.near = 0.4;
+    }
     pool.push({ lamp, point: null, level: 0 });
     added.push(lamp);
   }

@@ -2,6 +2,23 @@
 
 What the project does now, newest first.
 
+## 0.9 - Rooms with something in them, and light that behaves
+
+- Rooms are sized in METRES, not by a fixed grid: a floor is cut into rooms about 6.5m across, never
+  under 4.2m, at most four a side. A big premises gets more rooms rather than one hall, and a small
+  one is not sliced into corridors. City blocks are 40m and hold two or three places, so what is
+  inside is worth walking into.
+- Shadows. Outdoors, one across the whole level from the moon; near to hand, the two nearest lamps.
+  A point light shadow is six renders, so past those two nobody can tell.
+- Reflections. The scene lights itself: an environment is captured from the standing scene, so a wet
+  road and a tiled floor come back with the sky and the signs in them.
+- Every door between two rooms is signed with what is through it, a plate each side, so a floor can be
+  read without walking into every wall.
+- A room's floor suits what it is for: boards in a living room, tiles in a kitchen, worn concrete in a
+  shop. Windows have glazing bars and a sill, so a lit floor reads as windows rather than as pale
+  squares. A front door has a lit glazed panel in it.
+- Shift runs, space jumps, and holding the right button pulls the view in.
+
 ## 0.8 - Rooms you would walk into
 
 - Floors are rooms with names and something to be: a house is a hall, a living room, a kitchen and a

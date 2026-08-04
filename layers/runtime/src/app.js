@@ -27,7 +27,12 @@ const KEY_MAP = {
   ArrowLeft: "left",
   KeyD: "right",
   ArrowRight: "right",
+  ShiftLeft: "run",
+  ShiftRight: "run",
+  Space: "jump",
 };
+
+const FOV = { normal: 75, zoomed: 38, rate: 6 }; // right button pulls the view in
 
 const DEFAULTS = { eyeHeight: 1.6, lookSensitivity: 0.0022, maxDt: 0.05 };
 
@@ -111,10 +116,21 @@ export function createApp(options = {}) {
     rig = createLightRig(scene, {
       lights: model.lights,
       open,
+      extent: Math.max(model.bounds.maxX - model.bounds.minX, model.bounds.maxZ - model.bounds.minZ),
       // A sign over a door burns the colour that building's own front is painted.
       tintFor: (light) => (light.blockId ? materials?.signColour(light.blockId) : null),
     });
     actors = createNpcActors(instanceGroup, runtime.getNpcs());
+  }
+
+  // Something for a shiny surface to reflect. Built from the scene itself once it is standing, so a
+  // wet road and a tiled floor come back with the sky and the signs in them rather than with nothing.
+  function lightEnvironment() {
+    if (!pmrem) return;
+    scene.environment?.dispose?.();
+    scene.environment = null;
+    scene.environment = pmrem.fromScene(scene, 0.04).texture;
+    scene.environmentIntensity = 0.55;
   }
   build(instanceId);
 
@@ -124,20 +140,27 @@ export function createApp(options = {}) {
   camera.rotation.order = "YXZ";
 
   const renderer = injectedRenderer ?? new THREE.WebGLRenderer({ antialias: true });
+  const pmrem = injectedRenderer ? null : new THREE.PMREMGenerator(renderer);
   renderer.setSize?.(width, height);
   if (renderer.toneMapping !== undefined) {
     // Film response, so a lit window can be brighter than white without the whole street clipping.
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
   }
+  if (renderer.shadowMap) {
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
   if (renderer.domElement && container.appendChild) container.appendChild(renderer.domElement);
 
   // Bloom, so a sign glows into the air around it rather than being a bright rectangle. It needs a
   // real renderer; a head-less test gets a stub and draws straight through.
   const composer = injectedRenderer ? null : buildComposer(renderer, scene, camera, width, height);
+  lightEnvironment();
 
   // Look state. Yaw lives on the runtime (movement needs it); pitch is view-only.
   let pitch = 0;
+  let zoomed = false;
   const pressed = new Set();
   let locked = false;
   let frameId = null;
@@ -189,11 +212,18 @@ export function createApp(options = {}) {
     );
   }
 
-  function syncCamera() {
+  function syncCamera(dt = 0) {
     const p = runtime.getPlayer();
     camera.position.set(p.position.x, p.position.y + eyeHeight, p.position.z);
     camera.rotation.y = p.yaw;
     camera.rotation.x = pitch;
+
+    const want = zoomed ? FOV.zoomed : FOV.normal;
+    if (dt > 0 && Math.abs(camera.fov - want) > 0.01) {
+      const step = (want - camera.fov) * Math.min(1, FOV.rate * dt);
+      camera.fov += step;
+      camera.updateProjectionMatrix();
+    }
   }
   syncCamera();
   actors.sync(runtime.getNpcs(), camera, 0);
@@ -222,7 +252,7 @@ export function createApp(options = {}) {
   function tick(dt) {
     const clamped = Math.min(dt, DEFAULTS.maxDt);
     const result = runtime.step(clamped, currentInput());
-    syncCamera();
+    syncCamera(clamped);
     actors.sync(runtime.getNpcs(), camera, clamped);
     syncLabels();
     rig?.update(camera.position, clamped);
@@ -234,8 +264,10 @@ export function createApp(options = {}) {
 
   // --- browser input (all guarded so head-less tests never touch pointer lock) ---
   const onKeyDown = (e) => {
-    if (KEY_MAP[e.code]) pressed.add(e.code);
-    else if (e.code === "KeyE" && !e.repeat) interact(); // talk to the nearest NPC
+    if (KEY_MAP[e.code]) {
+      pressed.add(e.code);
+      if (e.code === "Space") e.preventDefault?.(); // or the page scrolls under the canvas
+    } else if (e.code === "KeyE" && !e.repeat) interact(); // talk to the nearest NPC
   };
   const onKeyUp = (e) => {
     if (KEY_MAP[e.code]) pressed.delete(e.code);
@@ -249,11 +281,22 @@ export function createApp(options = {}) {
     locked = doc()?.pointerLockElement === (renderer.domElement ?? null);
   };
   const requestLock = () => renderer.domElement?.requestPointerLock?.();
+  // Right button pulls the view in, the way looking harder at something does.
+  const onMouseDown = (e) => {
+    if (e.button === 2) zoomed = true;
+  };
+  const onMouseUp = (e) => {
+    if (e.button === 2) zoomed = false;
+  };
+  const onContextMenu = (e) => e.preventDefault?.();
 
   const win = globalThis.window ?? globalThis;
   win.addEventListener?.("keydown", onKeyDown);
   win.addEventListener?.("keyup", onKeyUp);
   win.addEventListener?.("mousemove", onMouseMove);
+  win.addEventListener?.("mousedown", onMouseDown);
+  win.addEventListener?.("mouseup", onMouseUp);
+  win.addEventListener?.("contextmenu", onContextMenu);
   doc()?.addEventListener?.("pointerlockchange", onLockChange);
   renderer.domElement?.addEventListener?.("click", requestLock);
 
@@ -287,6 +330,7 @@ export function createApp(options = {}) {
     // The host calls this from onTransit; the runtime never loads the next instance itself.
     goTo(id, opts = {}) {
       build(id, opts);
+      lightEnvironment();
       syncCamera();
       actors.sync(runtime.getNpcs(), camera, 0);
       syncLabels();
@@ -317,10 +361,14 @@ export function createApp(options = {}) {
       materials?.dispose();
       rig?.dispose();
       composer?.dispose();
+      pmrem?.dispose();
       labels?.dispose();
       win.removeEventListener?.("keydown", onKeyDown);
       win.removeEventListener?.("keyup", onKeyUp);
       win.removeEventListener?.("mousemove", onMouseMove);
+      win.removeEventListener?.("mousedown", onMouseDown);
+      win.removeEventListener?.("mouseup", onMouseUp);
+      win.removeEventListener?.("contextmenu", onContextMenu);
       win.removeEventListener?.("resize", onResize);
       doc()?.removeEventListener?.("pointerlockchange", onLockChange);
       renderer.domElement?.removeEventListener?.("click", requestLock);

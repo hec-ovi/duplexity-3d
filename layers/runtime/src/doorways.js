@@ -13,10 +13,11 @@ const STEP = { rise: 0.1, tread: 0.55, margin: 0.3 };
 const HANDLE = { size: 0.07, height: 1.05, inset: 0.28 };
 
 const COLOURS = {
-  frame: 0x30353d,
-  leaf: 0x1d2126,
-  handle: 0xb9a06a,
-  step: 0x4a4f57,
+  frame: 0x8c7f6a, // painted timber, light enough to read against a dark wall
+  leaf: 0x3b3026,
+  glass: 0x2a3138,
+  handle: 0xd8c08a,
+  step: 0x5b6068,
 };
 
 // What a door says over it, so a way out is something you can see across a room rather than
@@ -32,9 +33,34 @@ const OVER_DOOR = {
 };
 const PLATE = { height: 0.34, depth: 0.08, lift: 0.3 };
 
-/** What the sign over this door should say, if anything. */
-export function signOver(portal) {
-  return OVER_DOOR[portal.roomB === "EXIT" ? "EXIT" : portal.link?.kind] ?? null;
+const ROOM_SIGN = { colour: "#9fb4c2" };
+
+/**
+ * What the signs over this door say. A door that leaves the place says so (EXIT, UP, LIFT DOWN); a
+ * door between two rooms says what is through it, one plate each side, so you can read a floor
+ * without walking into every wall.
+ *
+ * @param {object} portal
+ * @param {Map<string,string>} [names] roomId -> what that room is called
+ * @returns {Array<{text:string, colour:string, side:1|-1}>}
+ */
+export function signOver(portal, rooms) {
+  const leaving = OVER_DOOR[portal.roomB === "EXIT" ? "EXIT" : portal.link?.kind];
+  if (leaving) return [{ ...leaving, side: 1 }];
+  if (!rooms) return [];
+  const a = rooms.get(portal.roomA);
+  const b = rooms.get(portal.roomB);
+  if (!a || !b) return [];
+  // You read the name of the room you are walking INTO, from the room you are standing in. So the
+  // plate naming B hangs on A's side of the wall, and the other way round.
+  const towards = (room) =>
+    Math.sign(
+      (portal.axis === "x" ? room.center.x - portal.center.x : room.center.z - portal.center.z) || 1
+    );
+  return [
+    { text: b.name.toUpperCase(), colour: ROOM_SIGN.colour, side: towards(a) },
+    { text: a.name.toUpperCase(), colour: ROOM_SIGN.colour, side: towards(b) },
+  ];
 }
 
 const matte = (color, extra = {}) =>
@@ -79,11 +105,12 @@ function place(mesh, portal, out, offset, y) {
  * @param {Function} [deps.signMaterial] (part) -> Material[] for the lettered plate over the door
  * @returns {THREE.Group}
  */
-export function buildDoorway(portal, block, groundY = 0, { signMaterial } = {}) {
+export function buildDoorway(portal, block, groundY = 0, { signMaterial, names } = {}) {
   const [width, height] = portal.size;
   const { axis } = portal;
   const out = outward(portal, block);
   const solid = Boolean(block); // a door on a building has a leaf; a cut doorway is a hole
+  const PLATE_TEXT = 0.19; // metres of plate per letter
 
   const group = new THREE.Group();
   group.name = `doorway:${portal.id}`;
@@ -104,10 +131,10 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial } = {}) 
     group.add(post);
   }
 
-  // The sign over it, lit, so a way out is something you can see across a room.
-  const says = signOver(portal);
-  if (says) {
-    const plateWidth = Math.max(0.9, says.text.length * 0.3);
+  // The signs over it, lit, so a way out and a way on are things you can see across a room.
+  for (const says of signOver(portal, names)) {
+    // Never wider than the door it hangs over: a room name is a plate, not a billboard.
+    const plateWidth = Math.min(width + FRAME.margin * 2, Math.max(0.8, says.text.length * 0.19));
     const part = {
       kind: "sign",
       orientation: "flat",
@@ -116,13 +143,14 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial } = {}) 
       colour: says.colour,
     };
     // Modelled with its face on +z and then turned, so the lettering ends up pointing out of the wall.
+    const facing = solid ? out * says.side : says.side;
     const plate = new THREE.Mesh(
       new THREE.BoxGeometry(plateWidth, PLATE.height, PLATE.depth),
       signMaterial?.(part) ?? [glowing(says.colour)]
     );
-    plate.rotation.y = axis === "x" ? out * (Math.PI / 2) : out > 0 ? 0 : Math.PI;
-    place(plate, portal, out, FRAME.proud + PLATE.depth, groundY + height + FRAME.margin + PLATE.lift);
-    plate.name = `doorway:${portal.id}:sign`;
+    plate.rotation.y = axis === "x" ? facing * (Math.PI / 2) : facing > 0 ? 0 : Math.PI;
+    place(plate, portal, facing, FRAME.proud + PLATE.depth, groundY + height + FRAME.margin + PLATE.lift);
+    plate.name = `doorway:${portal.id}:sign${says.side > 0 ? "" : ":back"}`;
     group.add(plate);
   }
 
@@ -132,6 +160,22 @@ export function buildDoorway(portal, block, groundY = 0, { signMaterial } = {}) 
   place(leaf, portal, out, -LEAF.recess, groundY + height / 2);
   leaf.name = `doorway:${portal.id}:leaf`;
   group.add(leaf);
+
+  // A glazed panel in the top half, lit from inside: what tells you at a glance that this is a door
+  // into somewhere rather than a dark patch on a wall.
+  const pane = new THREE.Mesh(
+    slab(width * 0.62, height * 0.42, 0.04, axis),
+    new THREE.MeshStandardMaterial({
+      color: COLOURS.glass,
+      emissive: new THREE.Color(0xffe0b0),
+      emissiveIntensity: 0.5,
+      roughness: 0.25,
+      metalness: 0.1,
+    })
+  );
+  place(pane, portal, out, -LEAF.recess + LEAF.thickness * 0.6, groundY + height * 0.66);
+  pane.userData = { kind: "light" }; // it is a source, so it neither casts nor takes a shadow
+  group.add(pane);
 
   const handle = new THREE.Mesh(
     new THREE.BoxGeometry(HANDLE.size, HANDLE.size, HANDLE.size),

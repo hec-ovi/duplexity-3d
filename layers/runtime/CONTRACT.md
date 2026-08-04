@@ -14,7 +14,9 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   back out. `opts.spawnAt` / `opts.facing` place them exactly instead, which is what coming out of a
   building onto open ground needs: the middle of a whole street is nowhere near the door you came out
   of.
-- player input - local (keyboard/mouse/touch/gamepad); never leaves the client.
+- player input - local, never leaves the client. WASD or the arrows walk, the mouse looks, `E` talks,
+  **shift** runs, **space** jumps (one hop: there is nothing to land on but the floor), and holding the
+  **right button** pulls the view in.
 - `applyInteractionResult(npcId, InteractionResult)` - applies an NPC decision returned from the
   backend. schema: `schema/interaction-result.json` (owned by npc).
 - `deps.dressFacade(building) -> { name, parts }` - injected facade dresser, normally `facade`.
@@ -55,9 +57,15 @@ A door on a building's face has nothing cut out of it: the mass is solid and wha
 another instance. So the door is BUILT, not carved: a surround standing proud of the wall, a leaf set
 back in it, a handle and a step. An interior doorway is a real hole, so it gets the surround alone. A
 wet road is a mirror laid under the asphalt with the asphalt thinned over it, so what comes back is
-the lamps and the signs rather than a second city. Every door that leaves a place is signed and lit
-(EXIT, UP, LIFT DOWN), so a way out is something you can see across a room. Indoors has a ceiling: a
-room open to a black sky has nothing for its own lamp to bounce off.
+the lamps and the signs rather than a second city. Every door is signed and lit: one that leaves says
+so (EXIT, UP, LIFT DOWN), and one between two rooms says what is through it, a plate each side, so a
+floor can be read without walking into every wall. Indoors has a ceiling, and a room's floor suits
+what the room is for: boards in a living room, tiles in a kitchen, worn concrete in a shop.
+
+Solid things throw shadows and take them. Outdoors that is one shadow across the level from the moon;
+indoors and near to hand it is the two nearest lamps, since a point light shadow is six renders and
+past those nobody can tell. What a shiny surface reflects is the scene itself, captured once it is
+standing, so a wet road and a tiled floor come back with the sky and the signs in them.
 
 Names and speech are HTML over the canvas, never glyphs in the scene. A NAME hangs over whoever it
 belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in the

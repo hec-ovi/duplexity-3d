@@ -35,7 +35,7 @@ export const SURFACE_KINDS = ["road", "pavement", "plaza", "concrete", "floor", 
  * @returns {{ id, slug, metres:[number,number], maps:object, material:object, credit:string }|null}
  */
 export function photoSurface(kind) {
-  const entry = MANIFEST.materials?.[kind];
+  const entry = MANIFEST.materials?.[kind] ?? MANIFEST.materials?.[kind.split(".")[0]];
   if (!entry) return null;
   return {
     id: kind,
@@ -145,18 +145,18 @@ export function paintSurface(kind, ctxFor, opts = {}) {
     };
   }
 
-  const ground = GROUND[kind];
+  const ground = GROUND[kind] ?? GROUND[kind.split(".")[0]];
   if (!ground) throw new UnknownSurfaceError(kind);
   const wet = kind === "road" ? Math.max(0, Math.min(1, opts.wet ?? 0)) : 0;
 
   const albedo = contextFor(ctxFor, "albedo", TILE, TILE);
   if (kind === "road") paintRoad(albedo, rng, TILE, wet);
-  else if (kind === "floor") paintSlabs(albedo, rng, TILE, "floor");
+  else if (kind.startsWith("floor")) paintSlabs(albedo, rng, TILE, "floor");
   else if (kind === "pavement" || kind === "plaza") paintSlabs(albedo, rng, TILE, kind);
   else paintConcrete(albedo, rng, TILE, kind);
 
   return {
-    kind,
+    kind: kind.split(".")[0],
     pixels: [TILE, TILE],
     metres: [ground.metres, ground.metres],
     maps: { albedo },

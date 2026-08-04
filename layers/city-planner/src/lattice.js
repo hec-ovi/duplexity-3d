@@ -6,7 +6,7 @@
 //
 // Pure integers and metres. No assets, no ids beyond the cell index.
 
-export const BLOCK = 32; // a city block, metres square: its pavement plus the premises on it
+export const BLOCK = 40; // a city block, metres square: its pavement plus the premises on it
 export const STREET = 12; // roadway between blocks, and the margin around the whole lattice
 export const LATTICE_BY_SIZE = { small: 2, medium: 3, large: 4 };
 
@@ -39,7 +39,7 @@ export function cells(n) {
 }
 
 export const PAVEMENT = 4.5; // pavement round a block, wide enough to walk and stand on
-export const MAX_PER_BLOCK = 4; // premises one block can be split into
+export const MAX_PER_BLOCK = 3; // premises one block can be split into: fewer, bigger places
 
 /**
  * Split one city block into the plots its buildings stand on. The block keeps a pavement all the way
@@ -60,14 +60,13 @@ export function plotsInBlock(center, count) {
       { center: { x: center.x, z: center.z + inner / 2 - narrow / 2 }, size: { w: inner, d: narrow } },
     ];
   }
-  // three or four: quarters, each a little different
+  // three: one down one side, two down the other, so no premises is a quarter of a quarter
   const half = (inner - 1) / 2;
   const quads = [
-    { x: -1, z: -1, w: half * 1.05, d: half },
+    { x: -1, z: 0, w: half * 1.05, d: inner },
     { x: 1, z: -1, w: half * 0.95, d: half },
-    { x: -1, z: 1, w: half, d: half * 0.9 },
-    { x: 1, z: 1, w: half, d: half * 1.05 },
-  ].slice(0, Math.min(count, 4));
+    { x: 1, z: 1, w: half * 0.95, d: half * 1.05 },
+  ].slice(0, Math.min(count, 3));
   return quads.map((q) => ({
     center: { x: center.x + (q.x * (inner - q.w)) / 2, z: center.z + (q.z * (inner - q.d)) / 2 },
     size: { w: q.w, d: q.d },

@@ -118,3 +118,13 @@ Answers to the three questions that came out of the above:
 > textures for aslphalts, walls, different materials, and use those
 
 > lights turn off and on depending on distance, think it is a bug...
+
+> check last screenshot, the door is not a door, the floor is too perfect, and the walls look cartoon
+> with rectangular textures., places inside look like dungeons, very ugly overall, i sent you pictures
+> of examples, and doors to other places such as rooms etc should also have letters over them. hold
+> shift should run, space should jump, right click should zoom, and ver are far from the images i
+> provided as examples, the streets now are better i like those textures. but the rest needs big
+> improvements still, i also do not see shadows, or reflections, etc looks too cartoonish compared to
+> the provided examples
+
+> rooms and places inside are extremely small still
