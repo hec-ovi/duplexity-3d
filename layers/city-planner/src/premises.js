@@ -9,9 +9,12 @@ import { CitySpecInvalidError } from "./errors.js";
 
 const PROGRAMS = ["apartments", "office", "shop"];
 const HOUSE_PROGRAMS = ["house", "shop"];
-// A skyline needs a mix. Without floorsPerLot, heights are drawn from this: mostly low premises with
-// the odd tower, so a block reads as houses and shops around something taller.
-const FLOOR_MIX = [1, 1, 1, 2, 2, 3, 4, 6, 9];
+// A skyline needs a mix, and a street needs walls: heights come from this, so a block reads as a run
+// of tall buildings with the odd low one between them rather than as a suburban strip.
+const STOREY_MIX = [2, 3, 4, 5, 6, 6, 8, 9, 11, 12, 14, 16, 18, 22];
+// How many of a building's storeys you can actually walk into. The rest stand over the street: a run
+// is a few conversations, not a tower block to clear floor by floor.
+const PLAYABLE = [1, 1, 1, 2, 2, 3];
 
 /**
  * Plan every premises on the lattice.
@@ -25,6 +28,8 @@ const FLOOR_MIX = [1, 1, 1, 2, 2, 3, 4, 6, 9];
  */
 export function planPremises(spec, cells, rng, programFits = () => true) {
   const pins = indexPins(spec.buildings ?? [], cells.length);
+  // Name the places you want and everything else is scenery. Without a single pin, everything opens.
+  const ratio = spec.accessibleRatio ?? (pins.size ? 0 : 1);
   const minimums = cells.map((_, block) => pinnedSlots(pins, block));
   const counts = countPerBlock(cells.length, spec.lots ?? null, minimums, rng);
 
@@ -35,7 +40,8 @@ export function planPremises(spec, cells, rng, programFits = () => true) {
     for (let slot = 0; slot < plots.length; slot++) {
       const pin = pins.get(`${block}:${slot}`) ?? {};
       const ordinal = list.length + 1;
-      const floors = pin.floors ?? floorsFor(spec, list.length, rng);
+      const storeys = pin.storeys ?? storeysFor(spec, list.length, rng);
+      const floors = Math.min(storeys, pin.floors ?? rng.pick(PLAYABLE));
       const footprint = footprintOf(plots[slot]);
       list.push({
         id: `${spec.id}-b${ordinal}`,
@@ -43,16 +49,18 @@ export function planPremises(spec, cells, rng, programFits = () => true) {
         slot,
         plot: plots[slot],
         footprint,
+        storeys,
         floors,
         face: outwardFace(cells[block].center, plots[slot].center, rng),
         program: programFor(pin, floors, footprint, programFits, rng),
         label: pin.label ?? `${spec.label ?? spec.id} ${ordinal}`,
-        accessible: pin.accessible ?? (pin.quest ? true : undefined),
+        // Naming a building is asking for a place: it opens unless it was explicitly sealed.
+        accessible: pin.accessible ?? (pins.has(`${block}:${slot}`) ? true : undefined),
         ...(pin.quest ? { quest: questFor(pin, floors) } : {}),
       });
     }
   }
-  assignDoors(list, spec.accessibleRatio ?? 1, rng);
+  assignDoors(list, ratio, rng);
   return list;
 }
 
@@ -135,11 +143,11 @@ function countPerBlock(blockCount, wanted, minimums, rng) {
   return counts;
 }
 
-// How many floors this premises gets. A short `floorsPerLot` repeats its last value; with none given
-// the height is drawn from the mix.
-function floorsFor(spec, index, rng) {
+// How tall this premises stands. A short `floorsPerLot` repeats its last value; with none given the
+// height is drawn from the mix.
+function storeysFor(spec, index, rng) {
   const list = spec.floorsPerLot ?? [];
-  if (list.length === 0) return rng.pick(FLOOR_MIX);
+  if (list.length === 0) return rng.pick(STOREY_MIX);
   return list[Math.min(index, list.length - 1)];
 }
 
@@ -168,6 +176,11 @@ function questFor(pin, floors) {
 // it, and never a node on the map, so the exit gate is not waiting on it. Pinned answers win; the
 // rest are drawn until the ratio is met, and at least one building is always open.
 function assignDoors(list, ratio, rng) {
+  // Nothing asked for and something already named: those are the places, and the rest is scenery.
+  if (ratio <= 0 && list.some((p) => p.accessible === true)) {
+    for (const p of list) p.accessible = p.accessible === true;
+    return;
+  }
   const free = list.filter((p) => p.accessible === undefined);
   if (ratio >= 1) {
     for (const p of free) p.accessible = true;

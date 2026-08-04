@@ -11,6 +11,7 @@
 import { createRng, hashString } from "./rng.js";
 import { nameFor } from "./naming.js";
 import { MAX_BALCONY_BAYS, awning, balconies, sign, signHeight, walls, windowBays, windowsOn } from "./parts.js";
+import { massingFor, tierWalls } from "./massing.js";
 
 const SIGN_COLOURS = ["#e8899f", "#dda368", "#7cc3d4", "#a892c8", "#ddc87e", "#8fd6a6"];
 const AWNING_COLOURS = ["#7d4a52", "#4c5b6b", "#6b5a3c", "#3f5c50"];
@@ -31,7 +32,7 @@ export class BuildingInvalidError extends Error {
  *   `{ id, size: { w, h, d }, floors, storeyHeight?, program?, door?: { face, along }, seed? }`
  *   `door.face` is one of south|north|west|east and `door.along` is metres from the middle of that
  *   wall, which is where the sign and the awning go.
- * @returns {{ name: string|null, parts: object[] }} schema: schema/facade-parts.json
+ * @returns {{ name, shape, tiers, bands, parts }} schema: schema/facade-parts.json
  */
 export function dressFacade(building) {
   const { w, h, d } = building.size ?? {};
@@ -46,13 +47,24 @@ export function dressFacade(building) {
   const faces = walls({ w, d });
   const parts = [];
 
-  // Windows, on every wall of every storey above the shopfront. One object each, its own light on or
+  // What shape it stands in: a stack of tiers, the ground one filling its plot and the ones above
+  // stepping back off it.
+  const { shape, tiers, bands } = massingFor({ w, h, d, floors, storey }, rng);
+
+  // Windows, on every wall of every tier, storey by storey. One object each, its own light on or
   // off, so no two walls of a city read the same.
   const glazedGround = program === "house";
-  for (const wall of faces) {
-    const bays = windowBays(wall.span);
-    for (let storeyIndex = glazedGround ? 0 : 1; storeyIndex < floors; storeyIndex++) {
-      parts.push(...windowsOn(wall, storeyIndex * storey, bays, building.litRatio ?? 0.45, rng, WINDOW_COLOURS));
+  for (const tier of tiers) {
+    const bottom = tier.position[1] - tier.size[1] / 2;
+    const top = tier.position[1] + tier.size[1] / 2;
+    for (const wall of tierWalls(tier)) {
+      const bays = windowBays(wall.span);
+      const first = Math.max(glazedGround ? 0 : 1, Math.ceil(bottom / storey));
+      for (let storeyIndex = first; storeyIndex * storey + storey * 0.9 < top; storeyIndex++) {
+        parts.push(
+          ...windowsOn(wall, storeyIndex * storey, bays, building.litRatio ?? 0.45, rng, WINDOW_COLOURS)
+        );
+      }
     }
   }
 
@@ -96,5 +108,5 @@ export function dressFacade(building) {
     }
   }
 
-  return { name, parts };
+  return { name, shape, tiers, bands, parts };
 }

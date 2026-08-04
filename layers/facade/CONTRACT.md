@@ -15,6 +15,10 @@ It knows nothing about three.js, textures or the city around it: it takes a shap
 
 ## Outputs (params out)
 - `name` - what the place is called, and what its cartel says. Null for a house, which has no sign.
+- `shape` / `tiers` / `bands` - what shape it stands in. A building is a STACK of masses, not one
+  extruded box: the ground tier fills its plot (that is what you walk up to) and the ones above step
+  back, narrow or shoulder to one side, with a ledge where each step lands and a parapet on top. Five
+  shapes, drawn from the seed.
 - `parts[]` - `window`, `balcony`, `awning` and `sign`, each a box in the BUILDING'S OWN frame: origin in the
   middle of its footprint, on the ground. `size` is `[across the wall, up, out from the wall]` and
   `facing` is the turn that points it out of the wall it is on. A renderer adds the building's
@@ -41,7 +45,8 @@ None. It is a leaf: give it a shape and it dresses it.
 ## How to modify this blackbox safely
 One file per thing. `src/parts.js` is the geometry of a balcony, an awning and a cartel, one function
 each; `src/naming.js` is what places are called; `src/index.js` decides which building gets what.
-Add a part by adding a function there, a `kind` to the schema, and a branch in the renderer that
-builds it (`layers/runtime/src/facade-parts.js`). Keep `tests/` green: parts stand outside the wall
+The shapes a building can stand in are `src/massing.js`. Add a part by adding a function to
+`src/parts.js`, a `kind` to the schema, and a branch in the renderer that builds it
+(`layers/runtime/src/facade-parts.js`). Keep `tests/` green: parts stand outside the wall
 they are on and face away from it, a shop is not given balconies, a house has no sign, a building
 with no door gets nothing, and the same building is dressed the same way twice.

@@ -49,9 +49,11 @@ describe("a generated city is a valid, connected, winnable level", () => {
     const r = validate(SCHEMA_ID.persistence.adventure, adventure);
     expect(r.ok, JSON.stringify(r.errors?.slice(0, 4), null, 2)).toBe(true);
 
-    // 1 street + (2 + 1 + 3) floors
-    expect(adventure.instances).toHaveLength(7);
-    expect(lots.map((l) => l.floors)).toEqual([2, 1, 3]);
+    // one street, plus every floor you can walk into behind its doors
+    expect(adventure.instances.length).toBe(1 + lots.reduce((n, l) => n + l.floors, 0));
+    expect(lots).toHaveLength(3);
+    // floorsPerLot says how tall each STANDS; what opens behind the door is a floor or three
+    expect(adventure.instances[0].rooms[0].blocks.map((b) => b.floors)).toEqual([2, 1, 3]);
     expect(adventure.progression.start).toBe("ashgate");
   });
 

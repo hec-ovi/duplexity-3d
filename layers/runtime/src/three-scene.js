@@ -21,6 +21,7 @@ const COLORS = {
   floorTint: 0xd9bd82,
   wall: 0x8a8f98,
   block: 0x6d7482,
+  band: 0x565c66,
   ceiling: 0x4a4f58,
   road: 0x2f333a,
   sidewalk: 0x8d9299,
@@ -151,6 +152,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     sidewalk: standard(COLORS.sidewalk),
     plaza: standard(COLORS.plaza),
   };
+  const bandMat = standard(COLORS.band);
   const objectMat = standard(COLORS.object);
   const itemMat = standard(COLORS.item, 0x6b5410);
 
@@ -219,17 +221,7 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // Buildings on a street: one mass each, drawn from the ground up, then dressed with the small
   // things bolted to it (balconies, an awning, the cartel that says what the place is).
   for (const b of model.blocks ?? []) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), materials?.block(b) ?? blockMat);
-    mesh.position.set(b.center.x, b.center.y, b.center.z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.name = `block:${b.id}`;
-    mesh.userData = { kind: "block", assetRef: b.assetRef };
-    group.add(mesh);
-    counts.blocks++;
-
-    if (!dressFacade) continue;
-    const dressed = dressFacade({
+    const dressed = dressFacade?.({
       id: b.id,
       seed: b.id,
       size: { w: b.size.x, h: b.size.y, d: b.size.z },
@@ -238,11 +230,31 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
       program: b.program ?? undefined,
       door: doorOn(b, model.portals),
     });
-    const parts = buildFacadeParts(dressed.parts, {
-      x: b.center.x,
-      y: b.center.y - b.size.y / 2,
-      z: b.center.z,
-    }, {
+
+    // A building is the stack of masses it was given, not one extruded box: the ground tier fills
+    // the plot and the ones above step back off it. The collider is the plot either way.
+    const foot = { x: b.center.x, y: b.center.y - b.size.y / 2, z: b.center.z };
+    const faces = materials?.block(b) ?? blockMat;
+    const masses = dressed?.tiers ?? [{ position: [0, b.size.y / 2, 0], size: [b.size.x, b.size.y, b.size.z] }];
+    masses.forEach((tier, i) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...tier.size), faces);
+      mesh.position.set(foot.x + tier.position[0], foot.y + tier.position[1], foot.z + tier.position[2]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = i === 0 ? `block:${b.id}` : `block:${b.id}:tier${i}`;
+      mesh.userData = { kind: "block", assetRef: b.assetRef };
+      group.add(mesh);
+    });
+    for (const band of dressed?.bands ?? []) {
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(...band.size), bandMat);
+      trim.position.set(foot.x + band.position[0], foot.y + band.position[1], foot.z + band.position[2]);
+      trim.castShadow = true;
+      trim.receiveShadow = true;
+      group.add(trim);
+    }
+    counts.blocks++;
+    if (!dressed) continue;
+    const parts = buildFacadeParts(dressed.parts, foot, {
       signMaterial: materials ? (part) => materials.sign(part) : undefined,
       windowMaterial: materials ? (part) => materials.window(part) : undefined,
     });

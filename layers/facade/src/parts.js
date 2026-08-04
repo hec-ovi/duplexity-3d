@@ -27,9 +27,10 @@ const facing = (wall) => Math.atan2(wall.nx, wall.nz);
 // A point `out` metres in front of a wall, `along` metres to one side of its middle, `y` metres up.
 function on(wall, along, y, out) {
   const dist = wall.offset + out;
+  const across = along + (wall.shift ?? 0) * (wall.nx !== 0 || wall.nz > 0 ? 1 : -1);
   return wall.nx !== 0
-    ? [wall.nx * dist, y, along * (wall.nx > 0 ? -1 : 1)]
-    : [along * (wall.nz > 0 ? 1 : -1), y, wall.nz * dist];
+    ? [wall.nx * dist, y, (wall.nx > 0 ? -1 : 1) * along + (wall.shift ?? 0)]
+    : [(wall.nz > 0 ? 1 : -1) * along + (wall.shift ?? 0), y, wall.nz * dist];
 }
 
 /** Balconies along one storey of one wall: a slab standing out, with a parapet round it. */

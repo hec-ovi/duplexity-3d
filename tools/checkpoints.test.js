@@ -25,7 +25,7 @@ const spec = {
   accessibleRatio: 0.75,
   npcs: 0,
   buildings: [
-    { block: 0, slot: 0, label: "The Vault", program: "office", floors: 5, quest: { itemId: "ledger" } },
+    { block: 0, slot: 0, label: "The Vault", program: "office", floors: 3, storeys: 12, quest: { itemId: "ledger" } },
   ],
 };
 
@@ -46,7 +46,7 @@ describe("the level toolkit's checkpoints", () => {
     );
     expect(holding).toHaveLength(1);
     expect(holding[0].goal).toEqual({ type: "discover_item", itemId: "ledger" });
-    expect(holding[0].rules.floor).toBe(5);
+    expect(holding[0].rules.floor).toBe(3); // the top floor you can walk into, not the top storey
   });
 
   it("saves a city under a name and opens it again unchanged", () => {

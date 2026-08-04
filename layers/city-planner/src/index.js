@@ -16,7 +16,7 @@ import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from ".
 
 export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
 
-const SKY = 60; // how high the invisible limit reaches, metres: taller than anything built under it
+const SKY = 140; // how high the invisible limit reaches, metres: taller than anything built under it
 const STOREY = 3.2; // a building's mass grows this much per floor it holds
 const PARAPET = 1; // and carries this much past its top floor
 const DOOR = [2, 3];
@@ -46,13 +46,16 @@ function pickKit(assetQuery, kind, theme) {
  * @returns {{ instance: object, lots: object[], report: object }}
  */
 export function createStreets(spec, assetQuery, opts = {}) {
-  const n = LATTICE_BY_SIZE[spec.sizeHint ?? "medium"];
-  if (!n) throw new CitySpecInvalidError(`unknown sizeHint: ${spec.sizeHint}`);
+  // `blocks` says exactly how many city blocks to build on; `sizeHint` is the shorthand for it.
+  const lattice = LATTICE_BY_SIZE[spec.sizeHint ?? "medium"];
+  if (!spec.blocks && !lattice) throw new CitySpecInvalidError(`unknown sizeHint: ${spec.sizeHint}`);
+  const wanted = spec.blocks ?? lattice ** 2;
+  const n = Math.ceil(Math.sqrt(wanted));
   const rng = createRng(opts.seed ?? spec.seed ?? hashString(spec.id));
   const wantExit = spec.exit !== false;
 
-  const lattice = cells(n);
-  const premises = planPremises(spec, lattice, rng, opts.programFits);
+  const grid = cells(n).slice(0, wanted);
+  const premises = planPremises(spec, grid, rng, opts.programFits);
 
   const floorKit = pickKit(assetQuery, "room-floor", spec.theme);
   const wallKit = pickKit(assetQuery, "wall", spec.theme);
@@ -71,7 +74,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
     zones.push({
       id: `pavement-${index}`,
       kind: "sidewalk",
-      position: [lattice[index].center.x, 0, lattice[index].center.z],
+      position: [grid[index].center.x, 0, grid[index].center.z],
       size: [BLOCK, BLOCK],
     });
   }
@@ -81,10 +84,10 @@ export function createStreets(spec, assetQuery, opts = {}) {
     blocks.push({
       id: blockId,
       position: [p.plot.center.x, 0, p.plot.center.z],
-      size: [p.plot.size.w, Math.min(SKY - 2, p.floors * STOREY + PARAPET), p.plot.size.d],
+      size: [p.plot.size.w, Math.min(SKY - 4, p.storeys * STOREY + PARAPET), p.plot.size.d],
       assetRef: wallKit,
       label: p.label,
-      floors: p.floors, // so the outside can be given a window per storey
+      floors: p.storeys, // rows of windows it stands: its height, not what you can walk into
       program: p.program,
     });
     if (!p.accessible) continue; // scenery: a mass with no way in, so nothing is built behind it
@@ -157,7 +160,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         inventory: [],
         zones,
         blocks,
-        lights: placeLights(lattice, new Set(premises.map((p) => p.block)), doors),
+        lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors),
       },
     ],
     portals,

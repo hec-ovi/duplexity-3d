@@ -68,6 +68,17 @@ describe("city-planner contract", () => {
     expect(high.size[1]).toBeGreaterThan(low.size[1]);
   });
 
+  // A city has a skyline; a run through it does not. How tall a building stands and how much of it
+  // you can walk into are two different numbers.
+  it("stands tall but opens shallow: most of a building is scenery over the street", () => {
+    const { instance, lots } = build({ lots: 6, sizeHint: "large" });
+    for (const mass of instance.rooms[0].blocks) {
+      expect(mass.floors).toBeGreaterThanOrEqual(1);
+    }
+    expect(Math.max(...instance.rooms[0].blocks.map((b) => b.size[1]))).toBeGreaterThan(20);
+    for (const lot of lots) expect(lot.floors).toBeLessThanOrEqual(3);
+  });
+
   it("every lot gets a door of its own, on the face of its own building", () => {
     const { instance, lots } = build();
     expect(lots).toHaveLength(3);
@@ -91,10 +102,35 @@ describe("city-planner contract", () => {
     }
   });
 
-  it("floorsPerLot sets how tall each building is, repeating its last value", () => {
-    const { lots } = build({ lots: 4, floorsPerLot: [3, 1], sizeHint: "large" });
-    expect(lots.map((l) => l.floors)).toEqual([3, 1, 1, 1]);
-    expect(lots[0].floorInstanceIds).toEqual(["ashgate-b1-f1", "ashgate-b1-f2", "ashgate-b1-f3"]);
+  it("floorsPerLot sets how tall each building stands, repeating its last value", () => {
+    const { instance } = build({ lots: 4, floorsPerLot: [3, 1], sizeHint: "large" });
+    expect(instance.rooms[0].blocks.map((b) => b.floors)).toEqual([3, 1, 1, 1]);
+  });
+
+  it("`blocks` builds exactly that many city blocks", () => {
+    const { instance } = createStreets({ ...spec, blocks: 4, lots: undefined }, assetQuery, {
+      validateInstance: passing,
+    });
+    expect(instance.rooms[0].zones.filter((z) => z.kind === "sidewalk")).toHaveLength(4);
+  });
+
+  // "Four blocks, and these two places in it" is the whole authoring surface an LLM needs.
+  it("naming places makes those the places, and everything else scenery", () => {
+    const { instance, lots } = createStreets(
+      {
+        ...spec,
+        blocks: 4,
+        lots: undefined,
+        buildings: [
+          { block: 0, slot: 0, label: "Oka Ramen", program: "shop" },
+          { block: 2, slot: 1, label: "Six Bells Holdings", program: "office" },
+        ],
+      },
+      assetQuery,
+      { validateInstance: passing }
+    );
+    expect(lots.map((l) => l.label).sort()).toEqual(["Oka Ramen", "Six Bells Holdings"]);
+    expect(instance.rooms[0].blocks.length).toBeGreaterThan(lots.length); // the rest still stands there
   });
 
   it("there is one spawn and one exit, and the gate is locked until the map is cleared", () => {
@@ -137,7 +173,7 @@ describe("city-planner contract", () => {
     expect(validate(SCHEMA_ID.cityPlanner.citySpec, pinned).ok).toBe(true);
 
     const { instance, lots } = createStreets(pinned, assetQuery, { validateInstance: passing });
-    expect(lots).toHaveLength(4); // five premises, one of them sealed
+    expect(lots).toHaveLength(1); // the two named places, less the one sealed shut
 
     const vault = lots.find((l) => l.label === "The Vault");
     expect(vault).toMatchObject({ floors: 6, program: "office", quest: { itemId: "ledger", floor: 6 } });

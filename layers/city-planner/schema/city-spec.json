@@ -8,10 +8,15 @@
     "id": { "type": "string", "description": "Instance id of the street level." },
     "theme": { "type": "string", "description": "Kit theme, resolved against asset-registry." },
     "label": { "type": "string", "description": "Name shown on the map overlay." },
+    "blocks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many city blocks to build on. Overrides sizeHint, so \"four blocks\" is exactly four."
+    },
     "sizeHint": {
       "type": "string",
       "enum": ["small", "medium", "large"],
-      "description": "How much road: 3, 5 or 7 segments plus side streets. Default medium."
+      "description": "Shorthand for `blocks`: a 2x2, 3x3 or 4x4 lattice. Default medium."
     },
     "lots": {
       "type": "integer",
@@ -22,7 +27,7 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1,
-      "description": "Share of buildings with a front door. Default 1. A sealed building is scenery: no door, nothing built behind it, and the exit gate never waits on it. At least one building always opens."
+      "description": "Share of buildings with a front door. Default 1, or 0 when `buildings` names any: name the places you want and everything else is scenery. A sealed building has no door, nothing built behind it, and the exit gate never waits on it."
     },
     "buildings": {
       "type": "array",
@@ -63,7 +68,8 @@
         "slot": { "type": "integer", "minimum": 0, "maximum": 3, "description": "Which premises on that block." },
         "label": { "type": "string", "description": "Name shown on the map overlay and over the door." },
         "program": { "type": "string", "enum": ["house", "apartments", "office", "shop"] },
-        "floors": { "type": "integer", "minimum": 1 },
+        "floors": { "type": "integer", "minimum": 1, "description": "How many floors you can walk into." },
+        "storeys": { "type": "integer", "minimum": 1, "description": "How tall it stands. Most of a tall building is scenery over the street." },
         "accessible": { "type": "boolean", "description": "false seals it: a mass with no door." },
         "quest": {
           "$ref": "https://doplexity-3d.dev/schema/city-planner/lot-plan.json#/$defs/quest",

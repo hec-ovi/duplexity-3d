@@ -9,6 +9,20 @@
       "type": ["string", "null"],
       "description": "What the place is called, and what its cartel says. Null where a place has no sign (a house)."
     },
+    "shape": {
+      "type": "string",
+      "description": "How it stands: slab, setback, stepped, shoulder or tower."
+    },
+    "tiers": {
+      "type": "array",
+      "description": "The solid masses it is stacked from, ground one first. The ground tier always fills the plot; the ones above step back off it.",
+      "items": { "$ref": "#/$defs/box" }
+    },
+    "bands": {
+      "type": "array",
+      "description": "The ledge round each step and the parapet capping the top.",
+      "items": { "$ref": "#/$defs/box" }
+    },
     "parts": {
       "type": "array",
       "items": { "$ref": "#/$defs/part" }
@@ -17,6 +31,15 @@
   "required": ["name", "parts"],
   "additionalProperties": false,
   "$defs": {
+    "box": {
+      "type": "object",
+      "properties": {
+        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "size": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 3, "maxItems": 3 }
+      },
+      "required": ["position", "size"],
+      "additionalProperties": false
+    },
     "part": {
       "type": "object",
       "properties": {
