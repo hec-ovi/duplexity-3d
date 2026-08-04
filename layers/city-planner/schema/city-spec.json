@@ -23,6 +23,11 @@
       "description": "Floor count per lot, in order. Short lists repeat their last value; omitted means every lot is a single floor.",
       "items": { "type": "integer", "minimum": 1 }
     },
+    "npcs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many NPCs to place in each instance. Default 2; 0 leaves the level empty. Read by the toolkit, not by the street layout itself."
+    },
     "exit": {
       "type": "boolean",
       "description": "Place the locked exit gate. Default true. False builds a street with no way to win."

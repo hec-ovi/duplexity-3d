@@ -1,7 +1,8 @@
 // server - the HTTP surface for the backend API. A tiny, framework-free node:http router so each route
 // is a real entry point (tested end to end), not a mocked function. Endpoints match 02-ARCHITECTURE.md:
 // POST /adventure (author) and GET /adventure/:id (read the saved document) for author-time, and
-// POST /interaction (run one NPC's brain, archive the exchange) for play-time.
+// POST /interaction (run one NPC's brain, archive the exchange) plus POST /speech (say a line out
+// loud, so the TTS key stays on this side) for play-time.
 
 import { createServer as createHttpServer } from "node:http";
 
@@ -34,7 +35,13 @@ const UNPROCESSABLE = new Set([
   "IMPORT_INVALID",
   "MIGRATION_FAILED",
 ]);
-const BAD_REQUEST = new Set(["BAD_JSON", "INTERACTION_INVALID", "BAD_BUNDLE", "BAD_URL"]);
+const BAD_REQUEST = new Set([
+  "BAD_JSON",
+  "INTERACTION_INVALID",
+  "BAD_BUNDLE",
+  "BAD_URL",
+  "SPEECH_INVALID",
+]);
 
 // decodeURIComponent throws a codeless URIError on a malformed escape (e.g. "%zz"); turn that into a
 // 400 rather than letting it fall through to the 500 default (a malformed id is the caller's to fix).
@@ -71,6 +78,10 @@ export function createRouter(service) {
       if (req.method === "POST" && pathname === "/interaction") {
         const body = await readJsonBody(req);
         return send(200, await service.resolveInteraction(body));
+      }
+      if (req.method === "POST" && pathname === "/speech") {
+        const body = await readJsonBody(req);
+        return send(200, await service.speak(body));
       }
       const exp = pathname.match(/^\/adventure\/([^/]+)\/export$/);
       if (req.method === "GET" && exp) {

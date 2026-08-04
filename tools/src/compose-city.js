@@ -9,6 +9,34 @@ import { createBuilding } from "../../layers/building-planner/src/index.js";
 import { validateLayout } from "../../layers/scenario-creator/src/index.js";
 import { createRegistry } from "../../layers/asset-registry/src/index.js";
 import { buildWorldMap } from "../../layers/map-state/src/index.js";
+import { authorNpcs } from "../../layers/npc/src/index.js";
+
+// Who you meet where. The street is public and the floors behind the doors are not, so they get
+// different casts.
+const ROLES = {
+  street: [
+    { role: "passer-by", disposition: "neutral" },
+    { role: "street vendor", disposition: "friendly" },
+    { role: "lookout", disposition: "wary" },
+  ],
+  indoors: [
+    { role: "resident", disposition: "neutral" },
+    { role: "caretaker", disposition: "friendly" },
+    { role: "guard", disposition: "hostile" },
+  ],
+};
+
+// Populate one instance in place. `count` is per instance; 0 leaves it empty.
+function populate(instance, count, assetQuery) {
+  if (count <= 0) return instance;
+  const roles = instance.rules.mapKind === "street" ? ROLES.street : ROLES.indoors;
+  const npcs = authorNpcs(
+    { id: instance.id, theme: instance.theme, rooms: instance.rooms, goal: instance.goal },
+    { count, roles },
+    { assetQuery }
+  );
+  return { ...instance, npcs };
+}
 
 /**
  * Build a street, everything behind its doors, and the Adventure that holds them.
@@ -25,11 +53,12 @@ export function composeCity(spec, deps = {}) {
   const assetQuery = deps.assetQuery ?? ((q) => registry.query(q));
   const validateInstance = deps.validateInstance ?? validateLayout;
 
+  const cast = spec.npcs ?? 2;
   const { instance: street, lots } = createStreets(spec, assetQuery, { validateInstance });
-  const instances = [street];
+  const instances = [populate(street, cast, assetQuery)];
   for (const lot of lots) {
     const { instances: floors } = createBuilding(lot, assetQuery, { validateInstance });
-    instances.push(...floors);
+    instances.push(...floors.map((floor) => populate(floor, cast, assetQuery)));
   }
 
   const adventure = {

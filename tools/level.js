@@ -41,6 +41,7 @@ city / street
   --size small|medium|large    how much road (3, 5 or 7 segments). Default medium
   --lots <n>                   how many front doors
   --floors 2,1,3               floors per lot, in order. A short list repeats its last value
+  --npcs <n>                   NPCs per instance (city only). Default 2, 0 for an empty level
 
 building / house
   --floors <n>                 how many floors (building only; a house is always 1)
@@ -84,6 +85,7 @@ function citySpec(args) {
   };
   if (args.label && args.label !== true) spec.label = args.label;
   if (args.lots) spec.lots = asInt(args.lots, 1);
+  if (args.npcs !== undefined) spec.npcs = asInt(args.npcs, 2);
   if (args.seed) spec.seed = asInt(args.seed, 0);
   const floors = asIntList(args.floors);
   if (floors?.length) spec.floorsPerLot = floors;

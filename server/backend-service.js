@@ -8,6 +8,7 @@ import { createRegistry } from "../layers/asset-registry/src/index.js";
 import { createPersistence } from "../layers/persistence/src/index.js";
 import { createAuthorService } from "./author-service.js";
 import { createInteractionService } from "./interaction-service.js";
+import { createSpeechService } from "./speech-service.js";
 
 /**
  * Build the full backend service. `overrides` lets a test inject a deterministic clock, a fake brain
@@ -27,11 +28,18 @@ export function createBackendService(overrides = {}) {
     brain: overrides.brain,
     clock: overrides.clock,
   });
+  const speech = createSpeechService({
+    env: overrides.env,
+    fetch: overrides.fetch,
+    tts: overrides.tts,
+  });
 
   return {
     createAdventure: author.createAdventure,
     getAdventure: author.getAdventure,
     resolveInteraction: interaction.resolveInteraction,
+    speak: speech.speak,
+    speechEnabled: speech.enabled,
     exportAdventure: (id) => persistence.export(id),
     importAdventure: (bundle) => {
       try {

@@ -135,6 +135,23 @@ describe("a generated city is a valid, connected, winnable level", () => {
     expect(plan.instanceId).toBe(link.instanceId);
   });
 
+  it("populates every instance with a cast that lives in its rooms", () => {
+    const { adventure } = city();
+    for (const instance of adventure.instances) {
+      expect(instance.npcs.length).toBe(2);
+      for (const npc of instance.npcs) {
+        expect(instance.rooms.some((r) => r.id === npc.homeRoom)).toBe(true);
+        expect(npc.allowedModes.length).toBeGreaterThan(0);
+        expect(npc.voiceDesign).toBeTruthy();
+      }
+    }
+    // the street's cast is public-facing, the floors' is not
+    expect(adventure.instances[0].npcs.map((n) => n.name)).toContain("passer-by-1");
+    expect(adventure.instances[1].npcs.map((n) => n.name)).toContain("resident-1");
+    // and a level can be asked for empty
+    expect(composeCity({ ...spec, npcs: 0 }).adventure.instances.every((i) => i.npcs.length === 0)).toBe(true);
+  });
+
   it("the same spec builds the same city, every time", () => {
     expect(composeCity(spec).adventure).toEqual(composeCity(spec).adventure);
   });
