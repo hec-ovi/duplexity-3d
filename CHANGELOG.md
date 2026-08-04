@@ -2,6 +2,20 @@
 
 What the project does now, newest first.
 
+## 0.16 - A city with things in it, and a panel to talk through
+
+- Street props from the LEVEL, so they are solid and the walkability proof counts them: vehicles and
+  bins parked along the kerbs, traffic lights on the corners of every intersection.
+- Elevated rails over the city with trains running along them, lit down both edges.
+- A shuttle you ride: the level lays a line down its middle street with a stop opposite each block,
+  and `F` steps you on and off while it is standing at one. Riding, the shuttle does the moving.
+- Projected figures: a panel that is a projector, with the image standing in the air in front of the
+  wall in a cone of haze, its scan drifting.
+- The dialogue panel is the city's own UI: a header bar naming who is talking, the line, and the
+  controls under it.
+- Fixed: the dialogue panel never appeared. Showing it cleared the inline style, which handed it back
+  to the rule that hides it.
+
 ## 0.15 - The look: parts that differ, ground that burns, a grade over the lot
 
 - Five kinds of window (square, tall, ribbon, bay, curtain grid), four balconies (slab, cage, French,
