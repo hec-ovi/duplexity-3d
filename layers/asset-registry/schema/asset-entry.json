@@ -2,13 +2,13 @@
   "$id": "https://doplexity-3d.dev/schema/asset-registry/asset-entry.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "AssetEntry",
-  "description": "One usable 3D piece in the catalog. Coordinates/bbox are inlined here (not referenced from persistence) because asset-registry is a leaf that nothing upstream depends on. A `character` entry MUST declare its animations, so npc allowedModes can be validated against what the body can do.",
+  "description": "One usable 3D piece in the catalog. Coordinates/bbox are inlined here (not referenced from persistence) because asset-registry is a leaf that nothing upstream depends on. A `character` entry MUST declare its animations, so npc allowedModes can be validated against what the body can do. A `building` entry is a whole building in one file: it stands on a plot of its own size, so the city is laid out around it.",
   "type": "object",
   "properties": {
     "id": { "type": "string" },
     "kind": {
       "type": "string",
-      "enum": ["room-floor", "wall", "door", "corridor", "prop", "character", "decal"]
+      "enum": ["room-floor", "wall", "door", "corridor", "prop", "character", "decal", "building"]
     },
     "tags": { "type": "array", "items": { "type": "string" } },
     "theme": { "type": "string" },
@@ -38,6 +38,24 @@
       }
     },
     "glbUrl": { "type": "string" },
+    "anchor": {
+      "type": "array",
+      "description": "Translation applied to the file when it is placed, so the piece ends up centred over its own footprint with its base at y=0. A file already written that way anchors at [0, 0, 0], which is the default.",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "doors": {
+      "type": "string",
+      "enum": ["own", "none"],
+      "description": "Only meaningful on a `building`: whether the file carries its own front door. `none` (the default) means the city builds a door on its face.",
+      "default": "none"
+    },
+    "floors": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Only meaningful on a `building`: how many storeys it stands, so the level behind its door can be built to match."
+    },
     "license": {
       "type": "string",
       "description": "Explicit, commercial-use-clear license (e.g. CC0-1.0). Registration rejects a missing/unclear one."

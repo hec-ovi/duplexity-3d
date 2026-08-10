@@ -156,6 +156,11 @@ export function createRegistry(entries = SEED) {
       if (entry.kind === "character" && !(entry.animations?.length > 0)) {
         throw new InvalidAssetEntryError("character asset must declare animations");
       }
+      // A building is stood on a plot cut to its own size, so a bbox that lies (or is missing) would
+      // lay the street out around a building that is not there.
+      if (entry.kind === "building" && !(entry.size?.length === 3 && entry.size.every((d) => d > 0))) {
+        throw new InvalidAssetEntryError("building asset must measure a real size in metres");
+      }
       store.set(entry.id, structuredClone(entry));
       return entry.id;
     },

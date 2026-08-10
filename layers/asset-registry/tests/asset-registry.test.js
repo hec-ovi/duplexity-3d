@@ -81,6 +81,46 @@ describe("asset-registry contract", () => {
     expect(validate(SCHEMA_ID.assetRegistry.assetEntry, badChar).ok).toBe(false);
   });
 
+  it("registers a whole building, and keeps where it stands and what it carries", () => {
+    const reg = createRegistry();
+    const tower = {
+      id: "glb.the-vault",
+      kind: "building",
+      tags: ["city", "office"],
+      theme: "city",
+      size: [18, 42, 14],
+      glbUrl: "assets/the-vault.glb",
+      anchor: [0, 0, 0],
+      doors: "own",
+      floors: 12,
+      license: "CC0-1.0",
+      source: "generated",
+    };
+
+    expect(reg.register(tower)).toBe("glb.the-vault");
+    const back = reg.get("glb.the-vault");
+    expect(back.size).toEqual([18, 42, 14]); // the plot the city has to cut for it
+    expect(back.doors).toBe("own"); // so the city does not build a second door on its face
+    expect(validate(SCHEMA_ID.assetRegistry.assetEntry, back).ok).toBe(true);
+    expect(reg.query({ kind: "building", theme: "city" }).map((e) => e.id)).toEqual(["glb.the-vault"]);
+  });
+
+  it("rejects a building with no real size (the plot could not be cut for it)", () => {
+    const reg = createRegistry();
+    const flat = {
+      id: "glb.nothing",
+      kind: "building",
+      tags: [],
+      theme: "city",
+      size: [12, 0, 8],
+      glbUrl: "assets/nothing.glb",
+      license: "CC0-1.0",
+      source: "generated",
+    };
+
+    expect(() => reg.register(flat)).toThrow(/size/);
+  });
+
   it("get of an unknown id throws ASSET_NOT_FOUND", () => {
     const reg = createRegistry();
     expect(() => reg.get("nope")).toThrow(AssetNotFoundError);

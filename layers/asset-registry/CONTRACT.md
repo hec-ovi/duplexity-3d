@@ -12,10 +12,19 @@ scenario-creator (which picks them) and the runtime (which loads them).
 - `register(AssetEntry) -> id` - used by asset-gen to add generated assets.
 
 ## Outputs (params out)
-- `AssetEntry` - `{ id, kind, tags[], theme, size(bbox), snapPoints[], glbUrl, license, source(kit|generated), animations? }`
-  - `kind` is a closed set: `room-floor | wall | door | corridor | prop | character | decal`.
+- `AssetEntry` - `{ id, kind, tags[], theme, size(bbox), snapPoints[], glbUrl, anchor?, license,
+  source(kit|generated), animations?, doors?, floors? }`
+  - `kind` is a closed set: `room-floor | wall | door | corridor | prop | character | decal |
+    building`.
   - `snapPoints[]` are the modular attach points (positions + axis) that let the solver connect
     pieces on a grid. `animations?` lists clip names for `character` entries. schema: `schema/asset-entry.json`
+  - A `building` is a whole building in one file. Its `size` is the plot it needs, so the city is
+    laid out around it rather than the building being squashed into a plot. `doors: "own"` says the
+    file carries its own front door and the city should not build one on its face; `floors` says how
+    many storeys it stands, so what is behind its door can be built to match.
+  - `anchor` is the translation applied when a piece is placed, so it ends up centred over its own
+    footprint with its base at y=0. A file already written that way anchors at `[0, 0, 0]`, which is
+    the default.
 
 ## Events
 `asset.registered` when a new entry is added (so a running author job can pick it up). Payload:
@@ -25,7 +34,8 @@ the new `AssetEntry`.
 - `ASSET_NOT_FOUND` - unknown id.
 - `LICENSE_MISSING` - a `register` attempt without a resolvable commercial-use license (rejected).
 - `INVALID_ASSET_ENTRY` - a `register` attempt that breaks an AssetEntry invariant: no resolvable
-  `glbUrl`, or a `character` with no declared `animations` (rejected).
+  `glbUrl`, a `character` with no declared `animations`, or a `building` with no real size
+  (rejected).
 
 ## Invariants this layer will never break
 - Every entry has a resolvable `glbUrl` and an explicit, commercial-use-clear `license`.
