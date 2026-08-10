@@ -193,6 +193,7 @@ export function buildSceneModel(instance) {
         room: room.id,
         label: block.label ?? null,
         assetRef: block.assetRef ?? null,
+        rotationY: block.rotationY ?? 0, // a mass that is a file, turned so its own door faces out
         floors: block.floors ?? null,
         program: block.program ?? null,
         center: { x: bx, y: by + bh / 2, z: bz },

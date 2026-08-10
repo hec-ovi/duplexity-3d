@@ -13,6 +13,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { createRuntime, PLAYER_REF } from "./index.js";
 import { buildInstanceObject3D } from "./three-scene.js";
+import { attachModels, createGlbLoader } from "./models.js";
 import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
 import { createSurfaceMaterials } from "./surface-materials.js";
@@ -60,6 +61,8 @@ export function createApp(options = {}) {
     photoSurface, // surfaces.photoSurface (injected): which surfaces have a photographed material
     textureBase, // where those material files are served from; absent means paint them instead
     dressFacade, // facade.dressFacade (injected); absent means bare masses
+    assetBase, // where the GLB files a level references are served from, e.g. "assets"
+    loadModel, // (url) -> Promise<Object3D>; absent, GLBs are fetched with three's own loader
     talkRange = 3, // metres within which pressing E talks to the nearest NPC
     eyeHeight = DEFAULTS.eyeHeight,
     lookSensitivity = DEFAULTS.lookSensitivity,
@@ -132,6 +135,15 @@ export function createApp(options = {}) {
       tintFor: (light) => (light.blockId ? materials?.signColour(light.blockId) : null),
     });
     actors = createNpcActors(instanceGroup, runtime.getNpcs());
+    // Buildings that are files arrive after the scene is standing, so nothing waits on the network.
+    const pending = instanceGroup.userData.models ?? [];
+    if (pending.length) {
+      const group = instanceGroup;
+      attachModels(pending, loadModel ?? createGlbLoader(assetBase), warn).then(() => {
+        // A scene torn down mid-load is a scene nobody is looking at any more.
+        if (group === instanceGroup) lightEnvironment();
+      });
+    }
     if (open) {
       traffic = createTraffic(model.bounds, seededRng(hashString(model.instanceId), "traffic"));
       scene.add(traffic.group);

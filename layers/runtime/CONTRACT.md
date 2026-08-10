@@ -31,6 +31,13 @@ progression. It runs no LLM. It is the whole play-time engine minus the single i
   surface is a flat colour and nothing else changes, which is what a head-less test sees.
 - `deps.photoSurface(kind)` + `deps.textureBase` - where a surface has a photographed material and the
   files are being served, that is used instead of a painted one.
+- `deps.assetBase` + `deps.loadModel(url) -> Promise<Object3D>` - where the GLB files a level
+  references are served from, and how one is fetched. A mass whose `assetRef` names a `building` in
+  the catalog IS that file: it is loaded into the scene at the mass's foot, turned by the mass's
+  `rotationY` and offset by the asset's `anchor`. A plain box stands in its place until it arrives, so
+  the street is walkable from the first frame, and stays there if it never does. A file that brought
+  its own front door (`doors: "own"`) gets no door built over it, and nothing of ours is bolted to it.
+  Absent, three's own GLB loader is used; a head-less test injects `loadModel` and touches no network.
 - `deps.isPortalOpen(portalId) -> boolean` - injected lock oracle, normally `map-state`. It is asked
   ONLY about portals that carry an authored `lock`; an ordinary doorway has nothing to satisfy and is
   open. Absent means every portal is open. A locked portal is scenery: the player cannot leave through

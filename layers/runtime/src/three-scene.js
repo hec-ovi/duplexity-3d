@@ -108,6 +108,24 @@ function doorOn(block, portals = []) {
   return dz >= 0 ? { face: "north", along: dx } : { face: "south", along: -dx };
 }
 
+// Whether this mass is a whole building somebody else built, in one file. Anything else (a kit wall
+// to face a plain mass with, an id the catalog has never heard of) draws as a mass.
+function buildingAsset(registry, ref, warn) {
+  if (!registry || !ref) return null;
+  let entry;
+  try {
+    entry = registry.get(ref);
+  } catch {
+    return null; // a facing kit that is not in this catalog is not worth a warning here
+  }
+  if (entry?.kind !== "building") return null;
+  if (!entry.glbUrl) {
+    warn(`building asset "${ref}" has no file to load; the mass stands instead`);
+    return null;
+  }
+  return entry;
+}
+
 // Look up an asset's [w,h,d] from the registry, degrading to `fallback` (and warning) when the
 // registry is absent or does not have the id. Returns { size, placeholder }.
 function sizeFor(registry, ref, fallback, warn) {
@@ -156,6 +174,8 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // Every building's parts, gathered in world metres and built in ONE pass at the end, so a window
   // on one building and the same window on another are drawn together.
   const cityParts = [];
+  // Buildings that are files: the host loads them into these holders once the scene is standing.
+  const models = [];
   const objectMat = standard(COLORS.object);
   const itemMat = standard(COLORS.item, 0x6b5410);
 
@@ -224,6 +244,25 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
   // Buildings on a street: one mass each, drawn from the ground up, then dressed with the small
   // things bolted to it (balconies, an awning, the cartel that says what the place is).
   for (const b of model.blocks ?? []) {
+    // A mass that names a whole building in the catalog is that file, turned as the level says. A box
+    // stands in its place until it arrives, so the street is walkable from the first frame.
+    const file = buildingAsset(registry, b.assetRef, warn);
+    if (file) {
+      const holder = new THREE.Group();
+      holder.position.set(b.center.x, b.center.y - b.size.y / 2, b.center.z);
+      holder.rotation.y = b.rotationY ?? 0;
+      holder.name = `block:${b.id}`;
+      holder.userData = { kind: "block", assetRef: b.assetRef };
+      const standIn = new THREE.Mesh(new THREE.BoxGeometry(b.size.x, b.size.y, b.size.z), blockMat);
+      standIn.position.y = b.size.y / 2;
+      standIn.name = `block:${b.id}:standing-in`;
+      holder.add(standIn);
+      group.add(holder);
+      models.push({ holder, standIn, entry: file });
+      counts.blocks++;
+      continue; // the file carries its own front: nothing of ours is bolted to it
+    }
+
     const dressed = dressFacade?.({
       id: b.id,
       seed: b.id,
@@ -278,7 +317,10 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     // The city gate is a gap in an open boundary, with no wall to hang a frame on. A front door is
     // a door wherever it leads, so a house whose way out IS the exit still gets one.
     if (!portal.blockId && openGround.has(portal.roomA)) continue;
-    const door = buildDoorway(portal, portal.blockId ? byBlock.get(portal.blockId) : null, model.groundY, {
+    const mass = portal.blockId ? byBlock.get(portal.blockId) : null;
+    // A building that came with its own front door does not get a second one built over it.
+    if (mass && buildingAsset(registry, mass.assetRef, warn)?.doors === "own") continue;
+    const door = buildDoorway(portal, mass, model.groundY, {
       signMaterial: materials ? (part) => materials.sign(part) : undefined,
       names: roomNames,
     });
@@ -404,6 +446,6 @@ export function buildInstanceObject3D(model, { registry, materials, dressFacade,
     node.castShadow = true;
     node.receiveShadow = true;
   });
-  group.userData = { instanceId: model.instanceId, counts };
+  group.userData = { instanceId: model.instanceId, counts, models };
   return group;
 }
