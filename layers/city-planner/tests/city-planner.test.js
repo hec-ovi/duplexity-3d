@@ -203,6 +203,81 @@ describe("city-planner contract", () => {
     );
   });
 
+  // A building somebody else built, in one file. The street is laid out around it: it is never
+  // scaled, and a file that brought its own door is turned so that door faces the street.
+  describe("a building that arrives at its own size", () => {
+    // Wider than a default city block, which is the case worth proving: the block has to grow.
+    const tower = {
+      id: "glb.the-vault",
+      kind: "building",
+      size: [46, 48, 30],
+      glbUrl: "assets/the-vault.glb",
+      doors: "own",
+      doorFace: "south",
+      floors: 15,
+    };
+    const assetFor = (id) => {
+      if (id !== tower.id) throw new Error("not here");
+      return tower;
+    };
+    const withTower = (pin = {}, opts = {}) =>
+      createStreets(
+        { ...spec, lots: 3, buildings: [{ block: 1, slot: 0, label: "The Vault", asset: tower.id, ...pin }] },
+        assetQuery,
+        { validateInstance: passing, assetFor, ...opts }
+      );
+
+    it("stands at its own size, on a block cut big enough to hold it", () => {
+      const { instance } = withTower();
+      const mass = instance.rooms[0].blocks.find((b) => b.label === "The Vault");
+
+      expect(mass.assetRef).toBe(tower.id); // the file IS the building, not a facing on a mass
+      expect([mass.size[0], mass.size[2]].sort((a, b) => a - b)).toEqual([30, 46]); // never squashed
+      expect(mass.size[1]).toBe(48);
+      expect(mass.floors).toBe(15);
+
+      // the block it stands on grew to hold it, and it grew by its whole column and row, so no
+      // street bends round it
+      const pavements = instance.rooms[0].zones.filter((z) => z.kind === "sidewalk");
+      const its = pavements.find((z) => z.id === "pavement-1");
+      expect(its.size[0]).toBeGreaterThan(BLOCK);
+      for (const other of pavements) {
+        const column = Number(other.id.split("-")[1]) % 3;
+        if (column === 1) {
+          expect(other.position[0]).toBe(its.position[0]);
+          expect(other.size[0]).toBe(its.size[0]);
+        }
+      }
+      const ground = instance.rooms[0].size;
+      expect(ground[0]).toBe(ground[2]); // the ground stays square, so the gate and spawn are unmoved
+    });
+
+    it("is turned so the door it brought faces the street", () => {
+      const { instance } = withTower();
+      const mass = instance.rooms[0].blocks.find((b) => b.label === "The Vault");
+      const door = instance.portals.find((p) => p.blockId === mass.id);
+
+      // south is -z: with no turn the door faces -z, and any other face means a quarter turn
+      const facesSouth = door.position[2] < mass.position[2];
+      const turn = mass.rotationY ?? 0;
+      expect(turn % (Math.PI / 2)).toBeCloseTo(0); // quarter turns only, so the collider stays square
+      expect(facesSouth).toBe(turn === 0);
+
+      // and the door is on the face of the mass, not of the plot it stands on
+      const onFace =
+        Math.abs(Math.abs(door.position[0] - mass.position[0]) - mass.size[0] / 2) < 1e-6 ||
+        Math.abs(Math.abs(door.position[2] - mass.position[2]) - mass.size[2] / 2) < 1e-6;
+      expect(onFace).toBe(true);
+    });
+
+    it("refuses a pin naming something that is not a building it can stand", () => {
+      expect(() => withTower({ asset: "nope" })).toThrowError(CitySpecInvalidError);
+      expect(() => withTower({}, { assetFor: () => ({ kind: "prop" }) })).toThrowError(CitySpecInvalidError);
+      // and refuses to quietly ignore a pinned asset when there is no catalog to look it up in
+      expect(() => withTower({}, { assetFor: undefined })).toThrowError(CitySpecInvalidError);
+    });
+  });
+
   it("the same spec and seed lay out the same city every time", () => {
     expect(build({ seed: 7 })).toEqual(build({ seed: 7 }));
   });

@@ -75,7 +75,11 @@
           },
           "assetRef": {
             "type": "string",
-            "description": "Kit piece to face it with. Omitted means a plain mass."
+            "description": "What it is made of: a kit piece to face the mass with, or a `building` asset that IS the building, standing at its own size."
+          },
+          "rotationY": {
+            "type": "number",
+            "description": "Quarter turns about Y, in radians, applied to a mass that is a whole building in one file, so its own front door faces the street. The size given is already the turned one."
           },
           "label": {
             "type": "string"

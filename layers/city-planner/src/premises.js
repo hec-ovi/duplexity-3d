@@ -1,10 +1,14 @@
 // What stands on each block, decided before anything becomes geometry.
 //
-// One brief per premises: which plot it takes, how tall it is, what it is for, which face its door
-// would be on, and whether it has a door at all. Every seeded choice is made here, so `index.js` is
-// plain assembly and an author's pins land in exactly one place.
+// One brief per premises: which plot it takes, how big a mass stands on it, how tall it is, what it
+// is for, which face its door would be on, and whether it has a door at all. Every seeded choice is
+// made here, so `index.js` is plain assembly and an author's pins land in exactly one place.
+//
+// A pinned building may be a GLB somebody else built. Then its own size is the size, the block is
+// cut big enough to hold it, and if the file brought its own front door the mass is turned so that
+// door faces the street.
 
-import { FACES, MAX_PER_BLOCK, plotsInBlock } from "./lattice.js";
+import { FACES, MAX_PER_BLOCK, SKY, blockSizeFor, layout, plotsInBlock } from "./lattice.js";
 import { CitySpecInvalidError } from "./errors.js";
 
 const PROGRAMS = ["apartments", "office", "shop"];
@@ -15,58 +19,149 @@ const STOREY_MIX = [2, 3, 4, 5, 6, 6, 8, 9, 11, 12, 14, 16, 18, 22];
 // How many of a building's storeys you can actually walk into. The rest stand over the street: a run
 // is a few conversations, not a tower block to clear floor by floor.
 const PLAYABLE = [1, 1, 1, 2, 2, 3];
+const STOREY = 3.2; // a building's mass grows this much per floor it holds
+const PARAPET = 1; // and carries this much past its top floor
+const QUARTER = Math.PI / 2;
 
 /**
- * Plan every premises on the lattice.
+ * Plan every premises on the lattice, and the lattice that holds them.
  *
  * @param {object} spec  CitySpec
- * @param {Array}  cells the lattice, from `lattice.cells`
+ * @param {number} n     lattice side
+ * @param {number} count how many of its cells are used
  * @param {object} rng   the seeded generator
- * @param {Function} programFits injected building-planner.programFits: whether a room mix fits a
- *   footprint. Without it every program is assumed to fit, and the caller owns that.
- * @returns {Array<{id,block,slot,plot,footprint,face,floors,program,label,accessible,quest?}>}
+ * @param {object} [deps]
+ * @param {Function} [deps.programFits] injected building-planner.programFits: whether a room mix fits
+ *   a footprint. Without it every program is assumed to fit, and the caller owns that.
+ * @param {Function} [deps.assetFor] injected asset-registry.get: how a pinned `asset` is resolved.
+ * @returns {{ premises: Array, grid: Array, extent: number }}
  */
-export function planPremises(spec, cells, rng, programFits = () => true) {
-  const pins = indexPins(spec.buildings ?? [], cells.length);
+export function planPremises(spec, n, count, rng, deps = {}) {
+  const programFits = deps.programFits ?? (() => true);
+  const pins = indexPins(spec.buildings ?? [], count);
   // Name the places you want and everything else is scenery. Without a single pin, everything opens.
   const ratio = spec.accessibleRatio ?? (pins.size ? 0 : 1);
-  const minimums = cells.map((_, block) => pinnedSlots(pins, block));
-  const counts = countPerBlock(cells.length, spec.lots ?? null, minimums, rng);
+  const minimums = Array.from({ length: count }, (_, block) => pinnedSlots(pins, block));
+  const counts = countPerBlock(count, spec.lots ?? null, minimums, rng);
+
+  // A pinned file stands at its own size, so its block is cut to hold it before anything is placed.
+  const assets = resolveAssets(pins, deps.assetFor);
+  const { cells, extent } = layout(n, blockDemands(pins, assets, counts, n));
+  const grid = cells.slice(0, count);
 
   const list = [];
-  for (let block = 0; block < cells.length; block++) {
+  for (let block = 0; block < grid.length; block++) {
     if (counts[block] === 0) continue;
-    const plots = plotsInBlock(cells[block].center, counts[block]);
+    const plots = plotsInBlock(grid[block].center, counts[block], grid[block].size);
     for (let slot = 0; slot < plots.length; slot++) {
-      const pin = pins.get(`${block}:${slot}`) ?? {};
+      const key = `${block}:${slot}`;
+      const pin = pins.get(key) ?? {};
+      const asset = assets.get(key);
       const ordinal = list.length + 1;
-      const storeys = pin.storeys ?? storeysFor(spec, list.length, rng);
-      const floors = Math.min(storeys, pin.floors ?? rng.pick(PLAYABLE));
-      const footprint = footprintOf(plots[slot]);
+      const storeys = pin.storeys ?? storeysOf(asset) ?? storeysFor(spec, list.length, rng);
+      const floors = Math.min(storeys, pin.floors ?? asset?.floors ?? rng.pick(PLAYABLE));
+      const face = outwardFace(grid[block].center, plots[slot].center, rng);
+      const mass = massFor(plots[slot], storeys, asset, face);
+      const footprint = footprintOf(mass.size);
       list.push({
         id: `${spec.id}-b${ordinal}`,
         block,
         slot,
         plot: plots[slot],
+        mass,
         footprint,
         storeys,
         floors,
-        face: outwardFace(cells[block].center, plots[slot].center, rng),
+        face,
         program: programFor(pin, floors, footprint, programFits, rng),
         label: pin.label ?? `${spec.label ?? spec.id} ${ordinal}`,
         // Naming a building is asking for a place: it opens unless it was explicitly sealed.
-        accessible: pin.accessible ?? (pins.has(`${block}:${slot}`) ? true : undefined),
+        accessible: pin.accessible ?? (pins.has(key) ? true : undefined),
         ...(pin.quest ? { quest: questFor(pin, floors) } : {}),
       });
     }
   }
   assignDoors(list, ratio, rng);
-  return list;
+  return { premises: list, grid, extent };
 }
 
-/** How much of the plot the building's interior gets: the mass, less its outside walls. */
-function footprintOf(plot) {
-  return { width: Math.max(6, plot.size.w - 2), depth: Math.max(6, plot.size.d - 2) };
+/**
+ * The mass standing on a plot: the plot itself extruded, or the file that was pinned there, turned
+ * so its own front door faces the street.
+ */
+function massFor(plot, storeys, asset, face) {
+  if (!asset) {
+    return {
+      size: { w: plot.size.w, h: Math.min(SKY - 4, storeys * STOREY + PARAPET), d: plot.size.d },
+      rotationY: 0,
+    };
+  }
+  const [w, h, d] = asset.size;
+  const turns = asset.doors === "own" ? quarterTurns(face, asset.doorFace) : 0;
+  const turned = turns % 2 === 0 ? { w, d } : { w: d, d: w };
+  return {
+    size: { w: turned.w, h, d: turned.d },
+    rotationY: turns * QUARTER,
+    assetRef: asset.id,
+  };
+}
+
+/** Quarter turns about Y that put a file's own door face onto the face fronting the street. */
+function quarterTurns(face, doorFace = "south") {
+  const from = FACES.find((f) => f.name === doorFace);
+  if (!from) throw new CitySpecInvalidError(`a building asset names no face called ${doorFace}`);
+  const angle = (f) => Math.atan2(f.dx, f.dz);
+  const turns = Math.round((angle(face) - angle(from)) / QUARTER);
+  return ((turns % 4) + 4) % 4;
+}
+
+/** How much of the mass the building's interior gets: the mass, less its outside walls. */
+function footprintOf(size) {
+  return { width: Math.max(6, size.w - 2), depth: Math.max(6, size.d - 2) };
+}
+
+/** A file that says how many storeys it stands is believed; otherwise its height is read as storeys. */
+function storeysOf(asset) {
+  if (!asset) return undefined;
+  return asset.floors ?? Math.max(1, Math.round(asset.size[1] / STOREY));
+}
+
+/** Look up every pinned `asset` once, and prove it is a building this city can stand. */
+function resolveAssets(pins, assetFor) {
+  const out = new Map();
+  for (const [key, pin] of pins) {
+    if (!pin.asset) continue;
+    if (!assetFor) {
+      throw new CitySpecInvalidError(`no asset catalog to look up "${pin.asset}" in`);
+    }
+    let entry;
+    try {
+      entry = assetFor(pin.asset);
+    } catch {
+      throw new CitySpecInvalidError(`no asset called "${pin.asset}"`);
+    }
+    if (entry?.kind !== "building") {
+      throw new CitySpecInvalidError(`"${pin.asset}" is a ${entry?.kind ?? "nothing"}, not a whole building`);
+    }
+    out.set(key, entry);
+  }
+  return out;
+}
+
+/** How big each block has to be for the files pinned on it to stand there. */
+function blockDemands(pins, assets, counts, n) {
+  const sizes = new Array(n * n);
+  for (const [key, asset] of assets) {
+    const [block, slot] = key.split(":").map(Number);
+    const [w, , d] = asset.size;
+    // A file that brought its own door may be turned a quarter, so the plot has to hold it either
+    // way round.
+    const side = asset.doors === "own" ? Math.max(w, d) : 0;
+    const need = blockSizeFor(counts[block], slot, { w: Math.max(w, side), d: Math.max(d, side) });
+    const had = sizes[block];
+    sizes[block] = had ? { w: Math.max(had.w, need.w), d: Math.max(had.d, need.d) } : need;
+  }
+  return sizes;
 }
 
 // What the place is for. A small premises cannot be an open-plan office, so only the mixes that fit

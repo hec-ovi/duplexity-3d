@@ -56,7 +56,12 @@ export function composeCity(spec, deps = {}) {
   const cast = spec.npcs ?? 2;
   // The street asks the building side what fits before it hands out a brief, so a small premises is
   // never given a room mix that cannot be laid out in it.
-  const { instance: street, lots } = createStreets(spec, assetQuery, { validateInstance, programFits });
+  const { instance: street, lots } = createStreets(spec, assetQuery, {
+    validateInstance,
+    programFits,
+    // How a pinned `asset` is resolved: a whole building in one GLB stands at its own size.
+    assetFor: (id) => registry.get(id),
+  });
   const instances = [populate(street, cast, assetQuery)];
   for (const lot of lots) {
     const { instances: floors } = createBuilding(lot, assetQuery, { validateInstance });

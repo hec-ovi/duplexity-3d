@@ -9,7 +9,7 @@
 // inside a building is a separate instance, reached by walking up to its door.
 
 import { createRng, hashString } from "./rng.js";
-import { BLOCK, LATTICE_BY_SIZE, STREET, cells, doorOnFace, groundSize } from "./lattice.js";
+import { LATTICE_BY_SIZE, SKY, STREET, doorOnFace } from "./lattice.js";
 import { planPremises } from "./premises.js";
 import { placeLights } from "./lighting.js";
 import { skylineFor } from "./skyline.js";
@@ -17,9 +17,6 @@ import { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError } from ".
 
 export { CitySpecInvalidError, LayoutInvalidError, NoAssetForKindError };
 
-const SKY = 140; // how high the invisible limit reaches, metres: taller than anything built under it
-const STOREY = 3.2; // a building's mass grows this much per floor it holds
-const PARAPET = 1; // and carries this much past its top floor
 const DOOR = [2, 3];
 const STEP_OUT = 1.8; // how far in front of its own door the way out of a building leaves you
 const GATE = [6, 4];
@@ -55,13 +52,14 @@ export function createStreets(spec, assetQuery, opts = {}) {
   const rng = createRng(opts.seed ?? spec.seed ?? hashString(spec.id));
   const wantExit = spec.exit !== false;
 
-  const grid = cells(n).slice(0, wanted);
-  const premises = planPremises(spec, grid, rng, opts.programFits);
+  const { premises, grid, extent } = planPremises(spec, n, wanted, rng, {
+    programFits: opts.programFits,
+    assetFor: opts.assetFor,
+  });
 
   const floorKit = pickKit(assetQuery, "room-floor", spec.theme);
   const wallKit = pickKit(assetQuery, "wall", spec.theme);
 
-  const extent = groundSize(n);
   const blocks = [];
   const zones = [];
   const portals = [];
@@ -76,7 +74,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
       id: `pavement-${index}`,
       kind: "sidewalk",
       position: [grid[index].center.x, 0, grid[index].center.z],
-      size: [BLOCK, BLOCK],
+      size: [grid[index].size.w, grid[index].size.d],
     });
   }
 
@@ -85,8 +83,10 @@ export function createStreets(spec, assetQuery, opts = {}) {
     blocks.push({
       id: blockId,
       position: [p.plot.center.x, 0, p.plot.center.z],
-      size: [p.plot.size.w, Math.min(SKY - 4, p.storeys * STOREY + PARAPET), p.plot.size.d],
-      assetRef: wallKit,
+      size: [p.mass.size.w, p.mass.size.h, p.mass.size.d],
+      // A pinned file is the building; anything else is a mass this layer faces with the wall kit.
+      assetRef: p.mass.assetRef ?? wallKit,
+      ...(p.mass.rotationY ? { rotationY: p.mass.rotationY } : {}),
       label: p.label,
       floors: p.storeys, // rows of windows it stands: its height, not what you can walk into
       program: p.program,
@@ -95,7 +95,8 @@ export function createStreets(spec, assetQuery, opts = {}) {
 
     const floorInstanceIds = Array.from({ length: p.floors }, (_, f) => `${p.id}-f${f + 1}`);
     const doorPortalId = `door-${p.id}`;
-    const opening = doorOnFace(p.plot.center, p.plot.size, p.face, DOOR);
+    // On the face of the MASS, which for a pinned file is smaller than the plot it stands on.
+    const opening = doorOnFace(p.plot.center, p.mass.size, p.face, DOOR);
     portals.push({
       id: doorPortalId,
       roomA: GROUND_ROOM,

@@ -67,6 +67,10 @@
         "block": { "type": "integer", "minimum": 0, "description": "Which city block, in lattice order (row by row from the south-west)." },
         "slot": { "type": "integer", "minimum": 0, "maximum": 3, "description": "Which premises on that block." },
         "label": { "type": "string", "description": "Name shown on the map overlay and over the door." },
+        "asset": {
+          "type": "string",
+          "description": "Id of a `building` in asset-registry: a whole building in one GLB stands here at its own size, and the block is cut big enough to hold it. Without one the building is a mass this layer sizes and dresses itself."
+        },
         "program": { "type": "string", "enum": ["house", "apartments", "office", "shop"] },
         "floors": { "type": "integer", "minimum": 1, "description": "How many floors you can walk into." },
         "storeys": { "type": "integer", "minimum": 1, "description": "How tall it stands. Most of a tall building is scenery over the street." },

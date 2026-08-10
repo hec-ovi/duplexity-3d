@@ -15,9 +15,10 @@ ids, never on coordinates.
     repeating its last value. `accessibleRatio` is the share of buildings with a front door: 1 by
     default, and 0 as soon as `buildings` names any, so naming the places you want makes everything
     else scenery.
-    `buildings[]` pins individual premises by `{ block, slot }` (label, program, floors, accessible,
-    quest); the block is split into enough premises to hold the slot, and everything unpinned is
-    generated around it. `wet` (0 to 1) says how wet the streets are, which the renderer reads off
+    `buildings[]` pins individual premises by `{ block, slot }` (label, asset, program, floors,
+    accessible, quest); the block is split into enough premises to hold the slot, and everything
+    unpinned is generated around it. A pin naming an `asset` stands a whole building from one GLB
+    there: see [Buildings that arrive at their own size](#buildings-that-arrive-at-their-own-size). `wet` (0 to 1) says how wet the streets are, which the renderer reads off
     `rules`; it never rains. `npcs` is read by the toolkit that populates the level, not by the layout.
     schema: [schema/city-spec.json](schema/city-spec.json)
   - `assetQuery`: a handle to `asset-registry.query` (injected, never imported), used for the road and
@@ -28,6 +29,8 @@ ids, never on coordinates.
   - `opts.programFits?`: a handle to `building-planner.programFits` (injected). With it, a premises is
     only given a room mix that fits inside it, and an author who pins one that does not is told so.
     Without it, every program is assumed to fit and the caller owns that.
+  - `opts.assetFor?`: a handle to `asset-registry.get` (injected), used to look up a pin's `asset`.
+    Without it, a spec that pins one is refused rather than quietly ignored.
   - `opts.seed?`: overrides `CitySpec.seed`. Same seed and spec give the same street, always.
 
 ## Outputs (params out)
@@ -44,6 +47,21 @@ ids, never on coordinates.
   schema: [schema/lot-plan.json](schema/lot-plan.json)
 - `report` - the `ValidationReport` from the injected validator, or a passing report when none was
   injected. schema: owned by `scenario-creator`.
+
+## Buildings that arrive at their own size
+A pin may name an `asset`: a `building` in the catalog, which is a whole building in one GLB. Then
+the street is laid out around the file rather than the file being squashed into a plot.
+
+- The mass IS the asset's `size`, and the block it stands on is cut big enough to hold it: a column
+  of the lattice is as wide as its widest block and a row as deep as its deepest, so the streets stay
+  straight and the ground stays square.
+- The mass carries the asset's id as its `assetRef`, so the runtime knows to load the file instead of
+  facing a plain mass.
+- A file that brought its own front door (`doors: "own"`) is turned in quarter turns until that door
+  faces the street, and the mass's `rotationY` says by how much. Its plot is cut square enough to hold
+  it either way round.
+- How tall it stands is the file's own height; how many storeys that reads as comes from the asset's
+  `floors`, or from its height when it does not say.
 
 ## How the two sides meet (ids, not coordinates)
 Crossing a door moves play to another instance, so the street and a building interior are separate
@@ -62,13 +80,16 @@ coordinate spaces: a blueprint of its own. They only have to agree on names, all
 - `LAYOUT_INVALID` - the injected validator rejected the street (a bug in this layer; never returned).
 - `CITY_SPEC_INVALID` - the spec asks for something unbuildable: an unknown `sizeHint`, more
   buildings than the lattice holds, fewer than the pins need, a pin on a block or slot that does not
-  exist, two pins on the same place, or a quest inside a building sealed shut.
+  exist, two pins on the same place, a quest inside a building sealed shut, or a pinned `asset` that
+  is unknown, is not a building, or has no catalog to be looked up in.
 
 ## Invariants this layer will never break
 - The outdoors is open. One room, marked `open`: its edge stops you and is drawn as nothing, so the
   level ends in empty space instead of a wall. There are no corridors and no doorways out here.
 - City blocks stand on a lattice with a full street between any two and a street all the way round the
   outside, so the streets are connected by construction and every block fronts one on all four sides.
+  A block only ever grows to hold what stands on it, and it grows by its whole column and row, so no
+  street ever bends.
   A block is a pavement with one to four buildings on it, each with its own footprint, height and door;
   no two masses touch, and none leaves the ground or its pavement.
 - The roadway is what no block covers. Pavement is a zone, so it is walked over, never collided with,

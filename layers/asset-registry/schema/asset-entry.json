@@ -51,6 +51,12 @@
       "description": "Only meaningful on a `building`: whether the file carries its own front door. `none` (the default) means the city builds a door on its face.",
       "default": "none"
     },
+    "doorFace": {
+      "type": "string",
+      "enum": ["north", "south", "east", "west"],
+      "description": "Which side of the file its own front door is on, so the city can turn the building to face the street. Only read when `doors` is `own`; south (-z) by default.",
+      "default": "south"
+    },
     "floors": {
       "type": "integer",
       "minimum": 1,
