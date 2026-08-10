@@ -28,6 +28,12 @@ the outside. That makes the streets connected by construction and gives every bu
 A building's height comes from how many floors it holds, so a tall one reads as tall from the street
 before you go in.
 
+## A building that arrives at its own size
+
+A pin can name an `asset`: a whole building in one GLB. Then the block is cut big enough to hold that
+file and the streets are laid around it, rather than the building being squashed into a plot. A file
+that brought its own front door is turned in quarter turns until that door faces the street.
+
 ## What it does not decide
 
 What is inside a building, who lives there, or how the map is unlocked. It hands out briefs and gets
@@ -36,6 +42,7 @@ open floor and refuses a level where a building has been parked across the only 
 
 ## Modifying it
 
-See [CONTRACT.md](CONTRACT.md). Block size, street width and which cells get built on are in
-`src/lattice.js`; door and gate sizes are at the top of `src/index.js`. Run this layer's tests with
+See [CONTRACT.md](CONTRACT.md). Block size, street width, how a block grows for what stands on it and
+which cells get built on are in `src/lattice.js`; what stands on each plot is `src/premises.js`; door
+and gate sizes are at the top of `src/index.js`. Run this layer's tests with
 `npx vitest run layers/city-planner`.

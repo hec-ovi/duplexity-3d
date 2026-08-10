@@ -23,10 +23,13 @@ simulation is testable without a browser:
 - `index.js` (`createRuntime`) owns play-time state and `step(dt, input)`: move, resolve collisions,
   track which room you are in, auto-pick-up nearby items, evaluate the goal. Play-time state stays
   SEPARATE from the authored document, so playing never mutates it.
-- `three-scene.js` builds the three.js object graph from the scene model. Phase 2 renders coloured
-  primitive placeholders sized from `asset-registry` (injected, never imported); a missing asset
-  warns and falls back to a default box, honouring the ASSET_LOAD_FAILED contract. Real GLB kit
-  pieces drop in later behind this same builder.
+- `three-scene.js` builds the three.js object graph from the scene model. Props, items and bodies are
+  coloured primitives sized from `asset-registry` (injected, never imported); a missing asset warns
+  and falls back to a default box, honouring the ASSET_LOAD_FAILED contract.
+- `models.js` loads the buildings that are files. A mass whose `assetRef` names a `building` in the
+  catalog IS that GLB: it is stood at the mass's foot, turned by its `rotationY` and offset by the
+  asset's `anchor`, while a box holds its place until it arrives. The loader is injectable, so tests
+  touch no network.
 - `app.js` (`createApp`) is the browser shell: renderer, first-person camera, keyboard + pointer-lock
   look, and the render loop. The renderer is injectable and the loop is a manual `tick(dt)`, so it
   runs head-less in tests.
