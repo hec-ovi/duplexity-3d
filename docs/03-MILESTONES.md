@@ -383,6 +383,41 @@ Definition of done for the phase: `npm run dev` reads as a street at night rathe
 step keeps `npm test` green and the contracts true, and an agent can build a city, pin one building
 in it, and save the result by name.
 
+## Phase 18 - Worlds, GLB buildings, and a city you can hand on [x]
+
+The city stops being a thing you print and becomes a thing you keep, change and give away, and a
+building can come from another tool entirely.
+
+- [x] `layers/glb/`: measure a GLB (size, the move that stands it on the ground over its own
+  footprint, what it costs to draw) by reading the glTF document, never the geometry. Leaf box, no
+  renderer, no filesystem.
+- [x] `asset-registry` carries a `building` kind: a whole building in one file, with its `anchor`,
+  whether it brought its own front door and which face that is on. A building with no real size is
+  rejected, because the plot could not be cut for it.
+- [x] `city-planner` stands one: a `CitySpec` pin naming an `asset` gets a block cut to hold the
+  file, and the file turned in quarter turns until its own door faces the street. A column of the
+  lattice is as wide as its widest block and a row as deep as its deepest, so no street bends and the
+  ground stays square.
+- [x] `runtime` loads it: a mass whose `assetRef` names a `building` IS that file, placed at the
+  mass's foot, turned by its `rotationY` and offset by the asset's `anchor`. A box stands in its place
+  until it arrives and stays if it never does, and no door is built over one the file brought.
+- [x] `layers/city-doc/`: `city.json`, the portable city. Which files it uses and where everything
+  stands, metres, Y up, round trips unchanged. The cast, the goals and what is behind each door stay
+  out: they are the game, not the fabric. Interiors get the same shape later.
+- [x] `tools/world.js`: a world is a folder (`spec.json`, `assets/`, `world.json`, `city.json`).
+  Make one, change the recipe, stand a GLB in it, rebuild it to exactly the same thing, export it.
+- [x] `world export` writes a folder you serve and play, or the assets and coordinates alone. The
+  page plays a `world.json` beside it, so an export needs no toolchain.
+- [x] `persistence` travels with the files an adventure needs: `save(adventure, generatedAssets)`,
+  and they come back in its export.
+- [x] DoD met: `npm test` = 361 local tests, and a real building from the `glb-buildings` toolkit
+  (a 21 x 103 m tower, 1912 triangles) imported, stood in a city, exported and played in a browser
+  off the exported folder, GLB fetched and standing.
+
+### Still open
+- Interiors as a document of their own, in the same shape as the city one.
+- Several GLB buildings repeated across a city as instances rather than clones.
+
 ## Compaction points
 
 Good places to compact the working context: end of Phase 0 (design locked), end of Phase 1

@@ -20,7 +20,9 @@ a code import.
 | `building-planner` | backend | no | Turn one `LotPlan` into the floors behind its door: rooms, interior doors, a stairwell, and a way back out. A house is a one-floor building. |
 | `map-state` | shared | no | The run's ledger: derive the world map from the Adventure, track what has been entered, cleared and seen, and decide what is open (including the exit gate). |
 | `npc` | backend | yes, sparse | Author NPC definitions at author-time; resolve one player interaction into `{mode, target, utterance, emote}` at play-time. |
-| `asset-registry` | shared | no | The manifest of usable 3D pieces (kit parts + generated assets): id, kind, size, snap points, glTF URL, license. |
+| `asset-registry` | shared | no | The manifest of usable 3D pieces (kit parts, generated assets, whole buildings in one file): id, kind, size, snap points, glTF URL, license. |
+| `glb` | shared | no | What is inside a GLB: how big it is in metres, the move that stands it on the ground over its own footprint, what it costs to draw. |
+| `city-doc` | shared | no | The portable city: which assets a city uses and where each thing stands. To a city what a GLB is to one building. |
 | `asset-gen` | backend | yes (async, optional) | Generate/enrich 3D assets (ComfyUI on the AMD box or an API) and register them in `asset-registry`. |
 | `persistence` | backend | no | Serialize/deserialize, save/load, export/import an Adventure as a portable file. |
 

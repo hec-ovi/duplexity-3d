@@ -2,6 +2,26 @@
 
 What the project does now, newest first.
 
+## 0.13 - Worlds you keep, buildings you bring, cities you hand on
+
+- A world is a folder: `node tools/world.js new ashgate` writes the recipe it was asked for, the
+  buildings it stands, the game built from it and the city as assets and coordinates. `set` changes
+  the recipe, `build` rebuilds it to exactly the same thing, `remove` takes it away.
+- A building can be one file somebody else built. `world add ashgate --glb the-vault --door south`
+  takes a `.glb`, or a building the `glb-buildings` toolkit has built, measures it and copies it in.
+  The block is then cut to hold it, so it stands at its real size and is never squashed into a plot;
+  a file that brought its own front door is turned so that door faces the street.
+- `layers/glb/` is the box that measures one: how big it is in metres, the move that stands it on the
+  ground over its own footprint, and what it costs to draw. It reads the document, not the geometry,
+  so a forty floor tower measures as fast as a crate.
+- `layers/city-doc/` is the portable city: `city.json` says which files a city uses and where
+  everything stands, in metres, Y up. It is to a city what a GLB is to one building, so a city and
+  the buildings in it are made by two tools that never have to know about each other.
+- `world export ashgate --out dist/ashgate` writes a folder you serve and play: the page, the engine,
+  the world, the GLBs and the textures. `--data` writes the assets and the coordinates alone.
+- The runtime loads those files. A mass that names a `building` in the catalog IS that file; a plain
+  box stands in its place until it arrives, and stays there if it never does.
+
 ## 0.12 - Something to look at
 
 - Holo adverts: big lit panels bolted up the walls, portrait running up a tower or a banner across

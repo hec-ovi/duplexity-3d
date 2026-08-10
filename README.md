@@ -20,7 +20,24 @@ change rippling into the rest.
   is allowed to do before it applies.
 - **Speaks.** NPC lines are voiced by Fish Audio through the backend, so the key never reaches the
   browser. With no key, lines come back as text and play carries on.
-- **Travels.** Any adventure exports to a self-contained file and imports byte-identically elsewhere.
+- **Stands buildings other tools made.** A GLB is measured on the way in and the block is cut to hold
+  it, so it stands at its real size. The rest of the city is still generated around it.
+- **Travels.** A world exports as a folder you serve and play, or as `city.json` plus its GLBs: which
+  files the city uses and where everything stands, for any engine.
+
+## Keep a world
+
+```bash
+npm install
+node tools/world.js new ashgate --size medium --lots 4 --seed 11
+node tools/world.js add ashgate --glb the-vault --door south     # a .glb, or a building you built
+node tools/world.js set ashgate --at 1:0 --label "The Vault" --glb glb.the-vault
+node tools/world.js export ashgate --out dist/ashgate            # a folder you serve and play
+```
+
+A world is a folder: `spec.json` is what was asked for, `assets/` the buildings it stands,
+`world.json` the game, `city.json` the city as assets and coordinates. Edit the recipe and rebuild;
+the same recipe always gives the same city back.
 
 ## Build a level
 
@@ -73,7 +90,7 @@ open.
 | [`layers/`](layers/) | The isolated blackboxes, each with `CONTRACT.md`, `README.md`, `schema/`, `src/`, `tests/`, `fixtures/` |
 | [`app/`](app/) | Composition root: wires the browser slice |
 | [`server/`](server/) | Composition root: wires the HTTP API over one shared store |
-| [`tools/`](tools/) | Composition root: wires the level generators behind one command line |
+| [`tools/`](tools/) | Composition root: wires the level generators and the world folders behind two command lines |
 | [`harness/`](harness/) | Shared test tooling: the schema loader and the isolation checker |
 | [`docs/`](docs/) | The vision, the architecture, the contract convention, the milestones |
 

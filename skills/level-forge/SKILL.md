@@ -1,11 +1,11 @@
 ---
 name: level-forge
-description: Generate and check playable 3D levels for duplexity-3d - streets with front doors, buildings with floors and stairwells, houses, NPCs who live in them, and a roguelike map where clearing every instance opens the exit gate. Use for building a level or a whole city, adding buildings or NPCs to one, validating a level's geometry, reading what a level unlocks, or changing how levels are generated.
+description: Generate, edit and export playable 3D worlds for duplexity-3d - streets with front doors, buildings with floors and stairwells, houses, NPCs who live in them, and a roguelike map where clearing every instance opens the exit gate. Buildings are generated or dropped in as GLB files somebody else built. Use for making a world or a whole city, keeping and editing one, standing a GLB building in it, exporting a playable folder or a portable city file, validating a level's geometry, or changing how levels are generated.
 ---
 
 # level-forge
 
-Build a level you can walk. One command makes a street, the buildings on it, the people in them, and
+Build a world you can walk. One command makes a street, the buildings on it, the people in them, and
 the gate you leave by:
 
 ```text
@@ -19,7 +19,10 @@ name.
 
 | id | Use it for | Section |
 | --- | --- | --- |
-| `city` | A whole level in one command | [City](#city) |
+| `world` | Keep a world: make it, change it, rebuild it | [World](#world) |
+| `glb` | Stand a building somebody else built in it | [GLB buildings](#glb-buildings) |
+| `export` | Write it out: playable, or as assets and coordinates | [Export](#export) |
+| `city` | A whole level in one command, printed | [City](#city) |
 | `street` | The outdoor level and its lot briefs | [Street](#street) |
 | `building` | The floors behind one door | [Building](#building) |
 | `house` | A single-floor building that stands alone | [House](#house) |
@@ -36,6 +39,104 @@ Run once per checkout before anything else:
 npm install
 npm run textures   # optional: CC0 materials for roads, walls and floors. Without them, surfaces are painted
 ```
+
+<a id="world"></a>
+## World
+
+A world is a folder. Make it once, change what it should be, and rebuild: the recipe is the world, so
+the same recipe always gives the same city back.
+
+```bash
+node tools/world.js new ashgate --label Ashgate --size medium --lots 4 --npcs 2 --seed 11
+node tools/world.js list
+node tools/world.js show ashgate      # the recipe, the buildings it stands, what was built
+node tools/world.js set ashgate --wet 0.6 --lots 6
+node tools/world.js build ashgate     # after editing spec.json by hand
+node tools/world.js remove ashgate
+```
+
+```text
+worlds/ashgate/
+  spec.json      what was asked for. Edit this, rebuild, and the same world comes back
+  assets/        the GLBs it stands, and the catalog entry for each
+  world.json     the game: the level, the people in it, and the files it needs
+  city.json      the portable city: what stands where, and which file each building is
+```
+
+Worlds live in `$DUPLEXITY_WORLDS`, or `worlds/` where you ran the command; `--dir` picks another
+place. Every flag from [City](#city) works on `new` and `set`.
+
+To change ONE building, name where it stands: `--at <block>:<slot>`.
+
+```bash
+node tools/world.js set ashgate --at 1:0 --label "The Vault" --program office --floors 3 --storeys 12
+node tools/world.js set ashgate --at 2:1 --sealed          # a mass with no way in
+node tools/world.js set ashgate --at 1:0 --quest ledger    # the run's objective goes in here
+node tools/world.js set ashgate --at 2:1 --clear           # forget this one
+```
+
+Naming a building makes it a place and everything unnamed scenery. Pass `--accessible 1` to open the
+rest again.
+
+<a id="glb-buildings"></a>
+## GLB buildings
+
+A building can be one this toolkit draws, or one file somebody else built. Bring a file in and it is
+measured on the way: **the block is cut to hold it**, so it stands at its true size and is never
+squashed into a plot.
+
+```bash
+node tools/world.js add ashgate --glb the-vault --door south   # a building the buildings toolkit built
+node tools/world.js add ashgate --glb ./towers/spire.glb --as glb.spire
+node tools/world.js set ashgate --at 1:0 --label "The Vault" --glb glb.the-vault
+node tools/world.js drop ashgate --glb glb.spire
+```
+
+- `--glb` takes a path to a `.glb`, or the name of a building the `glb-buildings` toolkit has built
+  (looked up in `BUILDINGS_HOME`, a `.buildings` folder, then `~/.glb-buildings`). The file is copied
+  into the world, so the world stays whole wherever it goes.
+- `--door <face>` says which side the file's own front door is on. Then the building is turned so
+  that door faces the street and no second door is built over it. Without it, the city builds its own
+  door on whichever face fronts the street.
+- `--as <id>` names it (default from the file), `--license <text>` records the licence (default
+  `own-work`), `--floors <n>` says how many storeys it stands when the file cannot say.
+- A file is expected in metres, Y up, standing on `y=0` and centred on its own footprint, which is
+  what `glb-buildings` writes. Anything else is measured and offset to match.
+
+The rest of the city is still ours: masses with painted fronts, real doors, balconies and lit signs.
+Mix freely, one building at a time.
+
+<a id="export"></a>
+## Export
+
+```bash
+node tools/world.js export ashgate --out dist/ashgate     # a folder you serve and play
+node tools/world.js export ashgate --out share --data     # assets and coordinates only
+npx serve dist/ashgate
+```
+
+The playable folder holds the page, the engine, `world.json`, `city.json`, the GLBs and the textures.
+Serve it and it plays; nothing else is needed.
+
+`city.json` is the city on its own: which files it uses and where everything stands, in metres, Y up.
+It is to a city what a GLB is to one building, so a city and the buildings in it can be made by two
+tools that never have to know about each other.
+
+```json
+{
+  "format": "duplexity-city/1", "id": "ashgate", "units": "metres", "up": "Y",
+  "ground": { "size": [168, 168] },
+  "assets": [{ "id": "glb.the-vault", "file": "assets/the-vault.glb", "size": [26, 60, 22] }],
+  "buildings": [
+    { "id": "mass-ashgate-b1", "asset": "glb.the-vault", "position": [-52, 0, -52],
+      "size": [26, 60, 22], "door": { "id": "door-ashgate-b1", "leadsTo": { "instance": "ashgate-b1-f1" } } },
+    { "id": "mass-ashgate-b2", "position": [12, 0, -52], "size": [22, 26, 18], "floors": 8, "program": "shop" }
+  ]
+}
+```
+
+A building with an `asset` IS that file. One without is ours: its size, floors and program are enough
+for any engine to draw it.
 
 <a id="city"></a>
 ## City
@@ -180,6 +281,9 @@ Checkpoints are the portable bundle `persistence` exports, so one opens on any c
 validates first: nothing that would fail to load gets written. They live in `$DUPLEXITY_CHECKPOINTS`,
 or `checkpoints/` where you ran the command; `--dir` picks another place.
 
+A checkpoint keeps the result. A [world](#world) keeps the recipe as well, so it can be changed and
+rebuilt rather than only reopened.
+
 <a id="play"></a>
 ## Play
 
@@ -190,7 +294,8 @@ npm test                         # every layer's contract tests
 ```
 
 `npm run dev` builds a new city each visit. `?seed=1234` plays the same one again, so a seed is a
-level you can pass to someone, and `?wet=0.8` soaks the streets. A map overlay in the corner keeps you
+level you can pass to someone, and `?wet=0.8` soaks the streets. A page with a `world.json` beside it
+(what [export](#export) writes) plays that world instead, and `?world=<url>` plays one from anywhere. A map overlay in the corner keeps you
 centred and slides the world under you: it draws only the rooms you have been in, the buildings on the
 ground you are standing on, and marks a door you cannot use yet in red.
 
@@ -230,11 +335,13 @@ reading its code.
 | Unlock rules, what the exit waits for | `layers/map-state/` |
 | NPC data, modes, the interaction brain | `layers/npc/` |
 | Speech providers | `layers/voice/` |
-| Kits and generated assets | `layers/asset-registry/`, `layers/asset-gen/` |
+| Kits, generated assets, and what a `building` asset is | `layers/asset-registry/`, `layers/asset-gen/` |
+| Reading a GLB: how big it is, where it stands, what it costs | `layers/glb/` |
+| The portable city file: assets and coordinates | `layers/city-doc/` |
 | Rendering, camera, collision, the blueprint overlay | `layers/runtime/` |
 | What things are made of: asphalt, paving, concrete, a building's windows and shopfront | `layers/surfaces/` |
 | What is bolted to a building: balconies, awnings, the cartel over the door | `layers/facade/` |
-| The command line itself | `tools/` |
+| The command lines themselves, and what a world folder holds | `tools/` |
 
 `docs/INDEX.md` is the full dispatcher. Rules that hold everywhere:
 

@@ -158,3 +158,19 @@ Answers to the three questions that came out of the above:
 > game ends, super easy, and the idea llms can prompt those locations, so a city can be super big,
 > but directions to go and interact are specific places, and whose are inside inner, etc as you sdaid
 > for now the inside poorly because have no realinteriors
+
+---
+
+## 2026-08-10 - Compatible with the GLB buildings skill, worlds you make and export
+
+> check end to end theproject understand it, and check parent project, it export glb the
+> glb-buildings-skill the idea: this project must be compatible, and this project should also export
+> a game, playable, as a skill, so can do its own buildings, OR use GLB ones, saved in an assets
+> folder
+
+> i want to be able to have a world created and create new ones, and edit them and then export them,
+> so easy to load a json or something with its glbs etc
+
+> the export if possible is just a set of the assets, and the coordinates, our idea is doing the same
+> we did with the glb buildings skill but like a city one, so they can be combined, have in count in
+> the future we might do the same for the interiors
