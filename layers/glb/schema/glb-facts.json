@@ -1,0 +1,42 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/glb/glb-facts.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GlbFacts",
+  "description": "What one GLB file is: the box it occupies in metres, the move that stands it on the ground over its own footprint, and what it costs to draw.",
+  "type": "object",
+  "properties": {
+    "size": {
+      "description": "Width, height and depth in metres.",
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "min": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "max": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "anchor": {
+      "description": "Translation that puts the piece centred over its footprint with its base at y=0. A file already written that way anchors at [0, 0, 0].",
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "nodes": { "type": "integer", "minimum": 0 },
+    "meshes": { "type": "integer", "minimum": 0 },
+    "materials": { "type": "integer", "minimum": 0 },
+    "triangles": { "type": "integer", "minimum": 0 },
+    "bytes": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["size", "min", "max", "anchor", "nodes", "meshes", "materials", "triangles", "bytes"],
+  "additionalProperties": false
+}

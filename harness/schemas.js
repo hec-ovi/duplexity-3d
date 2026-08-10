@@ -92,6 +92,9 @@ export const SCHEMA_ID = {
   facade: {
     facadeParts: `${BASE}/facade/facade-parts.json`,
   },
+  glb: {
+    facts: `${BASE}/glb/glb-facts.json`,
+  },
 };
 
 function collectSchemaFiles() {
