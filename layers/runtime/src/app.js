@@ -16,7 +16,7 @@ import { buildInstanceObject3D } from "./three-scene.js";
 import { attachModels, createGlbLoader } from "./models.js";
 import { createNpcActors } from "./npc-actor.js";
 import { createLabelsOverlay } from "./labels-overlay.js";
-import { createSurfaceMaterials } from "./surface-materials.js";
+import { createSurfaceMaterials, createSurfaceStore } from "./surface-materials.js";
 import { createLightRig } from "./lights.js";
 import { createTraffic } from "./traffic.js";
 import { seededRng, hashString } from "./rng.js";
@@ -99,7 +99,14 @@ export function createApp(options = {}) {
   // Binds each NPC's scene group to its runtime state (position, facing, animation).
   let actors = null;
   // Surfaces are painted per scene and thrown away with it, so crossing a door leaks no textures.
+  // What was PAINTED and what was photographed outlive the scene, in a store the app owns: walking
+  // through a door should not repaint a city that has not changed.
   let materials = null;
+  const surfaceStore = createSurfaceStore();
+  // What a shiny surface reflects is captured from the scene, which costs a render of everything in
+  // it. Doing that on the frame a door is walked through is what makes a door feel slow, so it is
+  // asked for here and taken on a later frame, once the new place is already on the screen.
+  let captureEnvironment = false;
   // The lights of the place you are in now, and only those.
   let rig = null;
   // What is moving in the sky over it. Outdoors only: there is no sky in a room.
@@ -124,7 +131,13 @@ export function createApp(options = {}) {
     const open = model.rooms.some((r) => r.open);
     scene.background = open ? sky : indoors;
     scene.fog = new THREE.FogExp2(scene.background.getHex(), open ? HAZE.open : HAZE.indoors);
-    materials = createSurfaceMaterials({ paintSurface, photoSurface, textureBase, wet: model.rules?.wet });
+    materials = createSurfaceMaterials({
+      paintSurface,
+      photoSurface,
+      textureBase,
+      wet: model.rules?.wet,
+      store: surfaceStore,
+    });
     instanceGroup = buildInstanceObject3D(model, { registry, materials, dressFacade, warn });
     scene.add(instanceGroup);
     rig = createLightRig(scene, {
@@ -141,7 +154,7 @@ export function createApp(options = {}) {
       const group = instanceGroup;
       attachModels(pending, loadModel ?? createGlbLoader(assetBase), warn).then(() => {
         // A scene torn down mid-load is a scene nobody is looking at any more.
-        if (group === instanceGroup) lightEnvironment();
+        if (group === instanceGroup) captureEnvironment = true;
       });
     }
     if (open) {
@@ -288,6 +301,12 @@ export function createApp(options = {}) {
     if (composer) composer.render();
     else renderer.render?.(scene, camera);
     onFrame?.(clamped);
+    // After the frame, never before it: the new place is already on the screen by the time what it
+    // reflects is worked out.
+    if (captureEnvironment) {
+      captureEnvironment = false;
+      lightEnvironment();
+    }
     return result;
   }
 
@@ -360,7 +379,7 @@ export function createApp(options = {}) {
     // The host calls this from onTransit; the runtime never loads the next instance itself.
     goTo(id, opts = {}) {
       build(id, opts);
-      lightEnvironment();
+      captureEnvironment = true; // taken on a later frame, so the door does not stall on it
       syncCamera();
       actors.sync(runtime.getNpcs(), camera, 0);
       syncLabels();

@@ -236,20 +236,36 @@ describe("city-planner contract", () => {
       expect(mass.size[1]).toBe(48);
       expect(mass.floors).toBe(15);
 
-      // the block it stands on grew to hold it, and it grew by its whole column and row, so no
-      // street bends round it
+      // the block it stands on grew to hold it, and its whole column moved over, so no street bends
       const pavements = instance.rooms[0].zones.filter((z) => z.kind === "sidewalk");
       const its = pavements.find((z) => z.id === "pavement-1");
       expect(its.size[0]).toBeGreaterThan(BLOCK);
       for (const other of pavements) {
-        const column = Number(other.id.split("-")[1]) % 3;
-        if (column === 1) {
-          expect(other.position[0]).toBe(its.position[0]);
-          expect(other.size[0]).toBe(its.size[0]);
-        }
+        if (Number(other.id.split("-")[1]) % 3 === 1) expect(other.position[0]).toBe(its.position[0]);
       }
       const ground = instance.rooms[0].size;
       expect(ground[0]).toBe(ground[2]); // the ground stays square, so the gate and spawn are unmoved
+    });
+
+    // The room a big building needs is its own. A neighbour dragged out with it becomes a slab, and
+    // a facade painted to fit a slab is a smear of windows.
+    it("does not drag the building beside it out to its own size", () => {
+      const { instance } = createStreets(
+        {
+          ...spec,
+          lots: 4,
+          buildings: [
+            { block: 1, slot: 0, label: "The Vault", asset: tower.id },
+            { block: 1, slot: 1, label: "Next door" },
+          ],
+        },
+        assetQuery,
+        { validateInstance: passing, assetFor }
+      );
+
+      const next = instance.rooms[0].blocks.find((b) => b.label === "Next door");
+      expect(next.size[0]).toBeLessThanOrEqual(31); // what a premises on a plain block gets
+      expect(next.size[2]).toBeLessThanOrEqual(31);
     });
 
     it("is turned so the door it brought faces the street", () => {

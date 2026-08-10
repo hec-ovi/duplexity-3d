@@ -74,62 +74,86 @@ export function layout(n, sizes = []) {
 export const PAVEMENT = 4.5; // pavement round a block, wide enough to walk and stand on
 export const MAX_PER_BLOCK = 3; // premises one block can be split into: fewer, bigger places
 
+const INNER = BLOCK - PAVEMENT * 2; // what a block has room to build on
+const GAP = 1; // between two premises on the same block
+const NEAR = 0.25; // between the two that share one side of a three-way split
+
 /**
- * Split one city block into the plots its buildings stand on. The block keeps a pavement all the way
- * round, and the buildings inside it differ in footprint, so a block reads as several premises rather
- * than one slab.
+ * How big each premises on a block is. A premises is the size a premises is; only one that has to
+ * hold something pinned there grows, so a big building never drags its neighbours out with it.
  *
- * @returns {Array<{center:{x:number,z:number}, size:{w:number,d:number}}>}
+ * @param {number} count how many premises the block is split into
+ * @param {Array<{w:number,d:number}|undefined>} [demands] per slot, what has to fit there
  */
-export function plotsInBlock(center, count, block = { w: BLOCK, d: BLOCK }) {
-  const inner = { w: block.w - PAVEMENT * 2, d: block.d - PAVEMENT * 2 };
-  if (count <= 1) return [{ center: { ...center }, size: { ...inner } }];
+export function plotSizes(count, demands = []) {
+  const grown = (slot, w, d) => ({
+    w: Math.max(w, demands[slot]?.w ?? 0),
+    d: Math.max(d, demands[slot]?.d ?? 0),
+  });
+  if (count <= 1) return [grown(0, INNER, INNER)];
   if (count === 2) {
     // one wide, one narrow, split along z
-    const wide = inner.d * 0.58;
-    const narrow = inner.d - wide - 1;
-    return [
-      { center: { x: center.x, z: center.z - inner.d / 2 + wide / 2 }, size: { w: inner.w, d: wide } },
-      { center: { x: center.x, z: center.z + inner.d / 2 - narrow / 2 }, size: { w: inner.w, d: narrow } },
-    ];
+    const wide = INNER * 0.58;
+    return [grown(0, INNER, wide), grown(1, INNER, INNER - wide - GAP)];
   }
   // three: one down one side, two down the other, so no premises is a quarter of a quarter
-  const halfW = (inner.w - 1) / 2;
-  const halfD = (inner.d - 1) / 2;
-  const quads = [
-    { x: -1, z: 0, w: halfW * 1.05, d: inner.d },
-    { x: 1, z: -1, w: halfW * 0.95, d: halfD },
-    { x: 1, z: 1, w: halfW * 0.95, d: halfD * 1.05 },
-  ].slice(0, Math.min(count, 3));
-  return quads.map((q) => ({
-    center: { x: center.x + (q.x * (inner.w - q.w)) / 2, z: center.z + (q.z * (inner.d - q.d)) / 2 },
-    size: { w: q.w, d: q.d },
-  }));
+  const half = (INNER - GAP) / 2;
+  return [grown(0, half * 1.05, INNER), grown(1, half * 0.95, half), grown(2, half * 0.95, half * 1.05)].slice(
+    0,
+    Math.min(count, 3)
+  );
+}
+
+/** The ground a block has to give up to hold those premises, pavement not counted. */
+function innerFor(sizes) {
+  if (sizes.length <= 1) return { w: sizes[0].w, d: sizes[0].d };
+  if (sizes.length === 2) {
+    return { w: Math.max(sizes[0].w, sizes[1].w), d: sizes[0].d + sizes[1].d + GAP };
+  }
+  return {
+    w: sizes[0].w + Math.max(sizes[1].w, sizes[2].w) + GAP,
+    d: Math.max(sizes[0].d, sizes[1].d + sizes[2].d + NEAR),
+  };
 }
 
 /**
- * How big a block has to be for one of its plots to hold a footprint. Plots are fractions of the
- * block, so this grows the block by the ratio the plot falls short by and settles in a pass or two.
+ * Split one city block into the plots its buildings stand on. Each premises is anchored to its own
+ * corner of the block, so growing one moves the others apart without resizing them.
+ *
+ * @returns {Array<{center:{x:number,z:number}, size:{w:number,d:number}}>}
+ */
+export function plotsInBlock(center, count, demands = []) {
+  const sizes = plotSizes(count, demands);
+  const inner = innerFor(sizes);
+  const at = (x, z, size) => ({ center: { x: center.x + x, z: center.z + z }, size });
+
+  if (sizes.length <= 1) return [at(0, 0, sizes[0])];
+  if (sizes.length === 2) {
+    return [
+      at(0, -inner.d / 2 + sizes[0].d / 2, sizes[0]),
+      at(0, inner.d / 2 - sizes[1].d / 2, sizes[1]),
+    ];
+  }
+  const left = -inner.w / 2 + sizes[0].w / 2;
+  return [
+    at(left, 0, sizes[0]),
+    at(inner.w / 2 - sizes[1].w / 2, -inner.d / 2 + sizes[1].d / 2, sizes[1]),
+    at(inner.w / 2 - sizes[2].w / 2, inner.d / 2 - sizes[2].d / 2, sizes[2]),
+  ];
+}
+
+/**
+ * How big a block has to be to hold what stands on it: the plots, and a pavement all the way round.
  *
  * @param {number} count how many premises the block is split into
- * @param {number} slot  which one has to hold it
- * @param {{w:number,d:number}} footprint what has to stand there
+ * @param {Array<{w:number,d:number}|undefined>} [demands] per slot, what has to fit there
  * @returns {{w:number,d:number}}
  */
-export function blockSizeFor(count, slot, footprint) {
-  let block = { w: BLOCK, d: BLOCK };
-  for (let pass = 0; pass < 8; pass++) {
-    const plot = plotsInBlock({ x: 0, z: 0 }, count, block)[slot];
-    const shortW = footprint.w / plot.size.w;
-    const shortD = footprint.d / plot.size.d;
-    if (shortW <= 1 && shortD <= 1) break;
-    block = {
-      w: shortW > 1 ? block.w * shortW + 1 : block.w,
-      d: shortD > 1 ? block.d * shortD + 1 : block.d,
-    };
-  }
+export function blockSizeFor(count, demands = []) {
+  const inner = innerFor(plotSizes(count, demands));
   // Half a metre, so a block size is a number a person can read.
-  return { w: Math.ceil(block.w * 2) / 2, d: Math.ceil(block.d * 2) / 2 };
+  const round = (n) => Math.ceil((n + PAVEMENT * 2) * 2) / 2;
+  return { w: Math.max(BLOCK, round(inner.w)), d: Math.max(BLOCK, round(inner.d)) };
 }
 
 /** The four faces of a footprint. A door goes on one of them, and every one fronts a street. */

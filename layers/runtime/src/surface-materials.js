@@ -23,9 +23,20 @@ function hash(str) {
 const ANISOTROPY = 4;
 
 /**
+ * A store for the expensive half: the canvases the painter drew and the photographs that were
+ * loaded. It belongs to the app, not to a scene, so walking through a door does not repaint the
+ * whole city and decode every material again. One adventure names a bounded set of buildings, so it
+ * cannot grow without bound.
+ */
+export function createSurfaceStore() {
+  return { plans: new Map(), images: new Map() };
+}
+
+/**
  * @param {object} deps
  * @param {Function} deps.paintSurface  injected surfaces.paintSurface handle
  * @param {number} [deps.wet]           how wet the streets are, 0 to 1
+ * @param {object} [deps.store]         what survives a scene: paint and photographs
  * @param {Document} [deps.document]
  * @returns {object|null} the cache, or null when there is nothing to paint with
  */
@@ -34,13 +45,14 @@ export function createSurfaceMaterials({
   photoSurface,
   textureBase,
   wet = 0,
+  store = createSurfaceStore(),
   document: doc = globalThis.document,
 } = {}) {
   if (typeof paintSurface !== "function" || typeof doc?.createElement !== "function") return null;
 
-  const plans = new Map(); // painted once per key, reused at every size it is needed
+  const plans = store.plans; // painted once per key, reused at every size it is needed
   const windowMats = new Map(); // one material per kind of window, shared by every one of them
-  const loaded = new Map(); // one loaded image per file, however many surfaces are cut from it
+  const loaded = store.images; // one loaded image per file, however many surfaces are cut from it
   const textures = [];
   const loader = textureBase ? new THREE.TextureLoader() : null;
 
@@ -251,12 +263,13 @@ export function createSurfaceMaterials({
       return plans.get(`facade:${blockId}`)?.signColour ?? null;
     },
 
+    // What this scene made is thrown away with it. What was painted or photographed stays in the
+    // store: it costs nothing to keep and everything to redo.
     dispose() {
       for (const texture of textures) texture.dispose();
       for (const material of windowMats.values()) material.dispose();
       textures.length = 0;
       windowMats.clear();
-      plans.clear();
     },
   };
 }

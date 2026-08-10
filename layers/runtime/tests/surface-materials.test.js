@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
-import { createSurfaceMaterials } from "../src/surface-materials.js";
+import { createSurfaceMaterials, createSurfaceStore } from "../src/surface-materials.js";
 import { buildInstanceObject3D } from "../src/three-scene.js";
 
 // The painter is another box, injected. Here it is a stand-in that reports what it was asked for, so
@@ -97,6 +97,26 @@ describe("surface materials", () => {
     road.map.addEventListener("dispose", () => disposed.push("road"));
     materials.dispose();
     expect(disposed).toEqual(["road"]);
+  });
+
+  // Walking through a door builds a new scene. Painting a city again on the way is what makes a door
+  // feel slow, and nothing about the city changed.
+  it("keeps what was painted when a scene is thrown away, so a door does not repaint the city", () => {
+    const store = createSurfaceStore();
+    const first = fakePainter();
+    const scene = createSurfaceMaterials({ ...first, store, document: fakeDocument });
+    scene.ground("road", 10, 10);
+    scene.block({ id: "mass-1", size: { x: 12, y: 16, z: 8 }, floors: 4 });
+    expect(first.asked.length).toBe(3); // the road, and a facade sheet for each pair of walls
+    scene.dispose();
+
+    const next = fakePainter();
+    const after = createSurfaceMaterials({ ...next, store, document: fakeDocument });
+    after.ground("road", 40, 40);
+    after.block({ id: "mass-1", size: { x: 12, y: 16, z: 8 }, floors: 4 });
+
+    expect(next.asked).toEqual([]); // painted once, for as long as the app is up
+    expect(after.ground("road", 10, 10).map.repeat.x).toBe(2.5); // and still repeats to fit
   });
 
   it("is absent when there is no painter, and the scene falls back to flat colour", () => {

@@ -9,7 +9,7 @@
 // inside a building is a separate instance, reached by walking up to its door.
 
 import { createRng, hashString } from "./rng.js";
-import { LATTICE_BY_SIZE, SKY, STREET, doorOnFace } from "./lattice.js";
+import { LATTICE_BY_SIZE, PAVEMENT, SKY, STREET, doorOnFace } from "./lattice.js";
 import { planPremises } from "./premises.js";
 import { placeLights } from "./lighting.js";
 import { skylineFor } from "./skyline.js";
@@ -21,6 +21,18 @@ const DOOR = [2, 3];
 const STEP_OUT = 1.8; // how far in front of its own door the way out of a building leaves you
 const GATE = [6, 4];
 const GROUND_ROOM = "ground";
+
+/** The pavement under a block's premises: their plots, with room to walk all the way round. */
+function paveOver(onBlock) {
+  const minX = Math.min(...onBlock.map((p) => p.plot.center.x - p.plot.size.w / 2)) - PAVEMENT;
+  const maxX = Math.max(...onBlock.map((p) => p.plot.center.x + p.plot.size.w / 2)) + PAVEMENT;
+  const minZ = Math.min(...onBlock.map((p) => p.plot.center.z - p.plot.size.d / 2)) - PAVEMENT;
+  const maxZ = Math.max(...onBlock.map((p) => p.plot.center.z + p.plot.size.d / 2)) + PAVEMENT;
+  return {
+    center: { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2 },
+    size: { w: maxX - minX, d: maxZ - minZ },
+  };
+}
 
 // Prefer the outdoor piece when the kit distinguishes one, but never require it: a theme with a
 // single floor and wall still builds a street.
@@ -69,12 +81,17 @@ export function createStreets(spec, assetQuery, opts = {}) {
   // The whole ground is roadway; each block lays its pavement over it, and the buildings stand on
   // that. So the streets are simply what no block covers.
   zones.push({ id: "road", kind: "road", position: [0, 0, 0], size: [extent, extent] });
-  for (const index of [...new Set(premises.map((p) => p.block))].sort((a, b) => a - b)) {
+  // A pavement is cut to what stands on it, not to the cell it sits in: a column widened to hold one
+  // big building leaves more street beside its neighbours, never more pavement round nothing.
+  const pavements = [...new Set(premises.map((p) => p.block))]
+    .sort((a, b) => a - b)
+    .map((index) => ({ id: `pavement-${index}`, ...paveOver(premises.filter((p) => p.block === index)) }));
+  for (const pavement of pavements) {
     zones.push({
-      id: `pavement-${index}`,
+      id: pavement.id,
       kind: "sidewalk",
-      position: [grid[index].center.x, 0, grid[index].center.z],
-      size: [grid[index].size.w, grid[index].size.d],
+      position: [pavement.center.x, 0, pavement.center.z],
+      size: [pavement.size.w, pavement.size.d],
     });
   }
 
@@ -167,7 +184,7 @@ export function createStreets(spec, assetQuery, opts = {}) {
         zones,
         blocks,
         skyline: distant,
-        lights: placeLights(grid, new Set(premises.map((p) => p.block)), doors),
+        lights: placeLights(pavements, doors),
       },
     ],
     portals,

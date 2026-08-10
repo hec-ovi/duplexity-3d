@@ -74,8 +74,11 @@ what the room is for: boards in a living room, tiles in a kitchen, worn concrete
 
 Solid things throw shadows and take them. Outdoors that is one shadow across the level from the moon;
 indoors and near to hand it is the two nearest lamps, since a point light shadow is six renders and
-past those nobody can tell. What a shiny surface reflects is the scene itself, captured once it is
-standing, so a wet road and a tiled floor come back with the sky and the signs in them.
+past those nobody can tell. What a shiny surface reflects is the scene itself, so a wet road and a
+tiled floor come back with the sky and the signs in them. Capturing it costs a render of everything
+standing, so it is taken AFTER the first frame in a new place rather than on the frame the door was
+walked through, and what was painted or photographed outlives the scene: crossing a door builds new
+meshes, never a repainted city.
 
 Names and speech are HTML over the canvas, never glyphs in the scene. A NAME hangs over whoever it
 belongs to, small and quiet; what someone SAYS goes in one panel at the bottom of the screen, in the

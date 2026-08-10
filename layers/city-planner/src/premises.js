@@ -46,13 +46,17 @@ export function planPremises(spec, n, count, rng, deps = {}) {
 
   // A pinned file stands at its own size, so its block is cut to hold it before anything is placed.
   const assets = resolveAssets(pins, deps.assetFor);
-  const { cells, extent } = layout(n, blockDemands(pins, assets, counts, n));
+  const demands = blockDemands(assets, count);
+  const { cells, extent } = layout(
+    n,
+    demands.map((slots, block) => (slots ? blockSizeFor(counts[block], slots) : undefined))
+  );
   const grid = cells.slice(0, count);
 
   const list = [];
   for (let block = 0; block < grid.length; block++) {
     if (counts[block] === 0) continue;
-    const plots = plotsInBlock(grid[block].center, counts[block], grid[block].size);
+    const plots = plotsInBlock(grid[block].center, counts[block], demands[block] ?? []);
     for (let slot = 0; slot < plots.length; slot++) {
       const key = `${block}:${slot}`;
       const pin = pins.get(key) ?? {};
@@ -148,20 +152,19 @@ function resolveAssets(pins, assetFor) {
   return out;
 }
 
-/** How big each block has to be for the files pinned on it to stand there. */
-function blockDemands(pins, assets, counts, n) {
-  const sizes = new Array(n * n);
+/** What each premises on each block has to be big enough to hold, where a file was pinned to it. */
+function blockDemands(assets, blockCount) {
+  const demands = new Array(blockCount);
   for (const [key, asset] of assets) {
     const [block, slot] = key.split(":").map(Number);
     const [w, , d] = asset.size;
-    // A file that brought its own door may be turned a quarter, so the plot has to hold it either
+    // A file that brought its own door may be turned a quarter, so its plot has to hold it either
     // way round.
     const side = asset.doors === "own" ? Math.max(w, d) : 0;
-    const need = blockSizeFor(counts[block], slot, { w: Math.max(w, side), d: Math.max(d, side) });
-    const had = sizes[block];
-    sizes[block] = had ? { w: Math.max(had.w, need.w), d: Math.max(had.d, need.d) } : need;
+    demands[block] ??= [];
+    demands[block][slot] = { w: Math.max(w, side), d: Math.max(d, side) };
   }
-  return sizes;
+  return demands;
 }
 
 // What the place is for. A small premises cannot be an open-plan office, so only the mixes that fit

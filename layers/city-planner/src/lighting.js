@@ -4,31 +4,29 @@
 // This is placement only: how tall a lamp is, what colour it burns and how many are lit at once are
 // decisions the renderer makes.
 
-import { BLOCK } from "./lattice.js";
-
 const LAMP_INSET = 1.6; // metres in from the pavement edge, so a lamp stands on it, not in the road
 const SIGN_STANDOFF = 0.6; // how far a sign hangs off the face it is fixed to
 
 /**
- * @param {Array} cells      the lattice
- * @param {Set<number>} used which blocks have premises on them
- * @param {Array} doors      `{ id, blockId, position, face }` per front door
+ * @param {Array} pavements `{ id, center, size }` per block that has premises on it
+ * @param {Array} doors     `{ id, blockId, position, face }` per front door
  * @returns {Array} room lights (schema: persistence/room.json `lights`)
  */
-export function placeLights(cells, used, doors) {
+export function placeLights(pavements, doors) {
   const lights = [];
-  const half = BLOCK / 2 - LAMP_INSET;
 
-  for (const index of [...used].sort((a, b) => a - b)) {
-    const { x, z } = cells[index].center;
+  for (const pavement of pavements) {
+    const { x, z } = pavement.center;
+    const halfW = pavement.size.w / 2 - LAMP_INSET;
+    const halfD = pavement.size.d / 2 - LAMP_INSET;
     const corners = [
-      [x, z - half],
-      [x, z + half],
-      [x - half, z],
-      [x + half, z],
+      [x, z - halfD],
+      [x, z + halfD],
+      [x - halfW, z],
+      [x + halfW, z],
     ];
     corners.forEach(([lx, lz], i) => {
-      lights.push({ id: `lamp-${index}-${i}`, kind: "street_lamp", position: [lx, 0, lz] });
+      lights.push({ id: `lamp-${pavement.id.split("-")[1]}-${i}`, kind: "street_lamp", position: [lx, 0, lz] });
     });
   }
 
