@@ -68,6 +68,8 @@ export function migrateForward(adventure) {
 
 export function createPersistence({ validateAdventure } = {}) {
   const store = new Map();
+  // The assets an adventure references that no base kit carries: the files it has to travel with.
+  const assets = new Map();
 
   function assertValid(adventure) {
     if (!validateAdventure) return;
@@ -76,11 +78,12 @@ export function createPersistence({ validateAdventure } = {}) {
   }
 
   const api = {
-    save(adventure) {
+    save(adventure, generatedAssets = []) {
       assertValid(adventure);
       const id = adventure?.meta?.id;
       if (!id) throw new SchemaInvalidError([{ message: "meta.id is required" }]);
       store.set(id, structuredClone(adventure));
+      assets.set(id, structuredClone(generatedAssets));
       return { id };
     },
 
@@ -99,8 +102,9 @@ export function createPersistence({ validateAdventure } = {}) {
 
     export(id) {
       const adventure = api.load(id);
-      // Kit assets stay referenced by id; only generated (non-kit) bytes would be embedded here.
-      return { adventure, generatedAssets: [] };
+      // Kit assets stay referenced by id; the generated ones travel with the adventure that needs
+      // them, so an export opens on a machine that only has the base kits.
+      return { adventure, generatedAssets: structuredClone(assets.get(id) ?? []) };
     },
 
     // Serialize a Bundle to a portable JSON string (the transfer format saved to / uploaded from a file).
@@ -113,6 +117,7 @@ export function createPersistence({ validateAdventure } = {}) {
       const migrated = migrateForward(bundle.adventure);
       assertValid(migrated);
       store.set(migrated.meta.id, structuredClone(migrated));
+      assets.set(migrated.meta.id, structuredClone(bundle.generatedAssets ?? []));
       return structuredClone(migrated);
     },
 

@@ -45,6 +45,7 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The `POST /adventure` author, `POST /interaction` brain, or `GET/POST` export/import routes | `server/` (backend composition root) |
 | The playable three.js slice wiring (the play-time entry) | `app/` (frontend composition root) |
 | Generating a level from the command line, and keeping one you liked (the agent-facing toolkit) | `tools/` |
+| Worlds as folders: making one, editing it, standing a GLB in it, exporting it | `tools/` (`world.js`) |
 
 `app/`, `server/` and `tools/` are the composition roots. They live OUTSIDE `layers/` and are the only
 places allowed to import several layers at once (the isolation checker does not scan them): `app/`

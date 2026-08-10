@@ -32,6 +32,30 @@ describe("persistence contract", () => {
     expect(p2.import(bundle)).toEqual(fixture);
   });
 
+  it("an adventure travels with the files no base kit carries", () => {
+    const vault = {
+      id: "glb.the-vault",
+      kind: "building",
+      tags: [],
+      theme: "city",
+      size: [14, 48, 18],
+      glbUrl: "assets/the-vault.glb",
+      license: "own-work",
+      source: "generated",
+    };
+    const p = createPersistence({ validateAdventure });
+    p.save(fixture, [vault]);
+
+    const bundle = p.export("adv-example-001");
+    expect(validate(SCHEMA_ID.persistence.bundle, bundle).ok).toBe(true);
+    expect(bundle.generatedAssets).toEqual([vault]);
+
+    // and they arrive on the other machine with it
+    const other = createPersistence({ validateAdventure });
+    other.importFile(p.exportFile("adv-example-001"));
+    expect(other.export("adv-example-001").generatedAssets).toEqual([vault]);
+  });
+
   it("exportFile serializes a portable JSON string that importFile restores into a fresh store", () => {
     const p = createPersistence({ validateAdventure });
     p.save(fixture);

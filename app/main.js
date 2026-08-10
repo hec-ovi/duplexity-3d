@@ -30,22 +30,34 @@ const promptEl = document.getElementById("prompt");
 const blueprintEl = document.getElementById("blueprint");
 const blueprintCtx = blueprintEl.getContext("2d");
 
-// The seed IS the level, so `?seed=1234` plays the same city again and is worth sharing. Without one,
-// every visit is a new city.
 const query = new URLSearchParams(location.search);
-const asked = Number.parseInt(query.get("seed") ?? "", 10);
-const seed = Number.isFinite(asked) ? asked : Math.floor(Math.random() * 1e6);
 // `?wet=0.8` soaks the streets, so the lamps come back off them. It never rains.
 const wet = Number.parseFloat(query.get("wet") ?? "");
 
-const { adventure } = composeCity({
-  id: "ashgate",
-  theme: "city",
-  label: "Ashgate",
-  sizeHint: "medium",
-  seed,
-  ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
-});
+// A world exported next to this page is the world to play: the level, the people in it, and the
+// files it stands. With none (which is `npm run dev`), a city is composed here instead.
+const packed = await fetch(query.get("world") ?? "world.json")
+  .then((r) => (r.ok ? r.json() : null))
+  .catch(() => null);
+
+const registry = createRegistry();
+let adventure;
+if (packed?.adventure) {
+  adventure = packed.adventure;
+  for (const entry of packed.generatedAssets ?? []) registry.register(entry);
+} else {
+  // The seed IS the level, so `?seed=1234` plays the same city again and is worth sharing. Without
+  // one, every visit is a new city.
+  const asked = Number.parseInt(query.get("seed") ?? "", 10);
+  ({ adventure } = composeCity({
+    id: "ashgate",
+    theme: "city",
+    label: "Ashgate",
+    sizeHint: "medium",
+    seed: Number.isFinite(asked) ? asked : Math.floor(Math.random() * 1e6),
+    ...(Number.isFinite(wet) ? { wet: Math.max(0, Math.min(1, wet)) } : {}),
+  }));
+}
 
 // The photographed CC0 materials are fetched, not committed (`npm run textures`). Ask once whether
 // they are here; without them the surfaces layer paints its own and the city looks after itself.
@@ -97,7 +109,7 @@ const app = createApp({
   container,
   adventure,
   instanceId: worldMap.entry,
-  registry: createRegistry(),
+  registry,
   paintSurface, // roads, pavements, concrete and every building's outside
   photoSurface,
   textureBase, // the CC0 materials, when they have been fetched

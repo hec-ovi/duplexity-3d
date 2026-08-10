@@ -36,5 +36,8 @@ tmp/
 # Saved cities (generated; keep the spec files, not the output)
 checkpoints/
 
+# Worlds made locally: the recipe is a few lines, the build and the GLBs are not
+worlds/
+
 # Fetched CC0 materials (npm run textures); the manifest is committed, the images are not
 app/public/textures/

@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "schemas": "node harness/check-schemas.js",
     "level": "node tools/level.js",
+    "world": "node tools/world.js",
     "skill:sync": "node tools/sync-skill.js",
     "textures": "node tools/fetch-textures.js"
   },

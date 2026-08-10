@@ -6,7 +6,9 @@ lifecycle: serialize, save, load, export to a portable file, import. This layer 
 schemas that every other layer references.
 
 ## Inputs (params in)
-- `save(Adventure) -> { id }`
+- `save(Adventure, generatedAssets?) -> { id }` - `generatedAssets` are the entries for files no base
+  kit carries (a building somebody built as a GLB). They are kept with the adventure and come back in
+  its export, so it opens on a machine that only has the kits.
 - `load(id) -> Adventure`
 - `list() -> [{ id, title, instanceCount }]`
 - `export(id) -> Bundle` / `exportFile(id) -> string` (the portable JSON file; `GET /adventure/:id/export`)
