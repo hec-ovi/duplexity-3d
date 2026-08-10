@@ -39,6 +39,7 @@ never load the whole codebase. This is the "resolver" in the thin-harness-fat-sk
 | The menus, adventure browser, new/import/export screens (app chrome) | `layers/ux-shell/` |
 | The catalog of usable 3D pieces (kit parts, generated assets) | `layers/asset-registry/` |
 | Reading a GLB somebody else built: how big it is, where it stands, what it costs | `layers/glb/` |
+| The portable city file: which assets a city uses and where each thing stands | `layers/city-doc/` |
 | Generating or enriching 3D assets (ComfyUI / API) | `layers/asset-gen/` |
 | Swapping a text LLM / TTS / image model provider | that layer's `providers/` adapter (config) |
 | The `POST /adventure` author, `POST /interaction` brain, or `GET/POST` export/import routes | `server/` (backend composition root) |

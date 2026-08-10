@@ -95,6 +95,9 @@ export const SCHEMA_ID = {
   glb: {
     facts: `${BASE}/glb/glb-facts.json`,
   },
+  cityDoc: {
+    cityDoc: `${BASE}/city-doc/city-doc.json`,
+  },
 };
 
 function collectSchemaFiles() {

@@ -1,0 +1,83 @@
+{
+  "id": "ashgate",
+  "theme": "city",
+  "rules": { "mapKind": "street", "label": "Ashgate", "wet": 0.4 },
+  "rooms": [
+    {
+      "id": "ground",
+      "position": [0, 0, 0],
+      "size": [168, 140, 168],
+      "floorKit": "kaykit.city.road",
+      "wallKit": "kaykit.city.facade",
+      "open": true,
+      "objects": [],
+      "inventory": [],
+      "zones": [
+        { "id": "road", "kind": "road", "position": [0, 0, 0], "size": [168, 168] },
+        { "id": "pavement-0", "kind": "sidewalk", "position": [-52, 0, -52], "size": [40, 40] }
+      ],
+      "blocks": [
+        {
+          "id": "mass-ashgate-b1",
+          "position": [-52, 0, -52],
+          "size": [14, 48, 18],
+          "assetRef": "glb.the-vault",
+          "rotationY": 1.5707963267948966,
+          "label": "The Vault",
+          "floors": 15,
+          "program": "office"
+        },
+        {
+          "id": "mass-ashgate-b2",
+          "position": [12, 0, -52],
+          "size": [22, 26, 18],
+          "assetRef": "kaykit.city.facade",
+          "label": "Ashgate 2",
+          "floors": 8,
+          "program": "apartments"
+        }
+      ],
+      "skyline": [{ "id": "far-1", "position": [-96, 0, 96], "size": [24, 70, 24], "floors": 20 }],
+      "lights": [
+        { "id": "lamp-0-0", "kind": "street_lamp", "position": [-52, 0, -70] },
+        {
+          "id": "sign-door-ashgate-b1",
+          "kind": "sign",
+          "blockId": "mass-ashgate-b1",
+          "position": [-52, 0, -61.6],
+          "facing": 3.141592653589793
+        }
+      ]
+    }
+  ],
+  "portals": [
+    {
+      "id": "door-ashgate-b1",
+      "roomA": "ground",
+      "roomB": "LINK",
+      "blockId": "mass-ashgate-b1",
+      "position": [-52, 0, -61],
+      "axis": "z",
+      "size": [2, 3],
+      "link": {
+        "instanceId": "ashgate-b1-f1",
+        "spawnRoomId": "entry",
+        "spawnAt": [-52, 0, -62.8],
+        "facing": 3.141592653589793,
+        "kind": "enter"
+      }
+    },
+    {
+      "id": "ashgate-gate",
+      "roomA": "ground",
+      "roomB": "EXIT",
+      "position": [84, 0, 0],
+      "axis": "x",
+      "size": [6, 4],
+      "lock": { "rule": "all_cleared" }
+    }
+  ],
+  "npcs": [],
+  "goal": { "type": "reach_exit", "portalId": "ashgate-gate" },
+  "spawn": { "position": [-78, 0, 0], "facing": -1.5707963267948966 }
+}

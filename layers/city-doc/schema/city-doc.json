@@ -1,0 +1,176 @@
+{
+  "$id": "https://doplexity-3d.dev/schema/city-doc/city-doc.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CityDoc",
+  "description": "A city as assets and coordinates: which files it uses, what stands where, what the ground is, where the doors and the lights are. Metres, Y up, a building's position is the centre of its footprint at ground level, which is how a building GLB is written. Engine-agnostic on purpose: the cast, the goals and what is behind each door are the game, and live elsewhere.",
+  "type": "object",
+  "properties": {
+    "format": { "const": "duplexity-city/1" },
+    "id": { "type": "string" },
+    "label": { "type": "string" },
+    "theme": { "type": "string" },
+    "units": { "const": "metres" },
+    "up": { "const": "Y" },
+    "ground": {
+      "type": "object",
+      "description": "The open floor everything stands on, centred on the origin.",
+      "properties": {
+        "id": { "type": "string", "description": "What the open floor is called, for the doors that open onto it." },
+        "size": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Width and depth in metres."
+        },
+        "y": { "type": "number", "description": "Height of the floor. 0 unless the city sits on a shelf." },
+        "limit": { "type": "number", "description": "How high the edge of the level stops you. Drawn as nothing." },
+        "wet": { "type": "number", "minimum": 0, "maximum": 1, "description": "How wet the streets are. It never rains." },
+        "kit": {
+          "type": "object",
+          "description": "Which catalog pieces the ground and the plain masses are made of.",
+          "properties": {
+            "floor": { "type": "string" },
+            "wall": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["size"],
+      "additionalProperties": false
+    },
+    "assets": {
+      "type": "array",
+      "description": "Every file this city uses, and what each one is. A building with no asset is one the engine draws itself from its size.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "file": { "type": "string", "description": "Where the GLB is, relative to this document." },
+          "size": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "anchor": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "doors": { "type": "string", "enum": ["own", "none"] },
+          "doorFace": { "type": "string", "enum": ["north", "south", "east", "west"] },
+          "floors": { "type": "integer", "minimum": 1 },
+          "license": { "type": "string" }
+        },
+        "required": ["id", "file", "size", "license"],
+        "additionalProperties": false
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "description": "What the ground IS, marked out on it: roadway, pavement, square. Walked over, never collided with.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          "asset": { "type": "string" }
+        },
+        "required": ["id", "kind", "position", "size"],
+        "additionalProperties": false
+      }
+    },
+    "buildings": {
+      "type": "array",
+      "description": "What stands on the ground. `position` is the centre of the footprint at ground level; `size` is the space it takes, already turned. With an `asset` the file IS the building; without one, `size`, `floors` and `program` are enough to draw a mass.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "size": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "rotationY": { "type": "number", "description": "Radians about Y. The size given is already the turned one." },
+          "asset": { "type": "string" },
+          "floors": { "type": "integer", "minimum": 1 },
+          "program": { "type": "string" },
+          "door": {
+            "type": "object",
+            "description": "The way in, on a face of this building. Absent means it is sealed: scenery.",
+            "properties": {
+              "id": { "type": "string" },
+              "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "axis": { "type": "string", "enum": ["x", "z"] },
+              "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "leadsTo": {
+                "type": "object",
+                "description": "Where walking through it puts you. Another document holds that place.",
+                "properties": {
+                  "instance": { "type": "string" },
+                  "room": { "type": "string" },
+                  "at": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+                  "facing": { "type": "number" },
+                  "kind": { "type": "string" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["id", "position", "axis", "size"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["id", "position", "size"],
+        "additionalProperties": false
+      }
+    },
+    "skyline": {
+      "type": "array",
+      "description": "The city carrying on past the walkable ground: looked at, never reached.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "size": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "floors": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["id", "position", "size"],
+        "additionalProperties": false
+      }
+    },
+    "lights": {
+      "type": "array",
+      "description": "Where light STANDS. How tall it is and what colour it burns is the engine's decision.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+          "facing": { "type": "number" },
+          "on": { "type": "string", "description": "The building it is fixed to, for a sign over a door." }
+        },
+        "required": ["id", "kind", "position"],
+        "additionalProperties": false
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "properties": {
+        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "facing": { "type": "number" }
+      },
+      "required": ["position"],
+      "additionalProperties": false
+    },
+    "exit": {
+      "type": "object",
+      "description": "The way out of the city: a gap in the boundary, shut until the run is cleared.",
+      "properties": {
+        "id": { "type": "string" },
+        "position": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+        "axis": { "type": "string", "enum": ["x", "z"] },
+        "size": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+        "lock": { "type": "object", "properties": { "rule": { "type": "string" } }, "required": ["rule"], "additionalProperties": false }
+      },
+      "required": ["id", "position", "axis", "size"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["format", "id", "units", "up", "ground", "assets", "buildings"],
+  "additionalProperties": false
+}
